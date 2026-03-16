@@ -6,7 +6,7 @@ import { relations } from 'drizzle-orm'
 export const users = sqliteTable('users', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
 	name: text('name').notNull(),
-	points: integer('points').default(0),
+	points: integer('points').notNull().default(0),
 	type: text('type', { enum: ['parent', 'child'] }).notNull()
 })
 

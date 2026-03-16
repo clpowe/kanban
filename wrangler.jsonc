@@ -1,7 +1,7 @@
 {
 	"name": "kanban",
 	"compatibility_date": "2024-03-11",
-	"main": "./index.ts",
+	"main": "./index.tsx",
 	"d1_databases": [
 		{
 			"binding": "family_kanban",

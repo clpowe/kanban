@@ -1,7 +1,11 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 
-// .wrangler/tmp/bundle-LycRB3/checked-fetch.js
+// .wrangler/tmp/bundle-Kc0nSj/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -26,6 +30,2175 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
     return Reflect.apply(target, thisArg, argArray);
   }
 });
+
+// node_modules/hono/dist/compose.js
+var compose = /* @__PURE__ */ __name((middleware, onError, onNotFound) => {
+  return (context, next) => {
+    let index = -1;
+    return dispatch(0);
+    async function dispatch(i) {
+      if (i <= index) {
+        throw new Error("next() called multiple times");
+      }
+      index = i;
+      let res;
+      let isError = false;
+      let handler;
+      if (middleware[i]) {
+        handler = middleware[i][0][0];
+        context.req.routeIndex = i;
+      } else {
+        handler = i === middleware.length && next || void 0;
+      }
+      if (handler) {
+        try {
+          res = await handler(context, () => dispatch(i + 1));
+        } catch (err) {
+          if (err instanceof Error && onError) {
+            context.error = err;
+            res = await onError(err, context);
+            isError = true;
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        if (context.finalized === false && onNotFound) {
+          res = await onNotFound(context);
+        }
+      }
+      if (res && (context.finalized === false || isError)) {
+        context.res = res;
+      }
+      return context;
+    }
+    __name(dispatch, "dispatch");
+  };
+}, "compose");
+
+// node_modules/hono/dist/request/constants.js
+var GET_MATCH_RESULT = /* @__PURE__ */ Symbol();
+
+// node_modules/hono/dist/utils/body.js
+var parseBody = /* @__PURE__ */ __name(async (request, options = /* @__PURE__ */ Object.create(null)) => {
+  const { all = false, dot = false } = options;
+  const headers = request instanceof HonoRequest ? request.raw.headers : request.headers;
+  const contentType = headers.get("Content-Type");
+  if (contentType?.startsWith("multipart/form-data") || contentType?.startsWith("application/x-www-form-urlencoded")) {
+    return parseFormData(request, { all, dot });
+  }
+  return {};
+}, "parseBody");
+async function parseFormData(request, options) {
+  const formData = await request.formData();
+  if (formData) {
+    return convertFormDataToBodyData(formData, options);
+  }
+  return {};
+}
+__name(parseFormData, "parseFormData");
+function convertFormDataToBodyData(formData, options) {
+  const form3 = /* @__PURE__ */ Object.create(null);
+  formData.forEach((value, key) => {
+    const shouldParseAllValues = options.all || key.endsWith("[]");
+    if (!shouldParseAllValues) {
+      form3[key] = value;
+    } else {
+      handleParsingAllValues(form3, key, value);
+    }
+  });
+  if (options.dot) {
+    Object.entries(form3).forEach(([key, value]) => {
+      const shouldParseDotValues = key.includes(".");
+      if (shouldParseDotValues) {
+        handleParsingNestedValues(form3, key, value);
+        delete form3[key];
+      }
+    });
+  }
+  return form3;
+}
+__name(convertFormDataToBodyData, "convertFormDataToBodyData");
+var handleParsingAllValues = /* @__PURE__ */ __name((form3, key, value) => {
+  if (form3[key] !== void 0) {
+    if (Array.isArray(form3[key])) {
+      ;
+      form3[key].push(value);
+    } else {
+      form3[key] = [form3[key], value];
+    }
+  } else {
+    if (!key.endsWith("[]")) {
+      form3[key] = value;
+    } else {
+      form3[key] = [value];
+    }
+  }
+}, "handleParsingAllValues");
+var handleParsingNestedValues = /* @__PURE__ */ __name((form3, key, value) => {
+  if (/(?:^|\.)__proto__\./.test(key)) {
+    return;
+  }
+  let nestedForm = form3;
+  const keys = key.split(".");
+  keys.forEach((key2, index) => {
+    if (index === keys.length - 1) {
+      nestedForm[key2] = value;
+    } else {
+      if (!nestedForm[key2] || typeof nestedForm[key2] !== "object" || Array.isArray(nestedForm[key2]) || nestedForm[key2] instanceof File) {
+        nestedForm[key2] = /* @__PURE__ */ Object.create(null);
+      }
+      nestedForm = nestedForm[key2];
+    }
+  });
+}, "handleParsingNestedValues");
+
+// node_modules/hono/dist/utils/url.js
+var splitPath = /* @__PURE__ */ __name((path) => {
+  const paths = path.split("/");
+  if (paths[0] === "") {
+    paths.shift();
+  }
+  return paths;
+}, "splitPath");
+var splitRoutingPath = /* @__PURE__ */ __name((routePath) => {
+  const { groups, path } = extractGroupsFromPath(routePath);
+  const paths = splitPath(path);
+  return replaceGroupMarks(paths, groups);
+}, "splitRoutingPath");
+var extractGroupsFromPath = /* @__PURE__ */ __name((path) => {
+  const groups = [];
+  path = path.replace(/\{[^}]+\}/g, (match2, index) => {
+    const mark = `@${index}`;
+    groups.push([mark, match2]);
+    return mark;
+  });
+  return { groups, path };
+}, "extractGroupsFromPath");
+var replaceGroupMarks = /* @__PURE__ */ __name((paths, groups) => {
+  for (let i = groups.length - 1; i >= 0; i--) {
+    const [mark] = groups[i];
+    for (let j = paths.length - 1; j >= 0; j--) {
+      if (paths[j].includes(mark)) {
+        paths[j] = paths[j].replace(mark, groups[i][1]);
+        break;
+      }
+    }
+  }
+  return paths;
+}, "replaceGroupMarks");
+var patternCache = {};
+var getPattern = /* @__PURE__ */ __name((label, next) => {
+  if (label === "*") {
+    return "*";
+  }
+  const match2 = label.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
+  if (match2) {
+    const cacheKey = `${label}#${next}`;
+    if (!patternCache[cacheKey]) {
+      if (match2[2]) {
+        patternCache[cacheKey] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey, match2[1], new RegExp(`^${match2[2]}(?=/${next})`)] : [label, match2[1], new RegExp(`^${match2[2]}$`)];
+      } else {
+        patternCache[cacheKey] = [label, match2[1], true];
+      }
+    }
+    return patternCache[cacheKey];
+  }
+  return null;
+}, "getPattern");
+var tryDecode = /* @__PURE__ */ __name((str, decoder) => {
+  try {
+    return decoder(str);
+  } catch {
+    return str.replace(/(?:%[0-9A-Fa-f]{2})+/g, (match2) => {
+      try {
+        return decoder(match2);
+      } catch {
+        return match2;
+      }
+    });
+  }
+}, "tryDecode");
+var tryDecodeURI = /* @__PURE__ */ __name((str) => tryDecode(str, decodeURI), "tryDecodeURI");
+var getPath = /* @__PURE__ */ __name((request) => {
+  const url = request.url;
+  const start = url.indexOf("/", url.indexOf(":") + 4);
+  let i = start;
+  for (; i < url.length; i++) {
+    const charCode = url.charCodeAt(i);
+    if (charCode === 37) {
+      const queryIndex = url.indexOf("?", i);
+      const hashIndex = url.indexOf("#", i);
+      const end = queryIndex === -1 ? hashIndex === -1 ? void 0 : hashIndex : hashIndex === -1 ? queryIndex : Math.min(queryIndex, hashIndex);
+      const path = url.slice(start, end);
+      return tryDecodeURI(path.includes("%25") ? path.replace(/%25/g, "%2525") : path);
+    } else if (charCode === 63 || charCode === 35) {
+      break;
+    }
+  }
+  return url.slice(start, i);
+}, "getPath");
+var getPathNoStrict = /* @__PURE__ */ __name((request) => {
+  const result = getPath(request);
+  return result.length > 1 && result.at(-1) === "/" ? result.slice(0, -1) : result;
+}, "getPathNoStrict");
+var mergePath = /* @__PURE__ */ __name((base, sub, ...rest) => {
+  if (rest.length) {
+    sub = mergePath(sub, ...rest);
+  }
+  return `${base?.[0] === "/" ? "" : "/"}${base}${sub === "/" ? "" : `${base?.at(-1) === "/" ? "" : "/"}${sub?.[0] === "/" ? sub.slice(1) : sub}`}`;
+}, "mergePath");
+var checkOptionalParameter = /* @__PURE__ */ __name((path) => {
+  if (path.charCodeAt(path.length - 1) !== 63 || !path.includes(":")) {
+    return null;
+  }
+  const segments = path.split("/");
+  const results = [];
+  let basePath = "";
+  segments.forEach((segment) => {
+    if (segment !== "" && !/\:/.test(segment)) {
+      basePath += "/" + segment;
+    } else if (/\:/.test(segment)) {
+      if (/\?/.test(segment)) {
+        if (results.length === 0 && basePath === "") {
+          results.push("/");
+        } else {
+          results.push(basePath);
+        }
+        const optionalSegment = segment.replace("?", "");
+        basePath += "/" + optionalSegment;
+        results.push(basePath);
+      } else {
+        basePath += "/" + segment;
+      }
+    }
+  });
+  return results.filter((v, i, a) => a.indexOf(v) === i);
+}, "checkOptionalParameter");
+var _decodeURI = /* @__PURE__ */ __name((value) => {
+  if (!/[%+]/.test(value)) {
+    return value;
+  }
+  if (value.indexOf("+") !== -1) {
+    value = value.replace(/\+/g, " ");
+  }
+  return value.indexOf("%") !== -1 ? tryDecode(value, decodeURIComponent_) : value;
+}, "_decodeURI");
+var _getQueryParam = /* @__PURE__ */ __name((url, key, multiple) => {
+  let encoded;
+  if (!multiple && key && !/[%+]/.test(key)) {
+    let keyIndex2 = url.indexOf("?", 8);
+    if (keyIndex2 === -1) {
+      return void 0;
+    }
+    if (!url.startsWith(key, keyIndex2 + 1)) {
+      keyIndex2 = url.indexOf(`&${key}`, keyIndex2 + 1);
+    }
+    while (keyIndex2 !== -1) {
+      const trailingKeyCode = url.charCodeAt(keyIndex2 + key.length + 1);
+      if (trailingKeyCode === 61) {
+        const valueIndex = keyIndex2 + key.length + 2;
+        const endIndex = url.indexOf("&", valueIndex);
+        return _decodeURI(url.slice(valueIndex, endIndex === -1 ? void 0 : endIndex));
+      } else if (trailingKeyCode == 38 || isNaN(trailingKeyCode)) {
+        return "";
+      }
+      keyIndex2 = url.indexOf(`&${key}`, keyIndex2 + 1);
+    }
+    encoded = /[%+]/.test(url);
+    if (!encoded) {
+      return void 0;
+    }
+  }
+  const results = {};
+  encoded ??= /[%+]/.test(url);
+  let keyIndex = url.indexOf("?", 8);
+  while (keyIndex !== -1) {
+    const nextKeyIndex = url.indexOf("&", keyIndex + 1);
+    let valueIndex = url.indexOf("=", keyIndex);
+    if (valueIndex > nextKeyIndex && nextKeyIndex !== -1) {
+      valueIndex = -1;
+    }
+    let name = url.slice(
+      keyIndex + 1,
+      valueIndex === -1 ? nextKeyIndex === -1 ? void 0 : nextKeyIndex : valueIndex
+    );
+    if (encoded) {
+      name = _decodeURI(name);
+    }
+    keyIndex = nextKeyIndex;
+    if (name === "") {
+      continue;
+    }
+    let value;
+    if (valueIndex === -1) {
+      value = "";
+    } else {
+      value = url.slice(valueIndex + 1, nextKeyIndex === -1 ? void 0 : nextKeyIndex);
+      if (encoded) {
+        value = _decodeURI(value);
+      }
+    }
+    if (multiple) {
+      if (!(results[name] && Array.isArray(results[name]))) {
+        results[name] = [];
+      }
+      ;
+      results[name].push(value);
+    } else {
+      results[name] ??= value;
+    }
+  }
+  return key ? results[key] : results;
+}, "_getQueryParam");
+var getQueryParam = _getQueryParam;
+var getQueryParams = /* @__PURE__ */ __name((url, key) => {
+  return _getQueryParam(url, key, true);
+}, "getQueryParams");
+var decodeURIComponent_ = decodeURIComponent;
+
+// node_modules/hono/dist/request.js
+var tryDecodeURIComponent = /* @__PURE__ */ __name((str) => tryDecode(str, decodeURIComponent_), "tryDecodeURIComponent");
+var HonoRequest = class {
+  static {
+    __name(this, "HonoRequest");
+  }
+  /**
+   * `.raw` can get the raw Request object.
+   *
+   * @see {@link https://hono.dev/docs/api/request#raw}
+   *
+   * @example
+   * ```ts
+   * // For Cloudflare Workers
+   * app.post('/', async (c) => {
+   *   const metadata = c.req.raw.cf?.hostMetadata?
+   *   ...
+   * })
+   * ```
+   */
+  raw;
+  #validatedData;
+  // Short name of validatedData
+  #matchResult;
+  routeIndex = 0;
+  /**
+   * `.path` can get the pathname of the request.
+   *
+   * @see {@link https://hono.dev/docs/api/request#path}
+   *
+   * @example
+   * ```ts
+   * app.get('/about/me', (c) => {
+   *   const pathname = c.req.path // `/about/me`
+   * })
+   * ```
+   */
+  path;
+  bodyCache = {};
+  constructor(request, path = "/", matchResult = [[]]) {
+    this.raw = request;
+    this.path = path;
+    this.#matchResult = matchResult;
+    this.#validatedData = {};
+  }
+  param(key) {
+    return key ? this.#getDecodedParam(key) : this.#getAllDecodedParams();
+  }
+  #getDecodedParam(key) {
+    const paramKey = this.#matchResult[0][this.routeIndex][1][key];
+    const param = this.#getParamValue(paramKey);
+    return param && /\%/.test(param) ? tryDecodeURIComponent(param) : param;
+  }
+  #getAllDecodedParams() {
+    const decoded = {};
+    const keys = Object.keys(this.#matchResult[0][this.routeIndex][1]);
+    for (const key of keys) {
+      const value = this.#getParamValue(this.#matchResult[0][this.routeIndex][1][key]);
+      if (value !== void 0) {
+        decoded[key] = /\%/.test(value) ? tryDecodeURIComponent(value) : value;
+      }
+    }
+    return decoded;
+  }
+  #getParamValue(paramKey) {
+    return this.#matchResult[1] ? this.#matchResult[1][paramKey] : paramKey;
+  }
+  query(key) {
+    return getQueryParam(this.url, key);
+  }
+  queries(key) {
+    return getQueryParams(this.url, key);
+  }
+  header(name) {
+    if (name) {
+      return this.raw.headers.get(name) ?? void 0;
+    }
+    const headerData = {};
+    this.raw.headers.forEach((value, key) => {
+      headerData[key] = value;
+    });
+    return headerData;
+  }
+  async parseBody(options) {
+    return this.bodyCache.parsedBody ??= await parseBody(this, options);
+  }
+  #cachedBody = /* @__PURE__ */ __name((key) => {
+    const { bodyCache, raw: raw2 } = this;
+    const cachedBody = bodyCache[key];
+    if (cachedBody) {
+      return cachedBody;
+    }
+    const anyCachedKey = Object.keys(bodyCache)[0];
+    if (anyCachedKey) {
+      return bodyCache[anyCachedKey].then((body) => {
+        if (anyCachedKey === "json") {
+          body = JSON.stringify(body);
+        }
+        return new Response(body)[key]();
+      });
+    }
+    return bodyCache[key] = raw2[key]();
+  }, "#cachedBody");
+  /**
+   * `.json()` can parse Request body of type `application/json`
+   *
+   * @see {@link https://hono.dev/docs/api/request#json}
+   *
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.json()
+   * })
+   * ```
+   */
+  json() {
+    return this.#cachedBody("text").then((text2) => JSON.parse(text2));
+  }
+  /**
+   * `.text()` can parse Request body of type `text/plain`
+   *
+   * @see {@link https://hono.dev/docs/api/request#text}
+   *
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.text()
+   * })
+   * ```
+   */
+  text() {
+    return this.#cachedBody("text");
+  }
+  /**
+   * `.arrayBuffer()` parse Request body as an `ArrayBuffer`
+   *
+   * @see {@link https://hono.dev/docs/api/request#arraybuffer}
+   *
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.arrayBuffer()
+   * })
+   * ```
+   */
+  arrayBuffer() {
+    return this.#cachedBody("arrayBuffer");
+  }
+  /**
+   * Parses the request body as a `Blob`.
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.blob();
+   * });
+   * ```
+   * @see https://hono.dev/docs/api/request#blob
+   */
+  blob() {
+    return this.#cachedBody("blob");
+  }
+  /**
+   * Parses the request body as `FormData`.
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.formData();
+   * });
+   * ```
+   * @see https://hono.dev/docs/api/request#formdata
+   */
+  formData() {
+    return this.#cachedBody("formData");
+  }
+  /**
+   * Adds validated data to the request.
+   *
+   * @param target - The target of the validation.
+   * @param data - The validated data to add.
+   */
+  addValidatedData(target, data) {
+    this.#validatedData[target] = data;
+  }
+  valid(target) {
+    return this.#validatedData[target];
+  }
+  /**
+   * `.url()` can get the request url strings.
+   *
+   * @see {@link https://hono.dev/docs/api/request#url}
+   *
+   * @example
+   * ```ts
+   * app.get('/about/me', (c) => {
+   *   const url = c.req.url // `http://localhost:8787/about/me`
+   *   ...
+   * })
+   * ```
+   */
+  get url() {
+    return this.raw.url;
+  }
+  /**
+   * `.method()` can get the method name of the request.
+   *
+   * @see {@link https://hono.dev/docs/api/request#method}
+   *
+   * @example
+   * ```ts
+   * app.get('/about/me', (c) => {
+   *   const method = c.req.method // `GET`
+   * })
+   * ```
+   */
+  get method() {
+    return this.raw.method;
+  }
+  get [GET_MATCH_RESULT]() {
+    return this.#matchResult;
+  }
+  /**
+   * `.matchedRoutes()` can return a matched route in the handler
+   *
+   * @deprecated
+   *
+   * Use matchedRoutes helper defined in "hono/route" instead.
+   *
+   * @see {@link https://hono.dev/docs/api/request#matchedroutes}
+   *
+   * @example
+   * ```ts
+   * app.use('*', async function logger(c, next) {
+   *   await next()
+   *   c.req.matchedRoutes.forEach(({ handler, method, path }, i) => {
+   *     const name = handler.name || (handler.length < 2 ? '[handler]' : '[middleware]')
+   *     console.log(
+   *       method,
+   *       ' ',
+   *       path,
+   *       ' '.repeat(Math.max(10 - path.length, 0)),
+   *       name,
+   *       i === c.req.routeIndex ? '<- respond from here' : ''
+   *     )
+   *   })
+   * })
+   * ```
+   */
+  get matchedRoutes() {
+    return this.#matchResult[0].map(([[, route]]) => route);
+  }
+  /**
+   * `routePath()` can retrieve the path registered within the handler
+   *
+   * @deprecated
+   *
+   * Use routePath helper defined in "hono/route" instead.
+   *
+   * @see {@link https://hono.dev/docs/api/request#routepath}
+   *
+   * @example
+   * ```ts
+   * app.get('/posts/:id', (c) => {
+   *   return c.json({ path: c.req.routePath })
+   * })
+   * ```
+   */
+  get routePath() {
+    return this.#matchResult[0].map(([[, route]]) => route)[this.routeIndex].path;
+  }
+};
+
+// node_modules/hono/dist/utils/html.js
+var HtmlEscapedCallbackPhase = {
+  Stringify: 1,
+  BeforeStream: 2,
+  Stream: 3
+};
+var raw = /* @__PURE__ */ __name((value, callbacks) => {
+  const escapedString = new String(value);
+  escapedString.isEscaped = true;
+  escapedString.callbacks = callbacks;
+  return escapedString;
+}, "raw");
+var escapeRe = /[&<>'"]/;
+var stringBufferToString = /* @__PURE__ */ __name(async (buffer, callbacks) => {
+  let str = "";
+  callbacks ||= [];
+  const resolvedBuffer = await Promise.all(buffer);
+  for (let i = resolvedBuffer.length - 1; ; i--) {
+    str += resolvedBuffer[i];
+    i--;
+    if (i < 0) {
+      break;
+    }
+    let r = resolvedBuffer[i];
+    if (typeof r === "object") {
+      callbacks.push(...r.callbacks || []);
+    }
+    const isEscaped = r.isEscaped;
+    r = await (typeof r === "object" ? r.toString() : r);
+    if (typeof r === "object") {
+      callbacks.push(...r.callbacks || []);
+    }
+    if (r.isEscaped ?? isEscaped) {
+      str += r;
+    } else {
+      const buf = [str];
+      escapeToBuffer(r, buf);
+      str = buf[0];
+    }
+  }
+  return raw(str, callbacks);
+}, "stringBufferToString");
+var escapeToBuffer = /* @__PURE__ */ __name((str, buffer) => {
+  const match2 = str.search(escapeRe);
+  if (match2 === -1) {
+    buffer[0] += str;
+    return;
+  }
+  let escape;
+  let index;
+  let lastIndex = 0;
+  for (index = match2; index < str.length; index++) {
+    switch (str.charCodeAt(index)) {
+      case 34:
+        escape = "&quot;";
+        break;
+      case 39:
+        escape = "&#39;";
+        break;
+      case 38:
+        escape = "&amp;";
+        break;
+      case 60:
+        escape = "&lt;";
+        break;
+      case 62:
+        escape = "&gt;";
+        break;
+      default:
+        continue;
+    }
+    buffer[0] += str.substring(lastIndex, index) + escape;
+    lastIndex = index + 1;
+  }
+  buffer[0] += str.substring(lastIndex, index);
+}, "escapeToBuffer");
+var resolveCallbackSync = /* @__PURE__ */ __name((str) => {
+  const callbacks = str.callbacks;
+  if (!callbacks?.length) {
+    return str;
+  }
+  const buffer = [str];
+  const context = {};
+  callbacks.forEach((c) => c({ phase: HtmlEscapedCallbackPhase.Stringify, buffer, context }));
+  return buffer[0];
+}, "resolveCallbackSync");
+var resolveCallback = /* @__PURE__ */ __name(async (str, phase, preserveCallbacks, context, buffer) => {
+  if (typeof str === "object" && !(str instanceof String)) {
+    if (!(str instanceof Promise)) {
+      str = str.toString();
+    }
+    if (str instanceof Promise) {
+      str = await str;
+    }
+  }
+  const callbacks = str.callbacks;
+  if (!callbacks?.length) {
+    return Promise.resolve(str);
+  }
+  if (buffer) {
+    buffer[0] += str;
+  } else {
+    buffer = [str];
+  }
+  const resStr = Promise.all(callbacks.map((c) => c({ phase, buffer, context }))).then(
+    (res) => Promise.all(
+      res.filter(Boolean).map((str2) => resolveCallback(str2, phase, false, context, buffer))
+    ).then(() => buffer[0])
+  );
+  if (preserveCallbacks) {
+    return raw(await resStr, callbacks);
+  } else {
+    return resStr;
+  }
+}, "resolveCallback");
+
+// node_modules/hono/dist/context.js
+var TEXT_PLAIN = "text/plain; charset=UTF-8";
+var setDefaultContentType = /* @__PURE__ */ __name((contentType, headers) => {
+  return {
+    "Content-Type": contentType,
+    ...headers
+  };
+}, "setDefaultContentType");
+var createResponseInstance = /* @__PURE__ */ __name((body, init) => new Response(body, init), "createResponseInstance");
+var Context = class {
+  static {
+    __name(this, "Context");
+  }
+  #rawRequest;
+  #req;
+  /**
+   * `.env` can get bindings (environment variables, secrets, KV namespaces, D1 database, R2 bucket etc.) in Cloudflare Workers.
+   *
+   * @see {@link https://hono.dev/docs/api/context#env}
+   *
+   * @example
+   * ```ts
+   * // Environment object for Cloudflare Workers
+   * app.get('*', async c => {
+   *   const counter = c.env.COUNTER
+   * })
+   * ```
+   */
+  env = {};
+  #var;
+  finalized = false;
+  /**
+   * `.error` can get the error object from the middleware if the Handler throws an error.
+   *
+   * @see {@link https://hono.dev/docs/api/context#error}
+   *
+   * @example
+   * ```ts
+   * app.use('*', async (c, next) => {
+   *   await next()
+   *   if (c.error) {
+   *     // do something...
+   *   }
+   * })
+   * ```
+   */
+  error;
+  #status;
+  #executionCtx;
+  #res;
+  #layout;
+  #renderer;
+  #notFoundHandler;
+  #preparedHeaders;
+  #matchResult;
+  #path;
+  /**
+   * Creates an instance of the Context class.
+   *
+   * @param req - The Request object.
+   * @param options - Optional configuration options for the context.
+   */
+  constructor(req, options) {
+    this.#rawRequest = req;
+    if (options) {
+      this.#executionCtx = options.executionCtx;
+      this.env = options.env;
+      this.#notFoundHandler = options.notFoundHandler;
+      this.#path = options.path;
+      this.#matchResult = options.matchResult;
+    }
+  }
+  /**
+   * `.req` is the instance of {@link HonoRequest}.
+   */
+  get req() {
+    this.#req ??= new HonoRequest(this.#rawRequest, this.#path, this.#matchResult);
+    return this.#req;
+  }
+  /**
+   * @see {@link https://hono.dev/docs/api/context#event}
+   * The FetchEvent associated with the current request.
+   *
+   * @throws Will throw an error if the context does not have a FetchEvent.
+   */
+  get event() {
+    if (this.#executionCtx && "respondWith" in this.#executionCtx) {
+      return this.#executionCtx;
+    } else {
+      throw Error("This context has no FetchEvent");
+    }
+  }
+  /**
+   * @see {@link https://hono.dev/docs/api/context#executionctx}
+   * The ExecutionContext associated with the current request.
+   *
+   * @throws Will throw an error if the context does not have an ExecutionContext.
+   */
+  get executionCtx() {
+    if (this.#executionCtx) {
+      return this.#executionCtx;
+    } else {
+      throw Error("This context has no ExecutionContext");
+    }
+  }
+  /**
+   * @see {@link https://hono.dev/docs/api/context#res}
+   * The Response object for the current request.
+   */
+  get res() {
+    return this.#res ||= createResponseInstance(null, {
+      headers: this.#preparedHeaders ??= new Headers()
+    });
+  }
+  /**
+   * Sets the Response object for the current request.
+   *
+   * @param _res - The Response object to set.
+   */
+  set res(_res) {
+    if (this.#res && _res) {
+      _res = createResponseInstance(_res.body, _res);
+      for (const [k, v] of this.#res.headers.entries()) {
+        if (k === "content-type") {
+          continue;
+        }
+        if (k === "set-cookie") {
+          const cookies = this.#res.headers.getSetCookie();
+          _res.headers.delete("set-cookie");
+          for (const cookie of cookies) {
+            _res.headers.append("set-cookie", cookie);
+          }
+        } else {
+          _res.headers.set(k, v);
+        }
+      }
+    }
+    this.#res = _res;
+    this.finalized = true;
+  }
+  /**
+   * `.render()` can create a response within a layout.
+   *
+   * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
+   *
+   * @example
+   * ```ts
+   * app.get('/', (c) => {
+   *   return c.render('Hello!')
+   * })
+   * ```
+   */
+  render = /* @__PURE__ */ __name((...args) => {
+    this.#renderer ??= (content) => this.html(content);
+    return this.#renderer(...args);
+  }, "render");
+  /**
+   * Sets the layout for the response.
+   *
+   * @param layout - The layout to set.
+   * @returns The layout function.
+   */
+  setLayout = /* @__PURE__ */ __name((layout) => this.#layout = layout, "setLayout");
+  /**
+   * Gets the current layout for the response.
+   *
+   * @returns The current layout function.
+   */
+  getLayout = /* @__PURE__ */ __name(() => this.#layout, "getLayout");
+  /**
+   * `.setRenderer()` can set the layout in the custom middleware.
+   *
+   * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
+   *
+   * @example
+   * ```tsx
+   * app.use('*', async (c, next) => {
+   *   c.setRenderer((content) => {
+   *     return c.html(
+   *       <html>
+   *         <body>
+   *           <p>{content}</p>
+   *         </body>
+   *       </html>
+   *     )
+   *   })
+   *   await next()
+   * })
+   * ```
+   */
+  setRenderer = /* @__PURE__ */ __name((renderer) => {
+    this.#renderer = renderer;
+  }, "setRenderer");
+  /**
+   * `.header()` can set headers.
+   *
+   * @see {@link https://hono.dev/docs/api/context#header}
+   *
+   * @example
+   * ```ts
+   * app.get('/welcome', (c) => {
+   *   // Set headers
+   *   c.header('X-Message', 'Hello!')
+   *   c.header('Content-Type', 'text/plain')
+   *
+   *   return c.body('Thank you for coming')
+   * })
+   * ```
+   */
+  header = /* @__PURE__ */ __name((name, value, options) => {
+    if (this.finalized) {
+      this.#res = createResponseInstance(this.#res.body, this.#res);
+    }
+    const headers = this.#res ? this.#res.headers : this.#preparedHeaders ??= new Headers();
+    if (value === void 0) {
+      headers.delete(name);
+    } else if (options?.append) {
+      headers.append(name, value);
+    } else {
+      headers.set(name, value);
+    }
+  }, "header");
+  status = /* @__PURE__ */ __name((status) => {
+    this.#status = status;
+  }, "status");
+  /**
+   * `.set()` can set the value specified by the key.
+   *
+   * @see {@link https://hono.dev/docs/api/context#set-get}
+   *
+   * @example
+   * ```ts
+   * app.use('*', async (c, next) => {
+   *   c.set('message', 'Hono is hot!!')
+   *   await next()
+   * })
+   * ```
+   */
+  set = /* @__PURE__ */ __name((key, value) => {
+    this.#var ??= /* @__PURE__ */ new Map();
+    this.#var.set(key, value);
+  }, "set");
+  /**
+   * `.get()` can use the value specified by the key.
+   *
+   * @see {@link https://hono.dev/docs/api/context#set-get}
+   *
+   * @example
+   * ```ts
+   * app.get('/', (c) => {
+   *   const message = c.get('message')
+   *   return c.text(`The message is "${message}"`)
+   * })
+   * ```
+   */
+  get = /* @__PURE__ */ __name((key) => {
+    return this.#var ? this.#var.get(key) : void 0;
+  }, "get");
+  /**
+   * `.var` can access the value of a variable.
+   *
+   * @see {@link https://hono.dev/docs/api/context#var}
+   *
+   * @example
+   * ```ts
+   * const result = c.var.client.oneMethod()
+   * ```
+   */
+  // c.var.propName is a read-only
+  get var() {
+    if (!this.#var) {
+      return {};
+    }
+    return Object.fromEntries(this.#var);
+  }
+  #newResponse(data, arg, headers) {
+    const responseHeaders = this.#res ? new Headers(this.#res.headers) : this.#preparedHeaders ?? new Headers();
+    if (typeof arg === "object" && "headers" in arg) {
+      const argHeaders = arg.headers instanceof Headers ? arg.headers : new Headers(arg.headers);
+      for (const [key, value] of argHeaders) {
+        if (key.toLowerCase() === "set-cookie") {
+          responseHeaders.append(key, value);
+        } else {
+          responseHeaders.set(key, value);
+        }
+      }
+    }
+    if (headers) {
+      for (const [k, v] of Object.entries(headers)) {
+        if (typeof v === "string") {
+          responseHeaders.set(k, v);
+        } else {
+          responseHeaders.delete(k);
+          for (const v2 of v) {
+            responseHeaders.append(k, v2);
+          }
+        }
+      }
+    }
+    const status = typeof arg === "number" ? arg : arg?.status ?? this.#status;
+    return createResponseInstance(data, { status, headers: responseHeaders });
+  }
+  newResponse = /* @__PURE__ */ __name((...args) => this.#newResponse(...args), "newResponse");
+  /**
+   * `.body()` can return the HTTP response.
+   * You can set headers with `.header()` and set HTTP status code with `.status`.
+   * This can also be set in `.text()`, `.json()` and so on.
+   *
+   * @see {@link https://hono.dev/docs/api/context#body}
+   *
+   * @example
+   * ```ts
+   * app.get('/welcome', (c) => {
+   *   // Set headers
+   *   c.header('X-Message', 'Hello!')
+   *   c.header('Content-Type', 'text/plain')
+   *   // Set HTTP status code
+   *   c.status(201)
+   *
+   *   // Return the response body
+   *   return c.body('Thank you for coming')
+   * })
+   * ```
+   */
+  body = /* @__PURE__ */ __name((data, arg, headers) => this.#newResponse(data, arg, headers), "body");
+  /**
+   * `.text()` can render text as `Content-Type:text/plain`.
+   *
+   * @see {@link https://hono.dev/docs/api/context#text}
+   *
+   * @example
+   * ```ts
+   * app.get('/say', (c) => {
+   *   return c.text('Hello!')
+   * })
+   * ```
+   */
+  text = /* @__PURE__ */ __name((text2, arg, headers) => {
+    return !this.#preparedHeaders && !this.#status && !arg && !headers && !this.finalized ? new Response(text2) : this.#newResponse(
+      text2,
+      arg,
+      setDefaultContentType(TEXT_PLAIN, headers)
+    );
+  }, "text");
+  /**
+   * `.json()` can render JSON as `Content-Type:application/json`.
+   *
+   * @see {@link https://hono.dev/docs/api/context#json}
+   *
+   * @example
+   * ```ts
+   * app.get('/api', (c) => {
+   *   return c.json({ message: 'Hello!' })
+   * })
+   * ```
+   */
+  json = /* @__PURE__ */ __name((object, arg, headers) => {
+    return this.#newResponse(
+      JSON.stringify(object),
+      arg,
+      setDefaultContentType("application/json", headers)
+    );
+  }, "json");
+  html = /* @__PURE__ */ __name((html2, arg, headers) => {
+    const res = /* @__PURE__ */ __name((html22) => this.#newResponse(html22, arg, setDefaultContentType("text/html; charset=UTF-8", headers)), "res");
+    return typeof html2 === "object" ? resolveCallback(html2, HtmlEscapedCallbackPhase.Stringify, false, {}).then(res) : res(html2);
+  }, "html");
+  /**
+   * `.redirect()` can Redirect, default status code is 302.
+   *
+   * @see {@link https://hono.dev/docs/api/context#redirect}
+   *
+   * @example
+   * ```ts
+   * app.get('/redirect', (c) => {
+   *   return c.redirect('/')
+   * })
+   * app.get('/redirect-permanently', (c) => {
+   *   return c.redirect('/', 301)
+   * })
+   * ```
+   */
+  redirect = /* @__PURE__ */ __name((location, status) => {
+    const locationString = String(location);
+    this.header(
+      "Location",
+      // Multibyes should be encoded
+      // eslint-disable-next-line no-control-regex
+      !/[^\x00-\xFF]/.test(locationString) ? locationString : encodeURI(locationString)
+    );
+    return this.newResponse(null, status ?? 302);
+  }, "redirect");
+  /**
+   * `.notFound()` can return the Not Found Response.
+   *
+   * @see {@link https://hono.dev/docs/api/context#notfound}
+   *
+   * @example
+   * ```ts
+   * app.get('/notfound', (c) => {
+   *   return c.notFound()
+   * })
+   * ```
+   */
+  notFound = /* @__PURE__ */ __name(() => {
+    this.#notFoundHandler ??= () => createResponseInstance();
+    return this.#notFoundHandler(this);
+  }, "notFound");
+};
+
+// node_modules/hono/dist/router.js
+var METHOD_NAME_ALL = "ALL";
+var METHOD_NAME_ALL_LOWERCASE = "all";
+var METHODS = ["get", "post", "put", "delete", "options", "patch"];
+var MESSAGE_MATCHER_IS_ALREADY_BUILT = "Can not add a route since the matcher is already built.";
+var UnsupportedPathError = class extends Error {
+  static {
+    __name(this, "UnsupportedPathError");
+  }
+};
+
+// node_modules/hono/dist/utils/constants.js
+var COMPOSED_HANDLER = "__COMPOSED_HANDLER";
+
+// node_modules/hono/dist/hono-base.js
+var notFoundHandler = /* @__PURE__ */ __name((c) => {
+  return c.text("404 Not Found", 404);
+}, "notFoundHandler");
+var errorHandler = /* @__PURE__ */ __name((err, c) => {
+  if ("getResponse" in err) {
+    const res = err.getResponse();
+    return c.newResponse(res.body, res);
+  }
+  console.error(err);
+  return c.text("Internal Server Error", 500);
+}, "errorHandler");
+var Hono = class _Hono {
+  static {
+    __name(this, "_Hono");
+  }
+  get;
+  post;
+  put;
+  delete;
+  options;
+  patch;
+  all;
+  on;
+  use;
+  /*
+    This class is like an abstract class and does not have a router.
+    To use it, inherit the class and implement router in the constructor.
+  */
+  router;
+  getPath;
+  // Cannot use `#` because it requires visibility at JavaScript runtime.
+  _basePath = "/";
+  #path = "/";
+  routes = [];
+  constructor(options = {}) {
+    const allMethods = [...METHODS, METHOD_NAME_ALL_LOWERCASE];
+    allMethods.forEach((method) => {
+      this[method] = (args1, ...args) => {
+        if (typeof args1 === "string") {
+          this.#path = args1;
+        } else {
+          this.#addRoute(method, this.#path, args1);
+        }
+        args.forEach((handler) => {
+          this.#addRoute(method, this.#path, handler);
+        });
+        return this;
+      };
+    });
+    this.on = (method, path, ...handlers) => {
+      for (const p of [path].flat()) {
+        this.#path = p;
+        for (const m of [method].flat()) {
+          handlers.map((handler) => {
+            this.#addRoute(m.toUpperCase(), this.#path, handler);
+          });
+        }
+      }
+      return this;
+    };
+    this.use = (arg1, ...handlers) => {
+      if (typeof arg1 === "string") {
+        this.#path = arg1;
+      } else {
+        this.#path = "*";
+        handlers.unshift(arg1);
+      }
+      handlers.forEach((handler) => {
+        this.#addRoute(METHOD_NAME_ALL, this.#path, handler);
+      });
+      return this;
+    };
+    const { strict, ...optionsWithoutStrict } = options;
+    Object.assign(this, optionsWithoutStrict);
+    this.getPath = strict ?? true ? options.getPath ?? getPath : getPathNoStrict;
+  }
+  #clone() {
+    const clone = new _Hono({
+      router: this.router,
+      getPath: this.getPath
+    });
+    clone.errorHandler = this.errorHandler;
+    clone.#notFoundHandler = this.#notFoundHandler;
+    clone.routes = this.routes;
+    return clone;
+  }
+  #notFoundHandler = notFoundHandler;
+  // Cannot use `#` because it requires visibility at JavaScript runtime.
+  errorHandler = errorHandler;
+  /**
+   * `.route()` allows grouping other Hono instance in routes.
+   *
+   * @see {@link https://hono.dev/docs/api/routing#grouping}
+   *
+   * @param {string} path - base Path
+   * @param {Hono} app - other Hono instance
+   * @returns {Hono} routed Hono instance
+   *
+   * @example
+   * ```ts
+   * const app = new Hono()
+   * const app2 = new Hono()
+   *
+   * app2.get("/user", (c) => c.text("user"))
+   * app.route("/api", app2) // GET /api/user
+   * ```
+   */
+  route(path, app2) {
+    const subApp = this.basePath(path);
+    app2.routes.map((r) => {
+      let handler;
+      if (app2.errorHandler === errorHandler) {
+        handler = r.handler;
+      } else {
+        handler = /* @__PURE__ */ __name(async (c, next) => (await compose([], app2.errorHandler)(c, () => r.handler(c, next))).res, "handler");
+        handler[COMPOSED_HANDLER] = r.handler;
+      }
+      subApp.#addRoute(r.method, r.path, handler);
+    });
+    return this;
+  }
+  /**
+   * `.basePath()` allows base paths to be specified.
+   *
+   * @see {@link https://hono.dev/docs/api/routing#base-path}
+   *
+   * @param {string} path - base Path
+   * @returns {Hono} changed Hono instance
+   *
+   * @example
+   * ```ts
+   * const api = new Hono().basePath('/api')
+   * ```
+   */
+  basePath(path) {
+    const subApp = this.#clone();
+    subApp._basePath = mergePath(this._basePath, path);
+    return subApp;
+  }
+  /**
+   * `.onError()` handles an error and returns a customized Response.
+   *
+   * @see {@link https://hono.dev/docs/api/hono#error-handling}
+   *
+   * @param {ErrorHandler} handler - request Handler for error
+   * @returns {Hono} changed Hono instance
+   *
+   * @example
+   * ```ts
+   * app.onError((err, c) => {
+   *   console.error(`${err}`)
+   *   return c.text('Custom Error Message', 500)
+   * })
+   * ```
+   */
+  onError = /* @__PURE__ */ __name((handler) => {
+    this.errorHandler = handler;
+    return this;
+  }, "onError");
+  /**
+   * `.notFound()` allows you to customize a Not Found Response.
+   *
+   * @see {@link https://hono.dev/docs/api/hono#not-found}
+   *
+   * @param {NotFoundHandler} handler - request handler for not-found
+   * @returns {Hono} changed Hono instance
+   *
+   * @example
+   * ```ts
+   * app.notFound((c) => {
+   *   return c.text('Custom 404 Message', 404)
+   * })
+   * ```
+   */
+  notFound = /* @__PURE__ */ __name((handler) => {
+    this.#notFoundHandler = handler;
+    return this;
+  }, "notFound");
+  /**
+   * `.mount()` allows you to mount applications built with other frameworks into your Hono application.
+   *
+   * @see {@link https://hono.dev/docs/api/hono#mount}
+   *
+   * @param {string} path - base Path
+   * @param {Function} applicationHandler - other Request Handler
+   * @param {MountOptions} [options] - options of `.mount()`
+   * @returns {Hono} mounted Hono instance
+   *
+   * @example
+   * ```ts
+   * import { Router as IttyRouter } from 'itty-router'
+   * import { Hono } from 'hono'
+   * // Create itty-router application
+   * const ittyRouter = IttyRouter()
+   * // GET /itty-router/hello
+   * ittyRouter.get('/hello', () => new Response('Hello from itty-router'))
+   *
+   * const app = new Hono()
+   * app.mount('/itty-router', ittyRouter.handle)
+   * ```
+   *
+   * @example
+   * ```ts
+   * const app = new Hono()
+   * // Send the request to another application without modification.
+   * app.mount('/app', anotherApp, {
+   *   replaceRequest: (req) => req,
+   * })
+   * ```
+   */
+  mount(path, applicationHandler, options) {
+    let replaceRequest;
+    let optionHandler;
+    if (options) {
+      if (typeof options === "function") {
+        optionHandler = options;
+      } else {
+        optionHandler = options.optionHandler;
+        if (options.replaceRequest === false) {
+          replaceRequest = /* @__PURE__ */ __name((request) => request, "replaceRequest");
+        } else {
+          replaceRequest = options.replaceRequest;
+        }
+      }
+    }
+    const getOptions = optionHandler ? (c) => {
+      const options2 = optionHandler(c);
+      return Array.isArray(options2) ? options2 : [options2];
+    } : (c) => {
+      let executionContext = void 0;
+      try {
+        executionContext = c.executionCtx;
+      } catch {
+      }
+      return [c.env, executionContext];
+    };
+    replaceRequest ||= (() => {
+      const mergedPath = mergePath(this._basePath, path);
+      const pathPrefixLength = mergedPath === "/" ? 0 : mergedPath.length;
+      return (request) => {
+        const url = new URL(request.url);
+        url.pathname = url.pathname.slice(pathPrefixLength) || "/";
+        return new Request(url, request);
+      };
+    })();
+    const handler = /* @__PURE__ */ __name(async (c, next) => {
+      const res = await applicationHandler(replaceRequest(c.req.raw), ...getOptions(c));
+      if (res) {
+        return res;
+      }
+      await next();
+    }, "handler");
+    this.#addRoute(METHOD_NAME_ALL, mergePath(path, "*"), handler);
+    return this;
+  }
+  #addRoute(method, path, handler) {
+    method = method.toUpperCase();
+    path = mergePath(this._basePath, path);
+    const r = { basePath: this._basePath, path, method, handler };
+    this.router.add(method, path, [handler, r]);
+    this.routes.push(r);
+  }
+  #handleError(err, c) {
+    if (err instanceof Error) {
+      return this.errorHandler(err, c);
+    }
+    throw err;
+  }
+  #dispatch(request, executionCtx, env, method) {
+    if (method === "HEAD") {
+      return (async () => new Response(null, await this.#dispatch(request, executionCtx, env, "GET")))();
+    }
+    const path = this.getPath(request, { env });
+    const matchResult = this.router.match(method, path);
+    const c = new Context(request, {
+      path,
+      matchResult,
+      env,
+      executionCtx,
+      notFoundHandler: this.#notFoundHandler
+    });
+    if (matchResult[0].length === 1) {
+      let res;
+      try {
+        res = matchResult[0][0][0][0](c, async () => {
+          c.res = await this.#notFoundHandler(c);
+        });
+      } catch (err) {
+        return this.#handleError(err, c);
+      }
+      return res instanceof Promise ? res.then(
+        (resolved) => resolved || (c.finalized ? c.res : this.#notFoundHandler(c))
+      ).catch((err) => this.#handleError(err, c)) : res ?? this.#notFoundHandler(c);
+    }
+    const composed = compose(matchResult[0], this.errorHandler, this.#notFoundHandler);
+    return (async () => {
+      try {
+        const context = await composed(c);
+        if (!context.finalized) {
+          throw new Error(
+            "Context is not finalized. Did you forget to return a Response object or `await next()`?"
+          );
+        }
+        return context.res;
+      } catch (err) {
+        return this.#handleError(err, c);
+      }
+    })();
+  }
+  /**
+   * `.fetch()` will be entry point of your app.
+   *
+   * @see {@link https://hono.dev/docs/api/hono#fetch}
+   *
+   * @param {Request} request - request Object of request
+   * @param {Env} Env - env Object
+   * @param {ExecutionContext} - context of execution
+   * @returns {Response | Promise<Response>} response of request
+   *
+   */
+  fetch = /* @__PURE__ */ __name((request, ...rest) => {
+    return this.#dispatch(request, rest[1], rest[0], request.method);
+  }, "fetch");
+  /**
+   * `.request()` is a useful method for testing.
+   * You can pass a URL or pathname to send a GET request.
+   * app will return a Response object.
+   * ```ts
+   * test('GET /hello is ok', async () => {
+   *   const res = await app.request('/hello')
+   *   expect(res.status).toBe(200)
+   * })
+   * ```
+   * @see https://hono.dev/docs/api/hono#request
+   */
+  request = /* @__PURE__ */ __name((input3, requestInit, Env, executionCtx) => {
+    if (input3 instanceof Request) {
+      return this.fetch(requestInit ? new Request(input3, requestInit) : input3, Env, executionCtx);
+    }
+    input3 = input3.toString();
+    return this.fetch(
+      new Request(
+        /^https?:\/\//.test(input3) ? input3 : `http://localhost${mergePath("/", input3)}`,
+        requestInit
+      ),
+      Env,
+      executionCtx
+    );
+  }, "request");
+  /**
+   * `.fire()` automatically adds a global fetch event listener.
+   * This can be useful for environments that adhere to the Service Worker API, such as non-ES module Cloudflare Workers.
+   * @deprecated
+   * Use `fire` from `hono/service-worker` instead.
+   * ```ts
+   * import { Hono } from 'hono'
+   * import { fire } from 'hono/service-worker'
+   *
+   * const app = new Hono()
+   * // ...
+   * fire(app)
+   * ```
+   * @see https://hono.dev/docs/api/hono#fire
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
+   * @see https://developers.cloudflare.com/workers/reference/migrate-to-module-workers/
+   */
+  fire = /* @__PURE__ */ __name(() => {
+    addEventListener("fetch", (event) => {
+      event.respondWith(this.#dispatch(event.request, event, void 0, event.request.method));
+    });
+  }, "fire");
+};
+
+// node_modules/hono/dist/router/reg-exp-router/matcher.js
+var emptyParam = [];
+function match(method, path) {
+  const matchers = this.buildAllMatchers();
+  const match2 = /* @__PURE__ */ __name(((method2, path2) => {
+    const matcher = matchers[method2] || matchers[METHOD_NAME_ALL];
+    const staticMatch = matcher[2][path2];
+    if (staticMatch) {
+      return staticMatch;
+    }
+    const match3 = path2.match(matcher[0]);
+    if (!match3) {
+      return [[], emptyParam];
+    }
+    const index = match3.indexOf("", 1);
+    return [matcher[1][index], match3];
+  }), "match2");
+  this.match = match2;
+  return match2(method, path);
+}
+__name(match, "match");
+
+// node_modules/hono/dist/router/reg-exp-router/node.js
+var LABEL_REG_EXP_STR = "[^/]+";
+var ONLY_WILDCARD_REG_EXP_STR = ".*";
+var TAIL_WILDCARD_REG_EXP_STR = "(?:|/.*)";
+var PATH_ERROR = /* @__PURE__ */ Symbol();
+var regExpMetaChars = new Set(".\\+*[^]$()");
+function compareKey(a, b) {
+  if (a.length === 1) {
+    return b.length === 1 ? a < b ? -1 : 1 : -1;
+  }
+  if (b.length === 1) {
+    return 1;
+  }
+  if (a === ONLY_WILDCARD_REG_EXP_STR || a === TAIL_WILDCARD_REG_EXP_STR) {
+    return 1;
+  } else if (b === ONLY_WILDCARD_REG_EXP_STR || b === TAIL_WILDCARD_REG_EXP_STR) {
+    return -1;
+  }
+  if (a === LABEL_REG_EXP_STR) {
+    return 1;
+  } else if (b === LABEL_REG_EXP_STR) {
+    return -1;
+  }
+  return a.length === b.length ? a < b ? -1 : 1 : b.length - a.length;
+}
+__name(compareKey, "compareKey");
+var Node = class _Node {
+  static {
+    __name(this, "_Node");
+  }
+  #index;
+  #varIndex;
+  #children = /* @__PURE__ */ Object.create(null);
+  insert(tokens, index, paramMap, context, pathErrorCheckOnly) {
+    if (tokens.length === 0) {
+      if (this.#index !== void 0) {
+        throw PATH_ERROR;
+      }
+      if (pathErrorCheckOnly) {
+        return;
+      }
+      this.#index = index;
+      return;
+    }
+    const [token, ...restTokens] = tokens;
+    const pattern = token === "*" ? restTokens.length === 0 ? ["", "", ONLY_WILDCARD_REG_EXP_STR] : ["", "", LABEL_REG_EXP_STR] : token === "/*" ? ["", "", TAIL_WILDCARD_REG_EXP_STR] : token.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
+    let node;
+    if (pattern) {
+      const name = pattern[1];
+      let regexpStr = pattern[2] || LABEL_REG_EXP_STR;
+      if (name && pattern[2]) {
+        if (regexpStr === ".*") {
+          throw PATH_ERROR;
+        }
+        regexpStr = regexpStr.replace(/^\((?!\?:)(?=[^)]+\)$)/, "(?:");
+        if (/\((?!\?:)/.test(regexpStr)) {
+          throw PATH_ERROR;
+        }
+      }
+      node = this.#children[regexpStr];
+      if (!node) {
+        if (Object.keys(this.#children).some(
+          (k) => k !== ONLY_WILDCARD_REG_EXP_STR && k !== TAIL_WILDCARD_REG_EXP_STR
+        )) {
+          throw PATH_ERROR;
+        }
+        if (pathErrorCheckOnly) {
+          return;
+        }
+        node = this.#children[regexpStr] = new _Node();
+        if (name !== "") {
+          node.#varIndex = context.varIndex++;
+        }
+      }
+      if (!pathErrorCheckOnly && name !== "") {
+        paramMap.push([name, node.#varIndex]);
+      }
+    } else {
+      node = this.#children[token];
+      if (!node) {
+        if (Object.keys(this.#children).some(
+          (k) => k.length > 1 && k !== ONLY_WILDCARD_REG_EXP_STR && k !== TAIL_WILDCARD_REG_EXP_STR
+        )) {
+          throw PATH_ERROR;
+        }
+        if (pathErrorCheckOnly) {
+          return;
+        }
+        node = this.#children[token] = new _Node();
+      }
+    }
+    node.insert(restTokens, index, paramMap, context, pathErrorCheckOnly);
+  }
+  buildRegExpStr() {
+    const childKeys = Object.keys(this.#children).sort(compareKey);
+    const strList = childKeys.map((k) => {
+      const c = this.#children[k];
+      return (typeof c.#varIndex === "number" ? `(${k})@${c.#varIndex}` : regExpMetaChars.has(k) ? `\\${k}` : k) + c.buildRegExpStr();
+    });
+    if (typeof this.#index === "number") {
+      strList.unshift(`#${this.#index}`);
+    }
+    if (strList.length === 0) {
+      return "";
+    }
+    if (strList.length === 1) {
+      return strList[0];
+    }
+    return "(?:" + strList.join("|") + ")";
+  }
+};
+
+// node_modules/hono/dist/router/reg-exp-router/trie.js
+var Trie = class {
+  static {
+    __name(this, "Trie");
+  }
+  #context = { varIndex: 0 };
+  #root = new Node();
+  insert(path, index, pathErrorCheckOnly) {
+    const paramAssoc = [];
+    const groups = [];
+    for (let i = 0; ; ) {
+      let replaced = false;
+      path = path.replace(/\{[^}]+\}/g, (m) => {
+        const mark = `@\\${i}`;
+        groups[i] = [mark, m];
+        i++;
+        replaced = true;
+        return mark;
+      });
+      if (!replaced) {
+        break;
+      }
+    }
+    const tokens = path.match(/(?::[^\/]+)|(?:\/\*$)|./g) || [];
+    for (let i = groups.length - 1; i >= 0; i--) {
+      const [mark] = groups[i];
+      for (let j = tokens.length - 1; j >= 0; j--) {
+        if (tokens[j].indexOf(mark) !== -1) {
+          tokens[j] = tokens[j].replace(mark, groups[i][1]);
+          break;
+        }
+      }
+    }
+    this.#root.insert(tokens, index, paramAssoc, this.#context, pathErrorCheckOnly);
+    return paramAssoc;
+  }
+  buildRegExp() {
+    let regexp = this.#root.buildRegExpStr();
+    if (regexp === "") {
+      return [/^$/, [], []];
+    }
+    let captureIndex = 0;
+    const indexReplacementMap = [];
+    const paramReplacementMap = [];
+    regexp = regexp.replace(/#(\d+)|@(\d+)|\.\*\$/g, (_, handlerIndex, paramIndex) => {
+      if (handlerIndex !== void 0) {
+        indexReplacementMap[++captureIndex] = Number(handlerIndex);
+        return "$()";
+      }
+      if (paramIndex !== void 0) {
+        paramReplacementMap[Number(paramIndex)] = ++captureIndex;
+        return "";
+      }
+      return "";
+    });
+    return [new RegExp(`^${regexp}`), indexReplacementMap, paramReplacementMap];
+  }
+};
+
+// node_modules/hono/dist/router/reg-exp-router/router.js
+var nullMatcher = [/^$/, [], /* @__PURE__ */ Object.create(null)];
+var wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
+function buildWildcardRegExp(path) {
+  return wildcardRegExpCache[path] ??= new RegExp(
+    path === "*" ? "" : `^${path.replace(
+      /\/\*$|([.\\+*[^\]$()])/g,
+      (_, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
+    )}$`
+  );
+}
+__name(buildWildcardRegExp, "buildWildcardRegExp");
+function clearWildcardRegExpCache() {
+  wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
+}
+__name(clearWildcardRegExpCache, "clearWildcardRegExpCache");
+function buildMatcherFromPreprocessedRoutes(routes) {
+  const trie = new Trie();
+  const handlerData = [];
+  if (routes.length === 0) {
+    return nullMatcher;
+  }
+  const routesWithStaticPathFlag = routes.map(
+    (route) => [!/\*|\/:/.test(route[0]), ...route]
+  ).sort(
+    ([isStaticA, pathA], [isStaticB, pathB]) => isStaticA ? 1 : isStaticB ? -1 : pathA.length - pathB.length
+  );
+  const staticMap = /* @__PURE__ */ Object.create(null);
+  for (let i = 0, j = -1, len = routesWithStaticPathFlag.length; i < len; i++) {
+    const [pathErrorCheckOnly, path, handlers] = routesWithStaticPathFlag[i];
+    if (pathErrorCheckOnly) {
+      staticMap[path] = [handlers.map(([h]) => [h, /* @__PURE__ */ Object.create(null)]), emptyParam];
+    } else {
+      j++;
+    }
+    let paramAssoc;
+    try {
+      paramAssoc = trie.insert(path, j, pathErrorCheckOnly);
+    } catch (e) {
+      throw e === PATH_ERROR ? new UnsupportedPathError(path) : e;
+    }
+    if (pathErrorCheckOnly) {
+      continue;
+    }
+    handlerData[j] = handlers.map(([h, paramCount]) => {
+      const paramIndexMap = /* @__PURE__ */ Object.create(null);
+      paramCount -= 1;
+      for (; paramCount >= 0; paramCount--) {
+        const [key, value] = paramAssoc[paramCount];
+        paramIndexMap[key] = value;
+      }
+      return [h, paramIndexMap];
+    });
+  }
+  const [regexp, indexReplacementMap, paramReplacementMap] = trie.buildRegExp();
+  for (let i = 0, len = handlerData.length; i < len; i++) {
+    for (let j = 0, len2 = handlerData[i].length; j < len2; j++) {
+      const map = handlerData[i][j]?.[1];
+      if (!map) {
+        continue;
+      }
+      const keys = Object.keys(map);
+      for (let k = 0, len3 = keys.length; k < len3; k++) {
+        map[keys[k]] = paramReplacementMap[map[keys[k]]];
+      }
+    }
+  }
+  const handlerMap = [];
+  for (const i in indexReplacementMap) {
+    handlerMap[i] = handlerData[indexReplacementMap[i]];
+  }
+  return [regexp, handlerMap, staticMap];
+}
+__name(buildMatcherFromPreprocessedRoutes, "buildMatcherFromPreprocessedRoutes");
+function findMiddleware(middleware, path) {
+  if (!middleware) {
+    return void 0;
+  }
+  for (const k of Object.keys(middleware).sort((a, b) => b.length - a.length)) {
+    if (buildWildcardRegExp(k).test(path)) {
+      return [...middleware[k]];
+    }
+  }
+  return void 0;
+}
+__name(findMiddleware, "findMiddleware");
+var RegExpRouter = class {
+  static {
+    __name(this, "RegExpRouter");
+  }
+  name = "RegExpRouter";
+  #middleware;
+  #routes;
+  constructor() {
+    this.#middleware = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
+    this.#routes = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
+  }
+  add(method, path, handler) {
+    const middleware = this.#middleware;
+    const routes = this.#routes;
+    if (!middleware || !routes) {
+      throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
+    }
+    if (!middleware[method]) {
+      ;
+      [middleware, routes].forEach((handlerMap) => {
+        handlerMap[method] = /* @__PURE__ */ Object.create(null);
+        Object.keys(handlerMap[METHOD_NAME_ALL]).forEach((p) => {
+          handlerMap[method][p] = [...handlerMap[METHOD_NAME_ALL][p]];
+        });
+      });
+    }
+    if (path === "/*") {
+      path = "*";
+    }
+    const paramCount = (path.match(/\/:/g) || []).length;
+    if (/\*$/.test(path)) {
+      const re = buildWildcardRegExp(path);
+      if (method === METHOD_NAME_ALL) {
+        Object.keys(middleware).forEach((m) => {
+          middleware[m][path] ||= findMiddleware(middleware[m], path) || findMiddleware(middleware[METHOD_NAME_ALL], path) || [];
+        });
+      } else {
+        middleware[method][path] ||= findMiddleware(middleware[method], path) || findMiddleware(middleware[METHOD_NAME_ALL], path) || [];
+      }
+      Object.keys(middleware).forEach((m) => {
+        if (method === METHOD_NAME_ALL || method === m) {
+          Object.keys(middleware[m]).forEach((p) => {
+            re.test(p) && middleware[m][p].push([handler, paramCount]);
+          });
+        }
+      });
+      Object.keys(routes).forEach((m) => {
+        if (method === METHOD_NAME_ALL || method === m) {
+          Object.keys(routes[m]).forEach(
+            (p) => re.test(p) && routes[m][p].push([handler, paramCount])
+          );
+        }
+      });
+      return;
+    }
+    const paths = checkOptionalParameter(path) || [path];
+    for (let i = 0, len = paths.length; i < len; i++) {
+      const path2 = paths[i];
+      Object.keys(routes).forEach((m) => {
+        if (method === METHOD_NAME_ALL || method === m) {
+          routes[m][path2] ||= [
+            ...findMiddleware(middleware[m], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || []
+          ];
+          routes[m][path2].push([handler, paramCount - len + i + 1]);
+        }
+      });
+    }
+  }
+  match = match;
+  buildAllMatchers() {
+    const matchers = /* @__PURE__ */ Object.create(null);
+    Object.keys(this.#routes).concat(Object.keys(this.#middleware)).forEach((method) => {
+      matchers[method] ||= this.#buildMatcher(method);
+    });
+    this.#middleware = this.#routes = void 0;
+    clearWildcardRegExpCache();
+    return matchers;
+  }
+  #buildMatcher(method) {
+    const routes = [];
+    let hasOwnRoute = method === METHOD_NAME_ALL;
+    [this.#middleware, this.#routes].forEach((r) => {
+      const ownRoute = r[method] ? Object.keys(r[method]).map((path) => [path, r[method][path]]) : [];
+      if (ownRoute.length !== 0) {
+        hasOwnRoute ||= true;
+        routes.push(...ownRoute);
+      } else if (method !== METHOD_NAME_ALL) {
+        routes.push(
+          ...Object.keys(r[METHOD_NAME_ALL]).map((path) => [path, r[METHOD_NAME_ALL][path]])
+        );
+      }
+    });
+    if (!hasOwnRoute) {
+      return null;
+    } else {
+      return buildMatcherFromPreprocessedRoutes(routes);
+    }
+  }
+};
+
+// node_modules/hono/dist/router/smart-router/router.js
+var SmartRouter = class {
+  static {
+    __name(this, "SmartRouter");
+  }
+  name = "SmartRouter";
+  #routers = [];
+  #routes = [];
+  constructor(init) {
+    this.#routers = init.routers;
+  }
+  add(method, path, handler) {
+    if (!this.#routes) {
+      throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
+    }
+    this.#routes.push([method, path, handler]);
+  }
+  match(method, path) {
+    if (!this.#routes) {
+      throw new Error("Fatal error");
+    }
+    const routers = this.#routers;
+    const routes = this.#routes;
+    const len = routers.length;
+    let i = 0;
+    let res;
+    for (; i < len; i++) {
+      const router = routers[i];
+      try {
+        for (let i2 = 0, len2 = routes.length; i2 < len2; i2++) {
+          router.add(...routes[i2]);
+        }
+        res = router.match(method, path);
+      } catch (e) {
+        if (e instanceof UnsupportedPathError) {
+          continue;
+        }
+        throw e;
+      }
+      this.match = router.match.bind(router);
+      this.#routers = [router];
+      this.#routes = void 0;
+      break;
+    }
+    if (i === len) {
+      throw new Error("Fatal error");
+    }
+    this.name = `SmartRouter + ${this.activeRouter.name}`;
+    return res;
+  }
+  get activeRouter() {
+    if (this.#routes || this.#routers.length !== 1) {
+      throw new Error("No active router has been determined yet.");
+    }
+    return this.#routers[0];
+  }
+};
+
+// node_modules/hono/dist/router/trie-router/node.js
+var emptyParams = /* @__PURE__ */ Object.create(null);
+var hasChildren = /* @__PURE__ */ __name((children) => {
+  for (const _ in children) {
+    return true;
+  }
+  return false;
+}, "hasChildren");
+var Node2 = class _Node2 {
+  static {
+    __name(this, "_Node");
+  }
+  #methods;
+  #children;
+  #patterns;
+  #order = 0;
+  #params = emptyParams;
+  constructor(method, handler, children) {
+    this.#children = children || /* @__PURE__ */ Object.create(null);
+    this.#methods = [];
+    if (method && handler) {
+      const m = /* @__PURE__ */ Object.create(null);
+      m[method] = { handler, possibleKeys: [], score: 0 };
+      this.#methods = [m];
+    }
+    this.#patterns = [];
+  }
+  insert(method, path, handler) {
+    this.#order = ++this.#order;
+    let curNode = this;
+    const parts = splitRoutingPath(path);
+    const possibleKeys = [];
+    for (let i = 0, len = parts.length; i < len; i++) {
+      const p = parts[i];
+      const nextP = parts[i + 1];
+      const pattern = getPattern(p, nextP);
+      const key = Array.isArray(pattern) ? pattern[0] : p;
+      if (key in curNode.#children) {
+        curNode = curNode.#children[key];
+        if (pattern) {
+          possibleKeys.push(pattern[1]);
+        }
+        continue;
+      }
+      curNode.#children[key] = new _Node2();
+      if (pattern) {
+        curNode.#patterns.push(pattern);
+        possibleKeys.push(pattern[1]);
+      }
+      curNode = curNode.#children[key];
+    }
+    curNode.#methods.push({
+      [method]: {
+        handler,
+        possibleKeys: possibleKeys.filter((v, i, a) => a.indexOf(v) === i),
+        score: this.#order
+      }
+    });
+    return curNode;
+  }
+  #pushHandlerSets(handlerSets, node, method, nodeParams, params) {
+    for (let i = 0, len = node.#methods.length; i < len; i++) {
+      const m = node.#methods[i];
+      const handlerSet = m[method] || m[METHOD_NAME_ALL];
+      const processedSet = {};
+      if (handlerSet !== void 0) {
+        handlerSet.params = /* @__PURE__ */ Object.create(null);
+        handlerSets.push(handlerSet);
+        if (nodeParams !== emptyParams || params && params !== emptyParams) {
+          for (let i2 = 0, len2 = handlerSet.possibleKeys.length; i2 < len2; i2++) {
+            const key = handlerSet.possibleKeys[i2];
+            const processed = processedSet[handlerSet.score];
+            handlerSet.params[key] = params?.[key] && !processed ? params[key] : nodeParams[key] ?? params?.[key];
+            processedSet[handlerSet.score] = true;
+          }
+        }
+      }
+    }
+  }
+  search(method, path) {
+    const handlerSets = [];
+    this.#params = emptyParams;
+    const curNode = this;
+    let curNodes = [curNode];
+    const parts = splitPath(path);
+    const curNodesQueue = [];
+    const len = parts.length;
+    let partOffsets = null;
+    for (let i = 0; i < len; i++) {
+      const part = parts[i];
+      const isLast = i === len - 1;
+      const tempNodes = [];
+      for (let j = 0, len2 = curNodes.length; j < len2; j++) {
+        const node = curNodes[j];
+        const nextNode = node.#children[part];
+        if (nextNode) {
+          nextNode.#params = node.#params;
+          if (isLast) {
+            if (nextNode.#children["*"]) {
+              this.#pushHandlerSets(handlerSets, nextNode.#children["*"], method, node.#params);
+            }
+            this.#pushHandlerSets(handlerSets, nextNode, method, node.#params);
+          } else {
+            tempNodes.push(nextNode);
+          }
+        }
+        for (let k = 0, len3 = node.#patterns.length; k < len3; k++) {
+          const pattern = node.#patterns[k];
+          const params = node.#params === emptyParams ? {} : { ...node.#params };
+          if (pattern === "*") {
+            const astNode = node.#children["*"];
+            if (astNode) {
+              this.#pushHandlerSets(handlerSets, astNode, method, node.#params);
+              astNode.#params = params;
+              tempNodes.push(astNode);
+            }
+            continue;
+          }
+          const [key, name, matcher] = pattern;
+          if (!part && !(matcher instanceof RegExp)) {
+            continue;
+          }
+          const child = node.#children[key];
+          if (matcher instanceof RegExp) {
+            if (partOffsets === null) {
+              partOffsets = new Array(len);
+              let offset = path[0] === "/" ? 1 : 0;
+              for (let p = 0; p < len; p++) {
+                partOffsets[p] = offset;
+                offset += parts[p].length + 1;
+              }
+            }
+            const restPathString = path.substring(partOffsets[i]);
+            const m = matcher.exec(restPathString);
+            if (m) {
+              params[name] = m[0];
+              this.#pushHandlerSets(handlerSets, child, method, node.#params, params);
+              if (hasChildren(child.#children)) {
+                child.#params = params;
+                const componentCount = m[0].match(/\//)?.length ?? 0;
+                const targetCurNodes = curNodesQueue[componentCount] ||= [];
+                targetCurNodes.push(child);
+              }
+              continue;
+            }
+          }
+          if (matcher === true || matcher.test(part)) {
+            params[name] = part;
+            if (isLast) {
+              this.#pushHandlerSets(handlerSets, child, method, params, node.#params);
+              if (child.#children["*"]) {
+                this.#pushHandlerSets(
+                  handlerSets,
+                  child.#children["*"],
+                  method,
+                  params,
+                  node.#params
+                );
+              }
+            } else {
+              child.#params = params;
+              tempNodes.push(child);
+            }
+          }
+        }
+      }
+      const shifted = curNodesQueue.shift();
+      curNodes = shifted ? tempNodes.concat(shifted) : tempNodes;
+    }
+    if (handlerSets.length > 1) {
+      handlerSets.sort((a, b) => {
+        return a.score - b.score;
+      });
+    }
+    return [handlerSets.map(({ handler, params }) => [handler, params])];
+  }
+};
+
+// node_modules/hono/dist/router/trie-router/router.js
+var TrieRouter = class {
+  static {
+    __name(this, "TrieRouter");
+  }
+  name = "TrieRouter";
+  #node;
+  constructor() {
+    this.#node = new Node2();
+  }
+  add(method, path, handler) {
+    const results = checkOptionalParameter(path);
+    if (results) {
+      for (let i = 0, len = results.length; i < len; i++) {
+        this.#node.insert(method, results[i], handler);
+      }
+      return;
+    }
+    this.#node.insert(method, path, handler);
+  }
+  match(method, path) {
+    return this.#node.search(method, path);
+  }
+};
+
+// node_modules/hono/dist/hono.js
+var Hono2 = class extends Hono {
+  static {
+    __name(this, "Hono");
+  }
+  /**
+   * Creates an instance of the Hono class.
+   *
+   * @param options - Optional configuration options for the Hono instance.
+   */
+  constructor(options = {}) {
+    super(options);
+    this.router = options.router ?? new SmartRouter({
+      routers: [new RegExpRouter(), new TrieRouter()]
+    });
+  }
+};
 
 // node_modules/drizzle-orm/entity.js
 var entityKind = /* @__PURE__ */ Symbol.for("drizzle:entityKind");
@@ -336,14 +2509,14 @@ var ForeignKeyBuilder = class {
   _onUpdate = "no action";
   /** @internal */
   _onDelete = "no action";
-  constructor(config, actions) {
+  constructor(config, actions2) {
     this.reference = () => {
       const { name, columns, foreignColumns } = config();
       return { name, columns, foreignTable: foreignColumns[0].table, foreignColumns };
     };
-    if (actions) {
-      this._onUpdate = actions.onUpdate;
-      this._onDelete = actions.onDelete;
+    if (actions2) {
+      this._onUpdate = actions2.onUpdate;
+      this._onDelete = actions2.onDelete;
     }
   }
   onUpdate(action) {
@@ -543,8 +2716,8 @@ var PgColumnBuilder = class extends ColumnBuilder {
   array(size) {
     return new PgArrayBuilder(this.config.name, this, size);
   }
-  references(ref, actions = {}) {
-    this.foreignKeyConfigs.push({ ref, actions });
+  references(ref, actions2 = {}) {
+    this.foreignKeyConfigs.push({ ref, actions: actions2 });
     return this;
   }
   unique(name, config) {
@@ -563,23 +2736,23 @@ var PgColumnBuilder = class extends ColumnBuilder {
   }
   /** @internal */
   buildForeignKeys(column, table) {
-    return this.foreignKeyConfigs.map(({ ref, actions }) => {
+    return this.foreignKeyConfigs.map(({ ref, actions: actions2 }) => {
       return iife(
-        (ref2, actions2) => {
+        (ref2, actions22) => {
           const builder = new ForeignKeyBuilder(() => {
             const foreignColumn = ref2();
             return { columns: [column], foreignColumns: [foreignColumn] };
           });
-          if (actions2.onUpdate) {
-            builder.onUpdate(actions2.onUpdate);
+          if (actions22.onUpdate) {
+            builder.onUpdate(actions22.onUpdate);
           }
-          if (actions2.onDelete) {
-            builder.onDelete(actions2.onDelete);
+          if (actions22.onDelete) {
+            builder.onDelete(actions22.onDelete);
           }
           return builder.build(table);
         },
         ref,
-        actions
+        actions2
       );
     });
   }
@@ -1184,11 +3357,11 @@ __name(sql, "sql");
   }
   __name(fromList, "fromList");
   sql2.fromList = fromList;
-  function raw(str) {
+  function raw2(str) {
     return new SQL([new StringChunk(str)]);
   }
-  __name(raw, "raw");
-  sql2.raw = raw;
+  __name(raw2, "raw");
+  sql2.raw = raw2;
   function join(chunks, separator) {
     const result = [];
     for (const [i, chunk] of chunks.entries()) {
@@ -2140,14 +4313,14 @@ var ForeignKeyBuilder2 = class {
   _onUpdate;
   /** @internal */
   _onDelete;
-  constructor(config, actions) {
+  constructor(config, actions2) {
     this.reference = () => {
       const { name, columns, foreignColumns } = config();
       return { name, columns, foreignTable: foreignColumns[0].table, foreignColumns };
     };
-    if (actions) {
-      this._onUpdate = actions.onUpdate;
-      this._onDelete = actions.onDelete;
+    if (actions2) {
+      this._onUpdate = actions2.onUpdate;
+      this._onDelete = actions2.onDelete;
     }
   }
   onUpdate(action) {
@@ -2250,8 +4423,8 @@ var SQLiteColumnBuilder = class extends ColumnBuilder {
   }
   static [entityKind] = "SQLiteColumnBuilder";
   foreignKeyConfigs = [];
-  references(ref, actions = {}) {
-    this.foreignKeyConfigs.push({ ref, actions });
+  references(ref, actions2 = {}) {
+    this.foreignKeyConfigs.push({ ref, actions: actions2 });
     return this;
   }
   unique(name) {
@@ -2269,20 +4442,20 @@ var SQLiteColumnBuilder = class extends ColumnBuilder {
   }
   /** @internal */
   buildForeignKeys(column, table) {
-    return this.foreignKeyConfigs.map(({ ref, actions }) => {
-      return ((ref2, actions2) => {
+    return this.foreignKeyConfigs.map(({ ref, actions: actions2 }) => {
+      return ((ref2, actions22) => {
         const builder = new ForeignKeyBuilder2(() => {
           const foreignColumn = ref2();
           return { columns: [column], foreignColumns: [foreignColumn] };
         });
-        if (actions2.onUpdate) {
-          builder.onUpdate(actions2.onUpdate);
+        if (actions22.onUpdate) {
+          builder.onUpdate(actions22.onUpdate);
         }
-        if (actions2.onDelete) {
-          builder.onDelete(actions2.onDelete);
+        if (actions22.onDelete) {
+          builder.onDelete(actions22.onDelete);
         }
         return builder.build(table);
-      })(ref, actions);
+      })(ref, actions2);
     });
   }
 };
@@ -2981,21 +5154,21 @@ var SQLiteDeleteBase = class extends QueryPromise {
 };
 
 // node_modules/drizzle-orm/casing.js
-function toSnakeCase(input) {
-  const words = input.replace(/['\u2019]/g, "").match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
+function toSnakeCase(input3) {
+  const words = input3.replace(/['\u2019]/g, "").match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
   return words.map((word) => word.toLowerCase()).join("_");
 }
 __name(toSnakeCase, "toSnakeCase");
-function toCamelCase(input) {
-  const words = input.replace(/['\u2019]/g, "").match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
+function toCamelCase(input3) {
+  const words = input3.replace(/['\u2019]/g, "").match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
   return words.reduce((acc, word, i) => {
     const formattedWord = i === 0 ? word.toLowerCase() : `${word[0].toUpperCase()}${word.slice(1)}`;
     return acc + formattedWord;
   }, "");
 }
 __name(toCamelCase, "toCamelCase");
-function noopCase(input) {
-  return input;
+function noopCase(input3) {
+  return input3;
 }
 __name(noopCase, "noopCase");
 var CasingCache = class {
@@ -5193,10 +7366,10 @@ var BaseSQLiteDatabase = class {
       });
     }
     __name(selectDistinct, "selectDistinct");
-    function update(table) {
+    function update2(table) {
       return new SQLiteUpdateBuilder(table, self.session, self.dialect, queries);
     }
-    __name(update, "update");
+    __name(update2, "update");
     function insert(into) {
       return new SQLiteInsertBuilder(into, self.session, self.dialect, queries);
     }
@@ -5205,7 +7378,7 @@ var BaseSQLiteDatabase = class {
       return new SQLiteDeleteBase(from, self.session, self.dialect, queries);
     }
     __name(delete_, "delete_");
-    return { select, selectDistinct, update, insert, delete: delete_ };
+    return { select, selectDistinct, update: update2, insert, delete: delete_ };
   }
   select(fields) {
     return new SQLiteSelectBuilder({ fields: fields ?? void 0, session: this.session, dialect: this.dialect });
@@ -5840,7 +8013,7 @@ __name(drizzle, "drizzle");
 var users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
-  points: integer("points").default(0),
+  points: integer("points").notNull().default(0),
   type: text("type", { enum: ["parent", "child"] }).notNull()
 });
 var tasks = sqliteTable("tasks", {
@@ -5873,67 +8046,1947 @@ var tasksRelations = relations(tasks, ({ one }) => ({
   })
 }));
 
-// seed.ts
-var seed_default = {
-  async fetch(request, env) {
-    const db = drizzle(env.family_kanban);
+// node_modules/hono/dist/jsx/constants.js
+var DOM_RENDERER = /* @__PURE__ */ Symbol("RENDERER");
+var DOM_ERROR_HANDLER = /* @__PURE__ */ Symbol("ERROR_HANDLER");
+var DOM_STASH = /* @__PURE__ */ Symbol("STASH");
+var DOM_INTERNAL_TAG = /* @__PURE__ */ Symbol("INTERNAL");
+var DOM_MEMO = /* @__PURE__ */ Symbol("MEMO");
+var PERMALINK = /* @__PURE__ */ Symbol("PERMALINK");
+
+// node_modules/hono/dist/jsx/dom/utils.js
+var setInternalTagFlag = /* @__PURE__ */ __name((fn) => {
+  ;
+  fn[DOM_INTERNAL_TAG] = true;
+  return fn;
+}, "setInternalTagFlag");
+
+// node_modules/hono/dist/jsx/dom/context.js
+var createContextProviderFunction = /* @__PURE__ */ __name((values) => ({ value, children }) => {
+  if (!children) {
+    return void 0;
+  }
+  const props = {
+    children: [
+      {
+        tag: setInternalTagFlag(() => {
+          values.push(value);
+        }),
+        props: {}
+      }
+    ]
+  };
+  if (Array.isArray(children)) {
+    props.children.push(...children.flat());
+  } else {
+    props.children.push(children);
+  }
+  props.children.push({
+    tag: setInternalTagFlag(() => {
+      values.pop();
+    }),
+    props: {}
+  });
+  const res = { tag: "", props, type: "" };
+  res[DOM_ERROR_HANDLER] = (err) => {
+    values.pop();
+    throw err;
+  };
+  return res;
+}, "createContextProviderFunction");
+var createContext = /* @__PURE__ */ __name((defaultValue) => {
+  const values = [defaultValue];
+  const context = createContextProviderFunction(values);
+  context.values = values;
+  context.Provider = context;
+  globalContexts.push(context);
+  return context;
+}, "createContext");
+
+// node_modules/hono/dist/jsx/context.js
+var globalContexts = [];
+var createContext2 = /* @__PURE__ */ __name((defaultValue) => {
+  const values = [defaultValue];
+  const context = /* @__PURE__ */ __name(((props) => {
+    values.push(props.value);
+    let string;
     try {
-      await db.delete(tasks);
-      await db.delete(users);
-      await db.delete(rewards);
-      const insertedUsers = await db.insert(users).values([
-        { name: "Mom", points: 0, type: "parent" },
-        { name: "Dad", points: 0, type: "parent" },
-        { name: "Emma", points: 0, type: "child" },
-        { name: "Noah", points: 0, type: "child" }
-      ]).returning();
-      const emma = insertedUsers.find((u) => u.name === "Emma");
-      const noah = insertedUsers.find((u) => u.name === "Noah");
-      await db.insert(rewards).values([
-        { name: "Ice Cream", value: 10 },
-        { name: "Movie Night Pick", value: 20 },
-        { name: "Stay Up Late", value: 30 }
-      ]);
-      await db.insert(tasks).values([
-        {
-          title: "Clean Room",
-          priority: "medium",
-          value: 5,
-          status: "todo",
-          repeat: "daily",
-          assigneeId: emma.id
-        },
-        {
-          title: "Take Out Trash",
-          priority: "low",
-          value: 3,
-          status: "todo",
-          repeat: "weekly",
-          assigneeId: noah.id
-        },
-        {
-          title: "Do Homework",
-          priority: "high",
-          value: 7,
-          status: "todo",
-          repeat: "daily",
-          assigneeId: noah.id
+      string = props.children ? (Array.isArray(props.children) ? new JSXFragmentNode("", {}, props.children) : props.children).toString() : "";
+    } catch (e) {
+      values.pop();
+      throw e;
+    }
+    if (string instanceof Promise) {
+      return string.finally(() => values.pop()).then((resString) => raw(resString, resString.callbacks));
+    } else {
+      values.pop();
+      return raw(string);
+    }
+  }), "context");
+  context.values = values;
+  context.Provider = context;
+  context[DOM_RENDERER] = createContextProviderFunction(values);
+  globalContexts.push(context);
+  return context;
+}, "createContext");
+var useContext = /* @__PURE__ */ __name((context) => {
+  return context.values.at(-1);
+}, "useContext");
+
+// node_modules/hono/dist/jsx/intrinsic-element/common.js
+var deDupeKeyMap = {
+  title: [],
+  script: ["src"],
+  style: ["data-href"],
+  link: ["href"],
+  meta: ["name", "httpEquiv", "charset", "itemProp"]
+};
+var domRenderers = {};
+var dataPrecedenceAttr = "data-precedence";
+var isStylesheetLinkWithPrecedence = /* @__PURE__ */ __name((props) => props.rel === "stylesheet" && "precedence" in props, "isStylesheetLinkWithPrecedence");
+var shouldDeDupeByKey = /* @__PURE__ */ __name((tagName, supportSort) => {
+  if (tagName === "link") {
+    return supportSort;
+  }
+  return deDupeKeyMap[tagName].length > 0;
+}, "shouldDeDupeByKey");
+
+// node_modules/hono/dist/jsx/intrinsic-element/components.js
+var components_exports = {};
+__export(components_exports, {
+  button: () => button,
+  form: () => form,
+  input: () => input,
+  link: () => link,
+  meta: () => meta,
+  script: () => script,
+  style: () => style,
+  title: () => title
+});
+
+// node_modules/hono/dist/jsx/children.js
+var toArray = /* @__PURE__ */ __name((children) => Array.isArray(children) ? children : [children], "toArray");
+
+// node_modules/hono/dist/jsx/intrinsic-element/components.js
+var metaTagMap = /* @__PURE__ */ new WeakMap();
+var insertIntoHead = /* @__PURE__ */ __name((tagName, tag, props, precedence) => ({ buffer, context }) => {
+  if (!buffer) {
+    return;
+  }
+  const map = metaTagMap.get(context) || {};
+  metaTagMap.set(context, map);
+  const tags = map[tagName] ||= [];
+  let duped = false;
+  const deDupeKeys = deDupeKeyMap[tagName];
+  const deDupeByKey = shouldDeDupeByKey(tagName, precedence !== void 0);
+  if (deDupeByKey) {
+    LOOP: for (const [, tagProps] of tags) {
+      if (tagName === "link" && !(tagProps.rel === "stylesheet" && tagProps[dataPrecedenceAttr] !== void 0)) {
+        continue;
+      }
+      for (const key of deDupeKeys) {
+        if ((tagProps?.[key] ?? null) === props?.[key]) {
+          duped = true;
+          break LOOP;
         }
-      ]);
-      return new Response("\u2705 Family Kanban database seeded successfully!", {
-        status: 200,
-        headers: { "Content-Type": "text/plain" }
+      }
+    }
+  }
+  if (duped) {
+    buffer[0] = buffer[0].replaceAll(tag, "");
+  } else if (deDupeByKey || tagName === "link") {
+    tags.push([tag, props, precedence]);
+  } else {
+    tags.unshift([tag, props, precedence]);
+  }
+  if (buffer[0].indexOf("</head>") !== -1) {
+    let insertTags;
+    if (tagName === "link" || precedence !== void 0) {
+      const precedences = [];
+      insertTags = tags.map(([tag2, , tagPrecedence], index) => {
+        if (tagPrecedence === void 0) {
+          return [tag2, Number.MAX_SAFE_INTEGER, index];
+        }
+        let order = precedences.indexOf(tagPrecedence);
+        if (order === -1) {
+          precedences.push(tagPrecedence);
+          order = precedences.length - 1;
+        }
+        return [tag2, order, index];
+      }).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(([tag2]) => tag2);
+    } else {
+      insertTags = tags.map(([tag2]) => tag2);
+    }
+    insertTags.forEach((tag2) => {
+      buffer[0] = buffer[0].replaceAll(tag2, "");
+    });
+    buffer[0] = buffer[0].replace(/(?=<\/head>)/, insertTags.join(""));
+  }
+}, "insertIntoHead");
+var returnWithoutSpecialBehavior = /* @__PURE__ */ __name((tag, children, props) => raw(new JSXNode(tag, props, toArray(children ?? [])).toString()), "returnWithoutSpecialBehavior");
+var documentMetadataTag = /* @__PURE__ */ __name((tag, children, props, sort) => {
+  if ("itemProp" in props) {
+    return returnWithoutSpecialBehavior(tag, children, props);
+  }
+  let { precedence, blocking, ...restProps } = props;
+  precedence = sort ? precedence ?? "" : void 0;
+  if (sort) {
+    restProps[dataPrecedenceAttr] = precedence;
+  }
+  const string = new JSXNode(tag, restProps, toArray(children || [])).toString();
+  if (string instanceof Promise) {
+    return string.then(
+      (resString) => raw(string, [
+        ...resString.callbacks || [],
+        insertIntoHead(tag, resString, restProps, precedence)
+      ])
+    );
+  } else {
+    return raw(string, [insertIntoHead(tag, string, restProps, precedence)]);
+  }
+}, "documentMetadataTag");
+var title = /* @__PURE__ */ __name(({ children, ...props }) => {
+  const nameSpaceContext3 = getNameSpaceContext();
+  if (nameSpaceContext3) {
+    const context = useContext(nameSpaceContext3);
+    if (context === "svg" || context === "head") {
+      return new JSXNode(
+        "title",
+        props,
+        toArray(children ?? [])
+      );
+    }
+  }
+  return documentMetadataTag("title", children, props, false);
+}, "title");
+var script = /* @__PURE__ */ __name(({
+  children,
+  ...props
+}) => {
+  const nameSpaceContext3 = getNameSpaceContext();
+  if (["src", "async"].some((k) => !props[k]) || nameSpaceContext3 && useContext(nameSpaceContext3) === "head") {
+    return returnWithoutSpecialBehavior("script", children, props);
+  }
+  return documentMetadataTag("script", children, props, false);
+}, "script");
+var style = /* @__PURE__ */ __name(({
+  children,
+  ...props
+}) => {
+  if (!["href", "precedence"].every((k) => k in props)) {
+    return returnWithoutSpecialBehavior("style", children, props);
+  }
+  props["data-href"] = props.href;
+  delete props.href;
+  return documentMetadataTag("style", children, props, true);
+}, "style");
+var link = /* @__PURE__ */ __name(({ children, ...props }) => {
+  if (["onLoad", "onError"].some((k) => k in props) || props.rel === "stylesheet" && (!("precedence" in props) || "disabled" in props)) {
+    return returnWithoutSpecialBehavior("link", children, props);
+  }
+  return documentMetadataTag("link", children, props, isStylesheetLinkWithPrecedence(props));
+}, "link");
+var meta = /* @__PURE__ */ __name(({ children, ...props }) => {
+  const nameSpaceContext3 = getNameSpaceContext();
+  if (nameSpaceContext3 && useContext(nameSpaceContext3) === "head") {
+    return returnWithoutSpecialBehavior("meta", children, props);
+  }
+  return documentMetadataTag("meta", children, props, false);
+}, "meta");
+var newJSXNode = /* @__PURE__ */ __name((tag, { children, ...props }) => (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  new JSXNode(tag, props, toArray(children ?? []))
+), "newJSXNode");
+var form = /* @__PURE__ */ __name((props) => {
+  if (typeof props.action === "function") {
+    props.action = PERMALINK in props.action ? props.action[PERMALINK] : void 0;
+  }
+  return newJSXNode("form", props);
+}, "form");
+var formActionableElement = /* @__PURE__ */ __name((tag, props) => {
+  if (typeof props.formAction === "function") {
+    props.formAction = PERMALINK in props.formAction ? props.formAction[PERMALINK] : void 0;
+  }
+  return newJSXNode(tag, props);
+}, "formActionableElement");
+var input = /* @__PURE__ */ __name((props) => formActionableElement("input", props), "input");
+var button = /* @__PURE__ */ __name((props) => formActionableElement("button", props), "button");
+
+// node_modules/hono/dist/jsx/utils.js
+var normalizeElementKeyMap = /* @__PURE__ */ new Map([
+  ["className", "class"],
+  ["htmlFor", "for"],
+  ["crossOrigin", "crossorigin"],
+  ["httpEquiv", "http-equiv"],
+  ["itemProp", "itemprop"],
+  ["fetchPriority", "fetchpriority"],
+  ["noModule", "nomodule"],
+  ["formAction", "formaction"]
+]);
+var normalizeIntrinsicElementKey = /* @__PURE__ */ __name((key) => normalizeElementKeyMap.get(key) || key, "normalizeIntrinsicElementKey");
+var styleObjectForEach = /* @__PURE__ */ __name((style3, fn) => {
+  for (const [k, v] of Object.entries(style3)) {
+    const key = k[0] === "-" || !/[A-Z]/.test(k) ? k : k.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+    fn(
+      key,
+      v == null ? null : typeof v === "number" ? !key.match(
+        /^(?:a|border-im|column(?:-c|s)|flex(?:$|-[^b])|grid-(?:ar|[^a])|font-w|li|or|sca|st|ta|wido|z)|ty$/
+      ) ? `${v}px` : `${v}` : v
+    );
+  }
+}, "styleObjectForEach");
+
+// node_modules/hono/dist/jsx/base.js
+var nameSpaceContext = void 0;
+var getNameSpaceContext = /* @__PURE__ */ __name(() => nameSpaceContext, "getNameSpaceContext");
+var toSVGAttributeName = /* @__PURE__ */ __name((key) => /[A-Z]/.test(key) && // Presentation attributes are findable in style object. "clip-path", "font-size", "stroke-width", etc.
+// Or other un-deprecated kebab-case attributes. "overline-position", "paint-order", "strikethrough-position", etc.
+key.match(
+  /^(?:al|basel|clip(?:Path|Rule)$|co|do|fill|fl|fo|gl|let|lig|i|marker[EMS]|o|pai|pointe|sh|st[or]|text[^L]|tr|u|ve|w)/
+) ? key.replace(/([A-Z])/g, "-$1").toLowerCase() : key, "toSVGAttributeName");
+var emptyTags = [
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "keygen",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr"
+];
+var booleanAttributes = [
+  "allowfullscreen",
+  "async",
+  "autofocus",
+  "autoplay",
+  "checked",
+  "controls",
+  "default",
+  "defer",
+  "disabled",
+  "download",
+  "formnovalidate",
+  "hidden",
+  "inert",
+  "ismap",
+  "itemscope",
+  "loop",
+  "multiple",
+  "muted",
+  "nomodule",
+  "novalidate",
+  "open",
+  "playsinline",
+  "readonly",
+  "required",
+  "reversed",
+  "selected"
+];
+var childrenToStringToBuffer = /* @__PURE__ */ __name((children, buffer) => {
+  for (let i = 0, len = children.length; i < len; i++) {
+    const child = children[i];
+    if (typeof child === "string") {
+      escapeToBuffer(child, buffer);
+    } else if (typeof child === "boolean" || child === null || child === void 0) {
+      continue;
+    } else if (child instanceof JSXNode) {
+      child.toStringToBuffer(buffer);
+    } else if (typeof child === "number" || child.isEscaped) {
+      ;
+      buffer[0] += child;
+    } else if (child instanceof Promise) {
+      buffer.unshift("", child);
+    } else {
+      childrenToStringToBuffer(child, buffer);
+    }
+  }
+}, "childrenToStringToBuffer");
+var JSXNode = class {
+  static {
+    __name(this, "JSXNode");
+  }
+  tag;
+  props;
+  key;
+  children;
+  isEscaped = true;
+  localContexts;
+  constructor(tag, props, children) {
+    this.tag = tag;
+    this.props = props;
+    this.children = children;
+  }
+  get type() {
+    return this.tag;
+  }
+  // Added for compatibility with libraries that rely on React's internal structure
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get ref() {
+    return this.props.ref || null;
+  }
+  toString() {
+    const buffer = [""];
+    this.localContexts?.forEach(([context, value]) => {
+      context.values.push(value);
+    });
+    try {
+      this.toStringToBuffer(buffer);
+    } finally {
+      this.localContexts?.forEach(([context]) => {
+        context.values.pop();
       });
-    } catch (error) {
-      return new Response(`\u274C Error seeding database: ${error}`, {
-        status: 500,
-        headers: { "Content-Type": "text/plain" }
-      });
+    }
+    return buffer.length === 1 ? "callbacks" in buffer ? resolveCallbackSync(raw(buffer[0], buffer.callbacks)).toString() : buffer[0] : stringBufferToString(buffer, buffer.callbacks);
+  }
+  toStringToBuffer(buffer) {
+    const tag = this.tag;
+    const props = this.props;
+    let { children } = this;
+    buffer[0] += `<${tag}`;
+    const normalizeKey = nameSpaceContext && useContext(nameSpaceContext) === "svg" ? (key) => toSVGAttributeName(normalizeIntrinsicElementKey(key)) : (key) => normalizeIntrinsicElementKey(key);
+    for (let [key, v] of Object.entries(props)) {
+      key = normalizeKey(key);
+      if (key === "children") {
+      } else if (key === "style" && typeof v === "object") {
+        let styleStr = "";
+        styleObjectForEach(v, (property, value) => {
+          if (value != null) {
+            styleStr += `${styleStr ? ";" : ""}${property}:${value}`;
+          }
+        });
+        buffer[0] += ' style="';
+        escapeToBuffer(styleStr, buffer);
+        buffer[0] += '"';
+      } else if (typeof v === "string") {
+        buffer[0] += ` ${key}="`;
+        escapeToBuffer(v, buffer);
+        buffer[0] += '"';
+      } else if (v === null || v === void 0) {
+      } else if (typeof v === "number" || v.isEscaped) {
+        buffer[0] += ` ${key}="${v}"`;
+      } else if (typeof v === "boolean" && booleanAttributes.includes(key)) {
+        if (v) {
+          buffer[0] += ` ${key}=""`;
+        }
+      } else if (key === "dangerouslySetInnerHTML") {
+        if (children.length > 0) {
+          throw new Error("Can only set one of `children` or `props.dangerouslySetInnerHTML`.");
+        }
+        children = [raw(v.__html)];
+      } else if (v instanceof Promise) {
+        buffer[0] += ` ${key}="`;
+        buffer.unshift('"', v);
+      } else if (typeof v === "function") {
+        if (!key.startsWith("on") && key !== "ref") {
+          throw new Error(`Invalid prop '${key}' of type 'function' supplied to '${tag}'.`);
+        }
+      } else {
+        buffer[0] += ` ${key}="`;
+        escapeToBuffer(v.toString(), buffer);
+        buffer[0] += '"';
+      }
+    }
+    if (emptyTags.includes(tag) && children.length === 0) {
+      buffer[0] += "/>";
+      return;
+    }
+    buffer[0] += ">";
+    childrenToStringToBuffer(children, buffer);
+    buffer[0] += `</${tag}>`;
+  }
+};
+var JSXFunctionNode = class extends JSXNode {
+  static {
+    __name(this, "JSXFunctionNode");
+  }
+  toStringToBuffer(buffer) {
+    const { children } = this;
+    const props = { ...this.props };
+    if (children.length) {
+      props.children = children.length === 1 ? children[0] : children;
+    }
+    const res = this.tag.call(null, props);
+    if (typeof res === "boolean" || res == null) {
+      return;
+    } else if (res instanceof Promise) {
+      if (globalContexts.length === 0) {
+        buffer.unshift("", res);
+      } else {
+        const currentContexts = globalContexts.map((c) => [c, c.values.at(-1)]);
+        buffer.unshift(
+          "",
+          res.then((childRes) => {
+            if (childRes instanceof JSXNode) {
+              childRes.localContexts = currentContexts;
+            }
+            return childRes;
+          })
+        );
+      }
+    } else if (res instanceof JSXNode) {
+      res.toStringToBuffer(buffer);
+    } else if (typeof res === "number" || res.isEscaped) {
+      buffer[0] += res;
+      if (res.callbacks) {
+        buffer.callbacks ||= [];
+        buffer.callbacks.push(...res.callbacks);
+      }
+    } else {
+      escapeToBuffer(res, buffer);
     }
   }
 };
+var JSXFragmentNode = class extends JSXNode {
+  static {
+    __name(this, "JSXFragmentNode");
+  }
+  toStringToBuffer(buffer) {
+    childrenToStringToBuffer(this.children, buffer);
+  }
+};
+var jsx = /* @__PURE__ */ __name((tag, props, ...children) => {
+  props ??= {};
+  if (children.length) {
+    props.children = children.length === 1 ? children[0] : children;
+  }
+  const key = props.key;
+  delete props["key"];
+  const node = jsxFn(tag, props, children);
+  node.key = key;
+  return node;
+}, "jsx");
+var initDomRenderer = false;
+var jsxFn = /* @__PURE__ */ __name((tag, props, children) => {
+  if (!initDomRenderer) {
+    for (const k in domRenderers) {
+      ;
+      components_exports[k][DOM_RENDERER] = domRenderers[k];
+    }
+    initDomRenderer = true;
+  }
+  if (typeof tag === "function") {
+    return new JSXFunctionNode(tag, props, children);
+  } else if (components_exports[tag]) {
+    return new JSXFunctionNode(
+      components_exports[tag],
+      props,
+      children
+    );
+  } else if (tag === "svg" || tag === "head") {
+    nameSpaceContext ||= createContext2("");
+    return new JSXNode(tag, props, [
+      new JSXFunctionNode(
+        nameSpaceContext,
+        {
+          value: tag
+        },
+        children
+      )
+    ]);
+  } else {
+    return new JSXNode(tag, props, children);
+  }
+}, "jsxFn");
+var Fragment = /* @__PURE__ */ __name(({
+  children
+}) => {
+  return new JSXFragmentNode(
+    "",
+    {
+      children
+    },
+    Array.isArray(children) ? children : children ? [children] : []
+  );
+}, "Fragment");
 
-// ../../.npm/_npx/32026684e21afda6/node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
+// node_modules/hono/dist/jsx/dom/intrinsic-element/components.js
+var components_exports2 = {};
+__export(components_exports2, {
+  button: () => button2,
+  clearCache: () => clearCache,
+  composeRef: () => composeRef,
+  form: () => form2,
+  input: () => input2,
+  link: () => link2,
+  meta: () => meta2,
+  script: () => script2,
+  style: () => style2,
+  title: () => title2
+});
+
+// node_modules/hono/dist/jsx/dom/render.js
+var HONO_PORTAL_ELEMENT = "_hp";
+var eventAliasMap = {
+  Change: "Input",
+  DoubleClick: "DblClick"
+};
+var nameSpaceMap = {
+  svg: "2000/svg",
+  math: "1998/Math/MathML"
+};
+var buildDataStack = [];
+var refCleanupMap = /* @__PURE__ */ new WeakMap();
+var nameSpaceContext2 = void 0;
+var getNameSpaceContext2 = /* @__PURE__ */ __name(() => nameSpaceContext2, "getNameSpaceContext");
+var isNodeString = /* @__PURE__ */ __name((node) => "t" in node, "isNodeString");
+var eventCache = {
+  // pre-define events that are used very frequently
+  onClick: ["click", false]
+};
+var getEventSpec = /* @__PURE__ */ __name((key) => {
+  if (!key.startsWith("on")) {
+    return void 0;
+  }
+  if (eventCache[key]) {
+    return eventCache[key];
+  }
+  const match2 = key.match(/^on([A-Z][a-zA-Z]+?(?:PointerCapture)?)(Capture)?$/);
+  if (match2) {
+    const [, eventName, capture] = match2;
+    return eventCache[key] = [(eventAliasMap[eventName] || eventName).toLowerCase(), !!capture];
+  }
+  return void 0;
+}, "getEventSpec");
+var toAttributeName = /* @__PURE__ */ __name((element, key) => nameSpaceContext2 && element instanceof SVGElement && /[A-Z]/.test(key) && (key in element.style || // Presentation attributes are findable in style object. "clip-path", "font-size", "stroke-width", etc.
+key.match(/^(?:o|pai|str|u|ve)/)) ? key.replace(/([A-Z])/g, "-$1").toLowerCase() : key, "toAttributeName");
+var applyProps = /* @__PURE__ */ __name((container, attributes, oldAttributes) => {
+  attributes ||= {};
+  for (let key in attributes) {
+    const value = attributes[key];
+    if (key !== "children" && (!oldAttributes || oldAttributes[key] !== value)) {
+      key = normalizeIntrinsicElementKey(key);
+      const eventSpec = getEventSpec(key);
+      if (eventSpec) {
+        if (oldAttributes?.[key] !== value) {
+          if (oldAttributes) {
+            container.removeEventListener(eventSpec[0], oldAttributes[key], eventSpec[1]);
+          }
+          if (value != null) {
+            if (typeof value !== "function") {
+              throw new Error(`Event handler for "${key}" is not a function`);
+            }
+            container.addEventListener(eventSpec[0], value, eventSpec[1]);
+          }
+        }
+      } else if (key === "dangerouslySetInnerHTML" && value) {
+        container.innerHTML = value.__html;
+      } else if (key === "ref") {
+        let cleanup;
+        if (typeof value === "function") {
+          cleanup = value(container) || (() => value(null));
+        } else if (value && "current" in value) {
+          value.current = container;
+          cleanup = /* @__PURE__ */ __name(() => value.current = null, "cleanup");
+        }
+        refCleanupMap.set(container, cleanup);
+      } else if (key === "style") {
+        const style3 = container.style;
+        if (typeof value === "string") {
+          style3.cssText = value;
+        } else {
+          style3.cssText = "";
+          if (value != null) {
+            styleObjectForEach(value, style3.setProperty.bind(style3));
+          }
+        }
+      } else {
+        if (key === "value") {
+          const nodeName = container.nodeName;
+          if (nodeName === "INPUT" || nodeName === "TEXTAREA" || nodeName === "SELECT") {
+            ;
+            container.value = value === null || value === void 0 || value === false ? null : value;
+            if (nodeName === "TEXTAREA") {
+              container.textContent = value;
+              continue;
+            } else if (nodeName === "SELECT") {
+              if (container.selectedIndex === -1) {
+                ;
+                container.selectedIndex = 0;
+              }
+              continue;
+            }
+          }
+        } else if (key === "checked" && container.nodeName === "INPUT" || key === "selected" && container.nodeName === "OPTION") {
+          ;
+          container[key] = value;
+        }
+        const k = toAttributeName(container, key);
+        if (value === null || value === void 0 || value === false) {
+          container.removeAttribute(k);
+        } else if (value === true) {
+          container.setAttribute(k, "");
+        } else if (typeof value === "string" || typeof value === "number") {
+          container.setAttribute(k, value);
+        } else {
+          container.setAttribute(k, value.toString());
+        }
+      }
+    }
+  }
+  if (oldAttributes) {
+    for (let key in oldAttributes) {
+      const value = oldAttributes[key];
+      if (key !== "children" && !(key in attributes)) {
+        key = normalizeIntrinsicElementKey(key);
+        const eventSpec = getEventSpec(key);
+        if (eventSpec) {
+          container.removeEventListener(eventSpec[0], value, eventSpec[1]);
+        } else if (key === "ref") {
+          refCleanupMap.get(container)?.();
+        } else {
+          container.removeAttribute(toAttributeName(container, key));
+        }
+      }
+    }
+  }
+}, "applyProps");
+var invokeTag = /* @__PURE__ */ __name((context, node) => {
+  node[DOM_STASH][0] = 0;
+  buildDataStack.push([context, node]);
+  const func = node.tag[DOM_RENDERER] || node.tag;
+  const props = func.defaultProps ? {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...func.defaultProps,
+    ...node.props
+  } : node.props;
+  try {
+    return [func.call(null, props)];
+  } finally {
+    buildDataStack.pop();
+  }
+}, "invokeTag");
+var getNextChildren = /* @__PURE__ */ __name((node, container, nextChildren, childrenToRemove, callbacks) => {
+  if (node.vR?.length) {
+    childrenToRemove.push(...node.vR);
+    delete node.vR;
+  }
+  if (typeof node.tag === "function") {
+    node[DOM_STASH][1][STASH_EFFECT]?.forEach((data) => callbacks.push(data));
+  }
+  node.vC.forEach((child) => {
+    if (isNodeString(child)) {
+      nextChildren.push(child);
+    } else {
+      if (typeof child.tag === "function" || child.tag === "") {
+        child.c = container;
+        const currentNextChildrenIndex = nextChildren.length;
+        getNextChildren(child, container, nextChildren, childrenToRemove, callbacks);
+        if (child.s) {
+          for (let i = currentNextChildrenIndex; i < nextChildren.length; i++) {
+            nextChildren[i].s = true;
+          }
+          child.s = false;
+        }
+      } else {
+        nextChildren.push(child);
+        if (child.vR?.length) {
+          childrenToRemove.push(...child.vR);
+          delete child.vR;
+        }
+      }
+    }
+  });
+}, "getNextChildren");
+var findInsertBefore = /* @__PURE__ */ __name((node) => {
+  while (node && (node.tag === HONO_PORTAL_ELEMENT || !node.e)) {
+    node = node.tag === HONO_PORTAL_ELEMENT || !node.vC?.[0] ? node.nN : node.vC[0];
+  }
+  return node?.e;
+}, "findInsertBefore");
+var removeNode = /* @__PURE__ */ __name((node) => {
+  if (!isNodeString(node)) {
+    node[DOM_STASH]?.[1][STASH_EFFECT]?.forEach((data) => data[2]?.());
+    refCleanupMap.get(node.e)?.();
+    if (node.p === 2) {
+      node.vC?.forEach((n) => n.p = 2);
+    }
+    node.vC?.forEach(removeNode);
+  }
+  if (!node.p) {
+    node.e?.remove();
+    delete node.e;
+  }
+  if (typeof node.tag === "function") {
+    updateMap.delete(node);
+    fallbackUpdateFnArrayMap.delete(node);
+    delete node[DOM_STASH][3];
+    node.a = true;
+  }
+}, "removeNode");
+var apply = /* @__PURE__ */ __name((node, container, isNew) => {
+  node.c = container;
+  applyNodeObject(node, container, isNew);
+}, "apply");
+var findChildNodeIndex = /* @__PURE__ */ __name((childNodes, child) => {
+  if (!child) {
+    return;
+  }
+  for (let i = 0, len = childNodes.length; i < len; i++) {
+    if (childNodes[i] === child) {
+      return i;
+    }
+  }
+  return;
+}, "findChildNodeIndex");
+var cancelBuild = /* @__PURE__ */ Symbol();
+var applyNodeObject = /* @__PURE__ */ __name((node, container, isNew) => {
+  const next = [];
+  const remove = [];
+  const callbacks = [];
+  getNextChildren(node, container, next, remove, callbacks);
+  remove.forEach(removeNode);
+  const childNodes = isNew ? void 0 : container.childNodes;
+  let offset;
+  let insertBeforeNode = null;
+  if (isNew) {
+    offset = -1;
+  } else if (!childNodes.length) {
+    offset = 0;
+  } else {
+    const offsetByNextNode = findChildNodeIndex(childNodes, findInsertBefore(node.nN));
+    if (offsetByNextNode !== void 0) {
+      insertBeforeNode = childNodes[offsetByNextNode];
+      offset = offsetByNextNode;
+    } else {
+      offset = findChildNodeIndex(childNodes, next.find((n) => n.tag !== HONO_PORTAL_ELEMENT && n.e)?.e) ?? -1;
+    }
+    if (offset === -1) {
+      isNew = true;
+    }
+  }
+  for (let i = 0, len = next.length; i < len; i++, offset++) {
+    const child = next[i];
+    let el;
+    if (child.s && child.e) {
+      el = child.e;
+      child.s = false;
+    } else {
+      const isNewLocal = isNew || !child.e;
+      if (isNodeString(child)) {
+        if (child.e && child.d) {
+          child.e.textContent = child.t;
+        }
+        child.d = false;
+        el = child.e ||= document.createTextNode(child.t);
+      } else {
+        el = child.e ||= child.n ? document.createElementNS(child.n, child.tag) : document.createElement(child.tag);
+        applyProps(el, child.props, child.pP);
+        applyNodeObject(child, el, isNewLocal);
+      }
+    }
+    if (child.tag === HONO_PORTAL_ELEMENT) {
+      offset--;
+    } else if (isNew) {
+      if (!el.parentNode) {
+        container.appendChild(el);
+      }
+    } else if (childNodes[offset] !== el && childNodes[offset - 1] !== el) {
+      if (childNodes[offset + 1] === el) {
+        container.appendChild(childNodes[offset]);
+      } else {
+        container.insertBefore(el, insertBeforeNode || childNodes[offset] || null);
+      }
+    }
+  }
+  if (node.pP) {
+    node.pP = void 0;
+  }
+  if (callbacks.length) {
+    const useLayoutEffectCbs = [];
+    const useEffectCbs = [];
+    callbacks.forEach(([, useLayoutEffectCb, , useEffectCb, useInsertionEffectCb]) => {
+      if (useLayoutEffectCb) {
+        useLayoutEffectCbs.push(useLayoutEffectCb);
+      }
+      if (useEffectCb) {
+        useEffectCbs.push(useEffectCb);
+      }
+      useInsertionEffectCb?.();
+    });
+    useLayoutEffectCbs.forEach((cb) => cb());
+    if (useEffectCbs.length) {
+      requestAnimationFrame(() => {
+        useEffectCbs.forEach((cb) => cb());
+      });
+    }
+  }
+}, "applyNodeObject");
+var isSameContext = /* @__PURE__ */ __name((oldContexts, newContexts) => !!(oldContexts && oldContexts.length === newContexts.length && oldContexts.every((ctx, i) => ctx[1] === newContexts[i][1])), "isSameContext");
+var fallbackUpdateFnArrayMap = /* @__PURE__ */ new WeakMap();
+var build = /* @__PURE__ */ __name((context, node, children) => {
+  const buildWithPreviousChildren = !children && node.pC;
+  if (children) {
+    node.pC ||= node.vC;
+  }
+  let foundErrorHandler;
+  try {
+    children ||= typeof node.tag == "function" ? invokeTag(context, node) : toArray(node.props.children);
+    if (children[0]?.tag === "" && children[0][DOM_ERROR_HANDLER]) {
+      foundErrorHandler = children[0][DOM_ERROR_HANDLER];
+      context[5].push([context, foundErrorHandler, node]);
+    }
+    const oldVChildren = buildWithPreviousChildren ? [...node.pC] : node.vC ? [...node.vC] : void 0;
+    const vChildren = [];
+    let prevNode;
+    for (let i = 0; i < children.length; i++) {
+      if (Array.isArray(children[i])) {
+        children.splice(i, 1, ...children[i].flat(Infinity));
+        i--;
+        continue;
+      }
+      let child = buildNode(children[i]);
+      if (child) {
+        if (typeof child.tag === "function" && // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        !child.tag[DOM_INTERNAL_TAG]) {
+          if (globalContexts.length > 0) {
+            child[DOM_STASH][2] = globalContexts.map((c) => [c, c.values.at(-1)]);
+          }
+          if (context[5]?.length) {
+            child[DOM_STASH][3] = context[5].at(-1);
+          }
+        }
+        let oldChild;
+        if (oldVChildren && oldVChildren.length) {
+          const i2 = oldVChildren.findIndex(
+            isNodeString(child) ? (c) => isNodeString(c) : child.key !== void 0 ? (c) => c.key === child.key && c.tag === child.tag : (c) => c.tag === child.tag
+          );
+          if (i2 !== -1) {
+            oldChild = oldVChildren[i2];
+            oldVChildren.splice(i2, 1);
+          }
+        }
+        if (oldChild) {
+          if (isNodeString(child)) {
+            if (oldChild.t !== child.t) {
+              ;
+              oldChild.t = child.t;
+              oldChild.d = true;
+            }
+            child = oldChild;
+          } else {
+            const pP = oldChild.pP = oldChild.props;
+            oldChild.props = child.props;
+            oldChild.f ||= child.f || node.f;
+            if (typeof child.tag === "function") {
+              const oldContexts = oldChild[DOM_STASH][2];
+              oldChild[DOM_STASH][2] = child[DOM_STASH][2] || [];
+              oldChild[DOM_STASH][3] = child[DOM_STASH][3];
+              if (!oldChild.f && ((oldChild.o || oldChild) === child.o || // The code generated by the react compiler is memoized under this condition.
+              oldChild.tag[DOM_MEMO]?.(pP, oldChild.props)) && // The `memo` function is memoized under this condition.
+              isSameContext(oldContexts, oldChild[DOM_STASH][2])) {
+                oldChild.s = true;
+              }
+            }
+            child = oldChild;
+          }
+        } else if (!isNodeString(child) && nameSpaceContext2) {
+          const ns = useContext(nameSpaceContext2);
+          if (ns) {
+            child.n = ns;
+          }
+        }
+        if (!isNodeString(child) && !child.s) {
+          build(context, child);
+          delete child.f;
+        }
+        vChildren.push(child);
+        if (prevNode && !prevNode.s && !child.s) {
+          for (let p = prevNode; p && !isNodeString(p); p = p.vC?.at(-1)) {
+            p.nN = child;
+          }
+        }
+        prevNode = child;
+      }
+    }
+    node.vR = buildWithPreviousChildren ? [...node.vC, ...oldVChildren || []] : oldVChildren || [];
+    node.vC = vChildren;
+    if (buildWithPreviousChildren) {
+      delete node.pC;
+    }
+  } catch (e) {
+    node.f = true;
+    if (e === cancelBuild) {
+      if (foundErrorHandler) {
+        return;
+      } else {
+        throw e;
+      }
+    }
+    const [errorHandlerContext, errorHandler2, errorHandlerNode] = node[DOM_STASH]?.[3] || [];
+    if (errorHandler2) {
+      const fallbackUpdateFn = /* @__PURE__ */ __name(() => update([0, false, context[2]], errorHandlerNode), "fallbackUpdateFn");
+      const fallbackUpdateFnArray = fallbackUpdateFnArrayMap.get(errorHandlerNode) || [];
+      fallbackUpdateFnArray.push(fallbackUpdateFn);
+      fallbackUpdateFnArrayMap.set(errorHandlerNode, fallbackUpdateFnArray);
+      const fallback = errorHandler2(e, () => {
+        const fnArray = fallbackUpdateFnArrayMap.get(errorHandlerNode);
+        if (fnArray) {
+          const i = fnArray.indexOf(fallbackUpdateFn);
+          if (i !== -1) {
+            fnArray.splice(i, 1);
+            return fallbackUpdateFn();
+          }
+        }
+      });
+      if (fallback) {
+        if (context[0] === 1) {
+          context[1] = true;
+        } else {
+          build(context, errorHandlerNode, [fallback]);
+          if ((errorHandler2.length === 1 || context !== errorHandlerContext) && errorHandlerNode.c) {
+            apply(errorHandlerNode, errorHandlerNode.c, false);
+            return;
+          }
+        }
+        throw cancelBuild;
+      }
+    }
+    throw e;
+  } finally {
+    if (foundErrorHandler) {
+      context[5].pop();
+    }
+  }
+}, "build");
+var buildNode = /* @__PURE__ */ __name((node) => {
+  if (node === void 0 || node === null || typeof node === "boolean") {
+    return void 0;
+  } else if (typeof node === "string" || typeof node === "number") {
+    return { t: node.toString(), d: true };
+  } else {
+    if ("vR" in node) {
+      node = {
+        tag: node.tag,
+        props: node.props,
+        key: node.key,
+        f: node.f,
+        type: node.tag,
+        ref: node.props.ref,
+        o: node.o || node
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      };
+    }
+    if (typeof node.tag === "function") {
+      ;
+      node[DOM_STASH] = [0, []];
+    } else {
+      const ns = nameSpaceMap[node.tag];
+      if (ns) {
+        nameSpaceContext2 ||= createContext("");
+        node.props.children = [
+          {
+            tag: nameSpaceContext2,
+            props: {
+              value: node.n = `http://www.w3.org/${ns}`,
+              children: node.props.children
+            }
+          }
+        ];
+      }
+    }
+    return node;
+  }
+}, "buildNode");
+var updateSync = /* @__PURE__ */ __name((context, node) => {
+  node[DOM_STASH][2]?.forEach(([c, v]) => {
+    c.values.push(v);
+  });
+  try {
+    build(context, node, void 0);
+  } catch {
+    return;
+  }
+  if (node.a) {
+    delete node.a;
+    return;
+  }
+  node[DOM_STASH][2]?.forEach(([c]) => {
+    c.values.pop();
+  });
+  if (context[0] !== 1 || !context[1]) {
+    apply(node, node.c, false);
+  }
+}, "updateSync");
+var updateMap = /* @__PURE__ */ new WeakMap();
+var currentUpdateSets = [];
+var update = /* @__PURE__ */ __name(async (context, node) => {
+  context[5] ||= [];
+  const existing = updateMap.get(node);
+  if (existing) {
+    existing[0](void 0);
+  }
+  let resolve;
+  const promise = new Promise((r) => resolve = r);
+  updateMap.set(node, [
+    resolve,
+    () => {
+      if (context[2]) {
+        context[2](context, node, (context2) => {
+          updateSync(context2, node);
+        }).then(() => resolve(node));
+      } else {
+        updateSync(context, node);
+        resolve(node);
+      }
+    }
+  ]);
+  if (currentUpdateSets.length) {
+    ;
+    currentUpdateSets.at(-1).add(node);
+  } else {
+    await Promise.resolve();
+    const latest = updateMap.get(node);
+    if (latest) {
+      updateMap.delete(node);
+      latest[1]();
+    }
+  }
+  return promise;
+}, "update");
+var createPortal = /* @__PURE__ */ __name((children, container, key) => ({
+  tag: HONO_PORTAL_ELEMENT,
+  props: {
+    children
+  },
+  key,
+  e: container,
+  p: 1
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+}), "createPortal");
+
+// node_modules/hono/dist/jsx/hooks/index.js
+var STASH_SATE = 0;
+var STASH_EFFECT = 1;
+var STASH_CALLBACK = 2;
+var STASH_MEMO = 3;
+var resolvedPromiseValueMap = /* @__PURE__ */ new WeakMap();
+var isDepsChanged = /* @__PURE__ */ __name((prevDeps, deps) => !prevDeps || !deps || prevDeps.length !== deps.length || deps.some((dep, i) => dep !== prevDeps[i]), "isDepsChanged");
+var updateHook = void 0;
+var pendingStack = [];
+var useState = /* @__PURE__ */ __name((initialState) => {
+  const resolveInitialState = /* @__PURE__ */ __name(() => typeof initialState === "function" ? initialState() : initialState, "resolveInitialState");
+  const buildData = buildDataStack.at(-1);
+  if (!buildData) {
+    return [resolveInitialState(), () => {
+    }];
+  }
+  const [, node] = buildData;
+  const stateArray = node[DOM_STASH][1][STASH_SATE] ||= [];
+  const hookIndex = node[DOM_STASH][0]++;
+  return stateArray[hookIndex] ||= [
+    resolveInitialState(),
+    (newState) => {
+      const localUpdateHook = updateHook;
+      const stateData = stateArray[hookIndex];
+      if (typeof newState === "function") {
+        newState = newState(stateData[0]);
+      }
+      if (!Object.is(newState, stateData[0])) {
+        stateData[0] = newState;
+        if (pendingStack.length) {
+          const [pendingType, pendingPromise] = pendingStack.at(-1);
+          Promise.all([
+            pendingType === 3 ? node : update([pendingType, false, localUpdateHook], node),
+            pendingPromise
+          ]).then(([node2]) => {
+            if (!node2 || !(pendingType === 2 || pendingType === 3)) {
+              return;
+            }
+            const lastVC = node2.vC;
+            const addUpdateTask = /* @__PURE__ */ __name(() => {
+              setTimeout(() => {
+                if (lastVC !== node2.vC) {
+                  return;
+                }
+                update([pendingType === 3 ? 1 : 0, false, localUpdateHook], node2);
+              });
+            }, "addUpdateTask");
+            requestAnimationFrame(addUpdateTask);
+          });
+        } else {
+          update([0, false, localUpdateHook], node);
+        }
+      }
+    }
+  ];
+}, "useState");
+var useCallback = /* @__PURE__ */ __name((callback, deps) => {
+  const buildData = buildDataStack.at(-1);
+  if (!buildData) {
+    return callback;
+  }
+  const [, node] = buildData;
+  const callbackArray = node[DOM_STASH][1][STASH_CALLBACK] ||= [];
+  const hookIndex = node[DOM_STASH][0]++;
+  const prevDeps = callbackArray[hookIndex];
+  if (isDepsChanged(prevDeps?.[1], deps)) {
+    callbackArray[hookIndex] = [callback, deps];
+  } else {
+    callback = callbackArray[hookIndex][0];
+  }
+  return callback;
+}, "useCallback");
+var use = /* @__PURE__ */ __name((promise) => {
+  const cachedRes = resolvedPromiseValueMap.get(promise);
+  if (cachedRes) {
+    if (cachedRes.length === 2) {
+      throw cachedRes[1];
+    }
+    return cachedRes[0];
+  }
+  promise.then(
+    (res) => resolvedPromiseValueMap.set(promise, [res]),
+    (e) => resolvedPromiseValueMap.set(promise, [void 0, e])
+  );
+  throw promise;
+}, "use");
+var useMemo = /* @__PURE__ */ __name((factory, deps) => {
+  const buildData = buildDataStack.at(-1);
+  if (!buildData) {
+    return factory();
+  }
+  const [, node] = buildData;
+  const memoArray = node[DOM_STASH][1][STASH_MEMO] ||= [];
+  const hookIndex = node[DOM_STASH][0]++;
+  const prevDeps = memoArray[hookIndex];
+  if (isDepsChanged(prevDeps?.[1], deps)) {
+    memoArray[hookIndex] = [factory(), deps];
+  }
+  return memoArray[hookIndex][0];
+}, "useMemo");
+
+// node_modules/hono/dist/jsx/dom/hooks/index.js
+var FormContext = createContext({
+  pending: false,
+  data: null,
+  method: null,
+  action: null
+});
+var actions = /* @__PURE__ */ new Set();
+var registerAction = /* @__PURE__ */ __name((action) => {
+  actions.add(action);
+  action.finally(() => actions.delete(action));
+}, "registerAction");
+
+// node_modules/hono/dist/jsx/dom/intrinsic-element/components.js
+var clearCache = /* @__PURE__ */ __name(() => {
+  blockingPromiseMap = /* @__PURE__ */ Object.create(null);
+  createdElements = /* @__PURE__ */ Object.create(null);
+}, "clearCache");
+var composeRef = /* @__PURE__ */ __name((ref, cb) => {
+  return useMemo(
+    () => (e) => {
+      let refCleanup;
+      if (ref) {
+        if (typeof ref === "function") {
+          refCleanup = ref(e) || (() => {
+            ref(null);
+          });
+        } else if (ref && "current" in ref) {
+          ref.current = e;
+          refCleanup = /* @__PURE__ */ __name(() => {
+            ref.current = null;
+          }, "refCleanup");
+        }
+      }
+      const cbCleanup = cb(e);
+      return () => {
+        cbCleanup?.();
+        refCleanup?.();
+      };
+    },
+    [ref]
+  );
+}, "composeRef");
+var blockingPromiseMap = /* @__PURE__ */ Object.create(null);
+var createdElements = /* @__PURE__ */ Object.create(null);
+var documentMetadataTag2 = /* @__PURE__ */ __name((tag, props, preserveNodeType, supportSort, supportBlocking) => {
+  if (props?.itemProp) {
+    return {
+      tag,
+      props,
+      type: tag,
+      ref: props.ref
+    };
+  }
+  const head = document.head;
+  let { onLoad, onError, precedence, blocking, ...restProps } = props;
+  let element = null;
+  let created = false;
+  const deDupeKeys = deDupeKeyMap[tag];
+  const deDupeByKey = shouldDeDupeByKey(tag, supportSort);
+  const isDeDupeCandidateLink = /* @__PURE__ */ __name((e) => e.getAttribute("rel") === "stylesheet" && e.getAttribute(dataPrecedenceAttr) !== null, "isDeDupeCandidateLink");
+  let existingElements = void 0;
+  if (deDupeByKey) {
+    const tags = head.querySelectorAll(tag);
+    LOOP: for (const e of tags) {
+      if (tag === "link" && !isDeDupeCandidateLink(e)) {
+        continue;
+      }
+      for (const key of deDupeKeys) {
+        if (e.getAttribute(key) === props[key]) {
+          element = e;
+          break LOOP;
+        }
+      }
+    }
+    if (!element) {
+      const cacheKey = deDupeKeys.reduce(
+        (acc, key) => props[key] === void 0 ? acc : `${acc}-${key}-${props[key]}`,
+        tag
+      );
+      created = !createdElements[cacheKey];
+      element = createdElements[cacheKey] ||= (() => {
+        const e = document.createElement(tag);
+        for (const key of deDupeKeys) {
+          if (props[key] !== void 0) {
+            e.setAttribute(key, props[key]);
+          }
+        }
+        if (props.rel) {
+          e.setAttribute("rel", props.rel);
+        }
+        return e;
+      })();
+    }
+  } else {
+    existingElements = head.querySelectorAll(tag);
+  }
+  precedence = supportSort ? precedence ?? "" : void 0;
+  if (supportSort) {
+    restProps[dataPrecedenceAttr] = precedence;
+  }
+  const insert = useCallback(
+    (e) => {
+      if (deDupeByKey) {
+        if (tag === "link" && precedence !== void 0) {
+          let found2 = false;
+          for (const existingElement of head.querySelectorAll(tag)) {
+            const existingPrecedence = existingElement.getAttribute(dataPrecedenceAttr);
+            if (existingPrecedence === null) {
+              head.insertBefore(e, existingElement);
+              return;
+            }
+            if (found2 && existingPrecedence !== precedence) {
+              head.insertBefore(e, existingElement);
+              return;
+            }
+            if (existingPrecedence === precedence) {
+              found2 = true;
+            }
+          }
+          head.appendChild(e);
+          return;
+        }
+        let found = false;
+        for (const existingElement of head.querySelectorAll(tag)) {
+          if (found && existingElement.getAttribute(dataPrecedenceAttr) !== precedence) {
+            head.insertBefore(e, existingElement);
+            return;
+          }
+          if (existingElement.getAttribute(dataPrecedenceAttr) === precedence) {
+            found = true;
+          }
+        }
+        head.appendChild(e);
+      } else if (tag === "link") {
+        if (!head.contains(e)) {
+          head.appendChild(e);
+        }
+      } else if (existingElements) {
+        let found = false;
+        for (const existingElement of existingElements) {
+          if (existingElement === e) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          head.insertBefore(
+            e,
+            head.contains(existingElements[0]) ? existingElements[0] : head.querySelector(tag)
+          );
+        }
+        existingElements = void 0;
+      }
+    },
+    [deDupeByKey, precedence, tag]
+  );
+  const ref = composeRef(props.ref, (e) => {
+    const key = deDupeKeys[0];
+    if (preserveNodeType === 2) {
+      e.innerHTML = "";
+    }
+    if (created || existingElements) {
+      insert(e);
+    }
+    if (!onError && !onLoad) {
+      return;
+    }
+    if (!key) {
+      return;
+    }
+    let promise = blockingPromiseMap[e.getAttribute(key)] ||= new Promise(
+      (resolve, reject) => {
+        e.addEventListener("load", resolve);
+        e.addEventListener("error", reject);
+      }
+    );
+    if (onLoad) {
+      promise = promise.then(onLoad);
+    }
+    if (onError) {
+      promise = promise.catch(onError);
+    }
+    promise.catch(() => {
+    });
+  });
+  if (supportBlocking && blocking === "render") {
+    const key = deDupeKeyMap[tag][0];
+    if (key && props[key]) {
+      const value = props[key];
+      const promise = blockingPromiseMap[value] ||= new Promise((resolve, reject) => {
+        insert(element);
+        element.addEventListener("load", resolve);
+        element.addEventListener("error", reject);
+      });
+      use(promise);
+    }
+  }
+  const jsxNode = {
+    tag,
+    type: tag,
+    props: {
+      ...restProps,
+      ref
+    },
+    ref
+  };
+  jsxNode.p = preserveNodeType;
+  if (element) {
+    jsxNode.e = element;
+  }
+  return createPortal(
+    jsxNode,
+    head
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  );
+}, "documentMetadataTag");
+var title2 = /* @__PURE__ */ __name((props) => {
+  const nameSpaceContext3 = getNameSpaceContext2();
+  const ns = nameSpaceContext3 && useContext(nameSpaceContext3);
+  if (ns?.endsWith("svg")) {
+    return {
+      tag: "title",
+      props,
+      type: "title",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ref: props.ref
+    };
+  }
+  return documentMetadataTag2("title", props, void 0, false, false);
+}, "title");
+var script2 = /* @__PURE__ */ __name((props) => {
+  if (!props || ["src", "async"].some((k) => !props[k])) {
+    return {
+      tag: "script",
+      props,
+      type: "script",
+      ref: props.ref
+    };
+  }
+  return documentMetadataTag2("script", props, 1, false, true);
+}, "script");
+var style2 = /* @__PURE__ */ __name((props) => {
+  if (!props || !["href", "precedence"].every((k) => k in props)) {
+    return {
+      tag: "style",
+      props,
+      type: "style",
+      ref: props.ref
+    };
+  }
+  props["data-href"] = props.href;
+  delete props.href;
+  return documentMetadataTag2("style", props, 2, true, true);
+}, "style");
+var link2 = /* @__PURE__ */ __name((props) => {
+  if (!props || ["onLoad", "onError"].some((k) => k in props) || props.rel === "stylesheet" && (!("precedence" in props) || "disabled" in props)) {
+    return {
+      tag: "link",
+      props,
+      type: "link",
+      ref: props.ref
+    };
+  }
+  return documentMetadataTag2("link", props, 1, isStylesheetLinkWithPrecedence(props), true);
+}, "link");
+var meta2 = /* @__PURE__ */ __name((props) => {
+  return documentMetadataTag2("meta", props, void 0, false, false);
+}, "meta");
+var customEventFormAction = /* @__PURE__ */ Symbol();
+var form2 = /* @__PURE__ */ __name((props) => {
+  const { action, ...restProps } = props;
+  if (typeof action !== "function") {
+    ;
+    restProps.action = action;
+  }
+  const [state, setState] = useState([null, false]);
+  const onSubmit = useCallback(
+    async (ev) => {
+      const currentAction = ev.isTrusted ? action : ev.detail[customEventFormAction];
+      if (typeof currentAction !== "function") {
+        return;
+      }
+      ev.preventDefault();
+      const formData = new FormData(ev.target);
+      setState([formData, true]);
+      const actionRes = currentAction(formData);
+      if (actionRes instanceof Promise) {
+        registerAction(actionRes);
+        await actionRes;
+      }
+      setState([null, true]);
+    },
+    []
+  );
+  const ref = composeRef(props.ref, (el) => {
+    el.addEventListener("submit", onSubmit);
+    return () => {
+      el.removeEventListener("submit", onSubmit);
+    };
+  });
+  const [data, isDirty] = state;
+  state[1] = false;
+  return {
+    tag: FormContext,
+    props: {
+      value: {
+        pending: data !== null,
+        data,
+        method: data ? "post" : null,
+        action: data ? action : null
+      },
+      children: {
+        tag: "form",
+        props: {
+          ...restProps,
+          ref
+        },
+        type: "form",
+        ref
+      }
+    },
+    f: isDirty
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  };
+}, "form");
+var formActionableElement2 = /* @__PURE__ */ __name((tag, {
+  formAction,
+  ...props
+}) => {
+  if (typeof formAction === "function") {
+    const onClick = useCallback((ev) => {
+      ev.preventDefault();
+      ev.currentTarget.form.dispatchEvent(
+        new CustomEvent("submit", { detail: { [customEventFormAction]: formAction } })
+      );
+    }, []);
+    props.ref = composeRef(props.ref, (el) => {
+      el.addEventListener("click", onClick);
+      return () => {
+        el.removeEventListener("click", onClick);
+      };
+    });
+  }
+  return {
+    tag,
+    props,
+    type: tag,
+    ref: props.ref
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  };
+}, "formActionableElement");
+var input2 = /* @__PURE__ */ __name((props) => formActionableElement2("input", props), "input");
+var button2 = /* @__PURE__ */ __name((props) => formActionableElement2("button", props), "button");
+Object.assign(domRenderers, {
+  title: title2,
+  script: script2,
+  style: style2,
+  link: link2,
+  meta: meta2,
+  form: form2,
+  input: input2,
+  button: button2
+});
+
+// node_modules/hono/dist/jsx/dom/jsx-dev-runtime.js
+var jsxDEV = /* @__PURE__ */ __name((tag, props, key) => {
+  if (typeof tag === "string" && components_exports2[tag]) {
+    tag = components_exports2[tag];
+  }
+  return {
+    tag,
+    type: tag,
+    props,
+    key,
+    ref: props.ref
+  };
+}, "jsxDEV");
+var Fragment2 = /* @__PURE__ */ __name((props) => jsxDEV("", props, void 0), "Fragment");
+
+// node_modules/hono/dist/jsx/dom/components.js
+var ErrorBoundary = /* @__PURE__ */ __name((({ children, fallback, fallbackRender, onError }) => {
+  const res = Fragment2({ children });
+  res[DOM_ERROR_HANDLER] = (err) => {
+    if (err instanceof Promise) {
+      throw err;
+    }
+    onError?.(err);
+    return fallbackRender?.(err) || fallback;
+  };
+  return res;
+}), "ErrorBoundary");
+var Suspense = /* @__PURE__ */ __name((({
+  children,
+  fallback
+}) => {
+  const res = Fragment2({ children });
+  res[DOM_ERROR_HANDLER] = (err, retry) => {
+    if (!(err instanceof Promise)) {
+      throw err;
+    }
+    err.finally(retry);
+    return fallback;
+  };
+  return res;
+}), "Suspense");
+
+// node_modules/hono/dist/jsx/streaming.js
+var StreamingContext = createContext2(null);
+var suspenseCounter = 0;
+var Suspense2 = /* @__PURE__ */ __name(async ({
+  children,
+  fallback
+}) => {
+  if (!Array.isArray(children)) {
+    children = [children];
+  }
+  const nonce = useContext(StreamingContext)?.scriptNonce;
+  let resArray = [];
+  const stackNode = { [DOM_STASH]: [0, []] };
+  const popNodeStack = /* @__PURE__ */ __name((value) => {
+    buildDataStack.pop();
+    return value;
+  }, "popNodeStack");
+  try {
+    stackNode[DOM_STASH][0] = 0;
+    buildDataStack.push([[], stackNode]);
+    resArray = children.map(
+      (c) => c == null || typeof c === "boolean" ? "" : c.toString()
+    );
+  } catch (e) {
+    if (e instanceof Promise) {
+      resArray = [
+        e.then(() => {
+          stackNode[DOM_STASH][0] = 0;
+          buildDataStack.push([[], stackNode]);
+          return childrenToString(children).then(popNodeStack);
+        })
+      ];
+    } else {
+      throw e;
+    }
+  } finally {
+    popNodeStack();
+  }
+  if (resArray.some((res) => res instanceof Promise)) {
+    const index = suspenseCounter++;
+    const fallbackStr = await fallback.toString();
+    return raw(`<template id="H:${index}"></template>${fallbackStr}<!--/$-->`, [
+      ...fallbackStr.callbacks || [],
+      ({ phase, buffer, context }) => {
+        if (phase === HtmlEscapedCallbackPhase.BeforeStream) {
+          return;
+        }
+        return Promise.all(resArray).then(async (htmlArray) => {
+          htmlArray = htmlArray.flat();
+          const content = htmlArray.join("");
+          if (buffer) {
+            buffer[0] = buffer[0].replace(
+              new RegExp(`<template id="H:${index}"></template>.*?<!--/\\$-->`),
+              content
+            );
+          }
+          let html2 = buffer ? "" : `<template data-hono-target="H:${index}">${content}</template><script${nonce ? ` nonce="${nonce}"` : ""}>
+((d,c,n) => {
+c=d.currentScript.previousSibling
+d=d.getElementById('H:${index}')
+if(!d)return
+do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/$')
+d.replaceWith(c.content)
+})(document)
+<\/script>`;
+          const callbacks = htmlArray.map((html22) => html22.callbacks || []).flat();
+          if (!callbacks.length) {
+            return html2;
+          }
+          if (phase === HtmlEscapedCallbackPhase.Stream) {
+            html2 = await resolveCallback(html2, HtmlEscapedCallbackPhase.BeforeStream, true, context);
+          }
+          return raw(html2, callbacks);
+        });
+      }
+    ]);
+  } else {
+    return raw(resArray.join(""));
+  }
+}, "Suspense");
+Suspense2[DOM_RENDERER] = Suspense;
+var textEncoder = new TextEncoder();
+
+// node_modules/hono/dist/jsx/components.js
+var errorBoundaryCounter = 0;
+var childrenToString = /* @__PURE__ */ __name(async (children) => {
+  try {
+    return children.flat().map((c) => c == null || typeof c === "boolean" ? "" : c.toString());
+  } catch (e) {
+    if (e instanceof Promise) {
+      await e;
+      return childrenToString(children);
+    } else {
+      throw e;
+    }
+  }
+}, "childrenToString");
+var resolveChildEarly = /* @__PURE__ */ __name((c) => {
+  if (c == null || typeof c === "boolean") {
+    return "";
+  } else if (typeof c === "string") {
+    return c;
+  } else {
+    const str = c.toString();
+    if (!(str instanceof Promise)) {
+      return raw(str);
+    } else {
+      return str;
+    }
+  }
+}, "resolveChildEarly");
+var ErrorBoundary2 = /* @__PURE__ */ __name(async ({ children, fallback, fallbackRender, onError }) => {
+  if (!children) {
+    return raw("");
+  }
+  if (!Array.isArray(children)) {
+    children = [children];
+  }
+  const nonce = useContext(StreamingContext)?.scriptNonce;
+  let fallbackStr;
+  const resolveFallbackStr = /* @__PURE__ */ __name(async () => {
+    const awaitedFallback = await fallback;
+    if (typeof awaitedFallback === "string") {
+      fallbackStr = awaitedFallback;
+    } else {
+      fallbackStr = await awaitedFallback?.toString();
+      if (typeof fallbackStr === "string") {
+        fallbackStr = raw(fallbackStr);
+      }
+    }
+  }, "resolveFallbackStr");
+  const fallbackRes = /* @__PURE__ */ __name((error) => {
+    onError?.(error);
+    return fallbackStr || fallbackRender && jsx(Fragment, {}, fallbackRender(error)) || "";
+  }, "fallbackRes");
+  let resArray = [];
+  try {
+    resArray = children.map(resolveChildEarly);
+  } catch (e) {
+    await resolveFallbackStr();
+    if (e instanceof Promise) {
+      resArray = [
+        e.then(() => childrenToString(children)).catch((e2) => fallbackRes(e2))
+      ];
+    } else {
+      resArray = [fallbackRes(e)];
+    }
+  }
+  if (resArray.some((res) => res instanceof Promise)) {
+    await resolveFallbackStr();
+    const index = errorBoundaryCounter++;
+    const replaceRe = RegExp(`(<template id="E:${index}"></template>.*?)(.*?)(<!--E:${index}-->)`);
+    const caught = false;
+    const catchCallback = /* @__PURE__ */ __name(async ({ error: error2, buffer }) => {
+      if (caught) {
+        return "";
+      }
+      const fallbackResString = await Fragment({
+        children: fallbackRes(error2)
+      }).toString();
+      if (buffer) {
+        buffer[0] = buffer[0].replace(replaceRe, fallbackResString);
+      }
+      return buffer ? "" : `<template data-hono-target="E:${index}">${fallbackResString}</template><script>
+((d,c,n) => {
+c=d.currentScript.previousSibling
+d=d.getElementById('E:${index}')
+if(!d)return
+do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='E:${index}')
+d.replaceWith(c.content)
+})(document)
+<\/script>`;
+    }, "catchCallback");
+    let error;
+    const promiseAll = Promise.all(resArray).catch((e) => error = e);
+    return raw(`<template id="E:${index}"></template><!--E:${index}-->`, [
+      ({ phase, buffer, context }) => {
+        if (phase === HtmlEscapedCallbackPhase.BeforeStream) {
+          return;
+        }
+        return promiseAll.then(async (htmlArray) => {
+          if (error) {
+            throw error;
+          }
+          htmlArray = htmlArray.flat();
+          const content = htmlArray.join("");
+          let html2 = buffer ? "" : `<template data-hono-target="E:${index}">${content}</template><script${nonce ? ` nonce="${nonce}"` : ""}>
+((d,c) => {
+c=d.currentScript.previousSibling
+d=d.getElementById('E:${index}')
+if(!d)return
+d.parentElement.insertBefore(c.content,d.nextSibling)
+})(document)
+<\/script>`;
+          if (htmlArray.every((html22) => !html22.callbacks?.length)) {
+            if (buffer) {
+              buffer[0] = buffer[0].replace(replaceRe, content);
+            }
+            return html2;
+          }
+          if (buffer) {
+            buffer[0] = buffer[0].replace(
+              replaceRe,
+              (_all, pre, _, post) => `${pre}${content}${post}`
+            );
+          }
+          const callbacks = htmlArray.map((html22) => html22.callbacks || []).flat();
+          if (phase === HtmlEscapedCallbackPhase.Stream) {
+            html2 = await resolveCallback(
+              html2,
+              HtmlEscapedCallbackPhase.BeforeStream,
+              true,
+              context
+            );
+          }
+          let resolvedCount = 0;
+          const promises = callbacks.map(
+            (c) => (...args) => c(...args)?.then((content2) => {
+              resolvedCount++;
+              if (buffer) {
+                if (resolvedCount === callbacks.length) {
+                  buffer[0] = buffer[0].replace(replaceRe, (_all, _pre, content3) => content3);
+                }
+                buffer[0] += content2;
+                return raw("", content2.callbacks);
+              }
+              return raw(
+                content2 + (resolvedCount !== callbacks.length ? "" : `<script>
+((d,c,n) => {
+d=d.getElementById('E:${index}')
+if(!d)return
+n=d.nextSibling
+while(n.nodeType!=8||n.nodeValue!='E:${index}'){n=n.nextSibling}
+n.remove()
+d.remove()
+})(document)
+<\/script>`),
+                content2.callbacks
+              );
+            }).catch((error2) => catchCallback({ error: error2, buffer }))
+          );
+          return raw(html2, promises);
+        }).catch((error2) => catchCallback({ error: error2, buffer }));
+      }
+    ]);
+  } else {
+    return Fragment({ children: resArray });
+  }
+}, "ErrorBoundary");
+ErrorBoundary2[DOM_RENDERER] = ErrorBoundary;
+
+// node_modules/hono/dist/jsx/jsx-dev-runtime.js
+function jsxDEV2(tag, props, key) {
+  let node;
+  if (!props || !("children" in props)) {
+    node = jsxFn(tag, props, []);
+  } else {
+    const children = props.children;
+    node = Array.isArray(children) ? jsxFn(tag, props, children) : jsxFn(tag, props, [children]);
+  }
+  node.key = key;
+  return node;
+}
+__name(jsxDEV2, "jsxDEV");
+
+// index.tsx
+var app = new Hono2();
+var Layout = /* @__PURE__ */ __name((props) => {
+  return /* @__PURE__ */ jsxDEV2("html", { children: [
+    /* @__PURE__ */ jsxDEV2("head", { children: [
+      /* @__PURE__ */ jsxDEV2("title", { children: "Family Task" }),
+      /* @__PURE__ */ jsxDEV2(
+        "script",
+        {
+          src: "https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js",
+          integrity: "sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz",
+          crossorigin: "anonymous"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxDEV2("body", { children: props.children })
+  ] });
+}, "Layout");
+var UserList = /* @__PURE__ */ __name(({ users: users2 }) => {
+  return /* @__PURE__ */ jsxDEV2(Fragment, { children: /* @__PURE__ */ jsxDEV2("ul", { children: users2?.map((u) => /* @__PURE__ */ jsxDEV2("li", { children: u.name }, u.id)) }) });
+}, "UserList");
+var TaskList = /* @__PURE__ */ __name(({ tasks: tasks2 }) => {
+  const grouped = Object.groupBy(tasks2, (t) => t.status);
+  const columns = ["todo", "doing", "review", "done"];
+  return /* @__PURE__ */ jsxDEV2(Fragment, { children: columns.map((status) => /* @__PURE__ */ jsxDEV2("div", { children: [
+    /* @__PURE__ */ jsxDEV2("h3", { children: status }),
+    /* @__PURE__ */ jsxDEV2("ul", { children: (grouped[status] ?? []).map((task) => /* @__PURE__ */ jsxDEV2("li", { children: task.title }, task.id)) })
+  ] }, status)) });
+}, "TaskList");
+app.get("/", (c) => {
+  return c.html(
+    /* @__PURE__ */ jsxDEV2(Layout, { children: [
+      "Hello from hono",
+      /* @__PURE__ */ jsxDEV2("div", { "hx-get": "/users", "hx-trigger": "load", "hx-target": "#user-container" }),
+      /* @__PURE__ */ jsxDEV2("div", { id: "user-container" }),
+      /* @__PURE__ */ jsxDEV2("div", { "hx-get": "/tasks", "hx-trigger": "load", "hx-target": "#tasks-container" }),
+      /* @__PURE__ */ jsxDEV2("div", { id: "tasks-container" })
+    ] })
+  );
+});
+app.get("/users", async (c) => {
+  const db = drizzle(c.env.family_kanban);
+  const result = await db.select().from(users);
+  return c.html(/* @__PURE__ */ jsxDEV2(UserList, { users: result }));
+});
+app.get("/tasks", async (c) => {
+  const db = drizzle(c.env.family_kanban);
+  const result = await db.select().from(tasks);
+  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result }));
+});
+var index_default = app;
+
+// ../../node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
 var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {
   try {
     return await middlewareCtx.next(request, env);
@@ -5951,7 +10004,7 @@ var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "drainBody");
 var middleware_ensure_req_body_drained_default = drainBody;
 
-// ../../.npm/_npx/32026684e21afda6/node_modules/wrangler/templates/middleware/middleware-miniflare3-json-error.ts
+// ../../node_modules/wrangler/templates/middleware/middleware-miniflare3-json-error.ts
 function reduceError(e) {
   return {
     name: e?.name,
@@ -5974,14 +10027,14 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-LycRB3/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-Kc0nSj/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
 ];
-var middleware_insertion_facade_default = seed_default;
+var middleware_insertion_facade_default = index_default;
 
-// ../../.npm/_npx/32026684e21afda6/node_modules/wrangler/templates/middleware/common.ts
+// ../../node_modules/wrangler/templates/middleware/common.ts
 var __facade_middleware__ = [];
 function __facade_register__(...args) {
   __facade_middleware__.push(...args.flat());
@@ -6006,7 +10059,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-LycRB3/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-Kc0nSj/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -6106,4 +10159,4 @@ export {
   __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default as default
 };
-//# sourceMappingURL=seed.js.map
+//# sourceMappingURL=index.js.map
