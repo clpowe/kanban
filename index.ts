@@ -11,7 +11,7 @@ export type Env = {
 const app = new Hono<Env>()
 
 app.get('/', (c) => {
-	return c.text('Hello Hono + D1 + Drizzle!')
+	return c.text('Hello Hono + D1 + Drizzle! Test')
 })
 
 app.get('/users', async (c) => {

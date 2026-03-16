@@ -7929,7 +7929,7 @@ var users = sqliteTable("users", {
 // index.ts
 var app = new Hono2();
 app.get("/", (c) => {
-  return c.text("Hello Hono + D1 + Drizzle!");
+  return c.text("Hello Hono + D1 + Drizzle! Test");
 });
 app.get("/users", async (c) => {
   const db = drizzle(c.env.DB);
