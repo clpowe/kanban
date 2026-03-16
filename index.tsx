@@ -22,6 +22,7 @@ const Layout: FC = (props) => {
 					integrity='sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz'
 					crossorigin='anonymous'
 				></script>
+				<script src='https://unpkg.com/hyperscript.org@0.9.14'></script>
 			</head>
 			<body>{props.children}</body>
 		</html>
@@ -66,6 +67,40 @@ app.get('/', (c) => {
 	return c.html(
 		<Layout>
 			Hello from hono
+			<form
+				hx-post='/tasks'
+				hx-target='#tasks-container'
+				hx-swap='innerHTML'
+				hx-on--after-request='if(event.detail.successful) this.reset()'
+			>
+				<input type='text' name='title' placeholder='Enter a task' required />
+
+				<select name='priority'>
+					<option value='low'>Low</option>
+					<option value='medium' selected>
+						Medium
+					</option>
+					<option value='high'>High</option>
+				</select>
+
+				<input type='number' name='value' placeholder='Points' min='1' />
+
+				<select name='repeat'>
+					<option value='none'>No Repeat</option>
+					<option value='daily'>Daily</option>
+					<option value='weekly'>Weekly</option>
+				</select>
+
+				<select name='assigneeId'>
+					<option value=''>Unassigned</option>
+					<option value='61'>Mom</option>
+					<option value='62'>Dad</option>
+					<option value='63'>Emma</option>
+					<option value='64'>Noah</option>
+				</select>
+
+				<button type='submit'>Add Task</button>
+			</form>
 			<div hx-get='/users' hx-trigger='load' hx-target='#user-container'></div>
 			<div id='user-container'></div>
 			<div hx-get='/tasks' hx-trigger='load' hx-target='#tasks-container'></div>
@@ -83,6 +118,24 @@ app.get('/users', async (c) => {
 app.get('/tasks', async (c) => {
 	const db = drizzle(c.env.family_kanban)
 	const result = await db.select().from(tasks)
+	return c.html(<TaskList tasks={result} />)
+})
+
+app.post('/tasks', async (c) => {
+	const db = drizzle(c.env.family_kanban)
+	const body = await c.req.parseBody()
+
+	await db.insert(tasks).values({
+		title: body.title as string,
+		priority: body.priority as any,
+		value: Number(body.value),
+		repeat: body.repeat as any,
+		status: 'todo',
+		assigneeId: body.assigneeId ? Number(body.assigneeId) : null
+	})
+
+	const result = await db.select().from(tasks)
+
 	return c.html(<TaskList tasks={result} />)
 })
 

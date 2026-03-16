@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-Kc0nSj/checked-fetch.js
+// .wrangler/tmp/bundle-G3C21K/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -9947,7 +9947,8 @@ var Layout = /* @__PURE__ */ __name((props) => {
           integrity: "sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz",
           crossorigin: "anonymous"
         }
-      )
+      ),
+      /* @__PURE__ */ jsxDEV2("script", { src: "https://unpkg.com/hyperscript.org@0.9.14" })
     ] }),
     /* @__PURE__ */ jsxDEV2("body", { children: props.children })
   ] });
@@ -9967,6 +9968,37 @@ app.get("/", (c) => {
   return c.html(
     /* @__PURE__ */ jsxDEV2(Layout, { children: [
       "Hello from hono",
+      /* @__PURE__ */ jsxDEV2(
+        "form",
+        {
+          "hx-post": "/tasks",
+          "hx-target": "#tasks-container",
+          "hx-swap": "innerHTML",
+          "hx-on--after-request": "if(event.detail.successful) this.reset()",
+          children: [
+            /* @__PURE__ */ jsxDEV2("input", { type: "text", name: "title", placeholder: "Enter a task", required: true }),
+            /* @__PURE__ */ jsxDEV2("select", { name: "priority", children: [
+              /* @__PURE__ */ jsxDEV2("option", { value: "low", children: "Low" }),
+              /* @__PURE__ */ jsxDEV2("option", { value: "medium", selected: true, children: "Medium" }),
+              /* @__PURE__ */ jsxDEV2("option", { value: "high", children: "High" })
+            ] }),
+            /* @__PURE__ */ jsxDEV2("input", { type: "number", name: "value", placeholder: "Points", min: "1" }),
+            /* @__PURE__ */ jsxDEV2("select", { name: "repeat", children: [
+              /* @__PURE__ */ jsxDEV2("option", { value: "none", children: "No Repeat" }),
+              /* @__PURE__ */ jsxDEV2("option", { value: "daily", children: "Daily" }),
+              /* @__PURE__ */ jsxDEV2("option", { value: "weekly", children: "Weekly" })
+            ] }),
+            /* @__PURE__ */ jsxDEV2("select", { name: "assigneeId", children: [
+              /* @__PURE__ */ jsxDEV2("option", { value: "", children: "Unassigned" }),
+              /* @__PURE__ */ jsxDEV2("option", { value: "61", children: "Mom" }),
+              /* @__PURE__ */ jsxDEV2("option", { value: "62", children: "Dad" }),
+              /* @__PURE__ */ jsxDEV2("option", { value: "63", children: "Emma" }),
+              /* @__PURE__ */ jsxDEV2("option", { value: "64", children: "Noah" })
+            ] }),
+            /* @__PURE__ */ jsxDEV2("button", { type: "submit", children: "Add Task" })
+          ]
+        }
+      ),
       /* @__PURE__ */ jsxDEV2("div", { "hx-get": "/users", "hx-trigger": "load", "hx-target": "#user-container" }),
       /* @__PURE__ */ jsxDEV2("div", { id: "user-container" }),
       /* @__PURE__ */ jsxDEV2("div", { "hx-get": "/tasks", "hx-trigger": "load", "hx-target": "#tasks-container" }),
@@ -9981,6 +10013,20 @@ app.get("/users", async (c) => {
 });
 app.get("/tasks", async (c) => {
   const db = drizzle(c.env.family_kanban);
+  const result = await db.select().from(tasks);
+  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result }));
+});
+app.post("/tasks", async (c) => {
+  const db = drizzle(c.env.family_kanban);
+  const body = await c.req.parseBody();
+  await db.insert(tasks).values({
+    title: body.title,
+    priority: body.priority,
+    value: Number(body.value),
+    repeat: body.repeat,
+    status: "todo",
+    assigneeId: body.assigneeId ? Number(body.assigneeId) : null
+  });
   const result = await db.select().from(tasks);
   return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result }));
 });
@@ -10027,7 +10073,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-Kc0nSj/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-G3C21K/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -10059,7 +10105,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-Kc0nSj/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-G3C21K/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
