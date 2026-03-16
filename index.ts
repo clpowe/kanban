@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
-import { drizzle, DrizzleD1Database } from 'drizzle-orm/d1'
+import { drizzle } from 'drizzle-orm/d1'
 import { users } from './schema'
 
 export type Env = {
 	Bindings: {
-		DB: DrizzleD1Database
+		family_kanban: D1Database
 	}
 }
 
@@ -15,14 +15,15 @@ app.get('/', (c) => {
 })
 
 app.get('/users', async (c) => {
-	const db = drizzle(c.env.DB)
+	const db = drizzle(c.env.family_kanban)
 	const result = await db.select().from(users)
+	console.log(result)
 	return c.json(result)
 })
 
 app.post('/users', async (c) => {
 	const body = await c.req.json()
-	const db = drizzle(c.env.DB)
+	const db = drizzle(c.env.family_kanban)
 
 	const result = await db
 		.insert(users)

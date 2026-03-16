@@ -8,6 +8,7 @@
 		"deploy": "wrangler deploy"
 	},
 	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20260316.1",
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
