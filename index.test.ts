@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { Hono } from 'hono'
-import app, {
-  groupTasksByStatus,
-  htmxDeleteResponse,
-  htmxRefreshTasksResponse
-} from './index'
+import app, { htmxDeleteResponse, htmxRefreshTasksResponse } from './index'
 
 describe('htmxDeleteResponse', () => {
   test('returns an empty 200 response so htmx can apply hx-swap="delete"', async () => {
@@ -41,43 +37,5 @@ describe('home page HTMX wiring', () => {
     expect(response.status).toBe(200)
     expect(html).toContain('id="tasks-container"')
     expect(html).toContain('hx-trigger="load, refreshTasks from:body"')
-  })
-})
-
-describe('groupTasksByStatus', () => {
-  test('groups tasks without depending on Object.groupBy being available', () => {
-    const originalGroupBy = Object.groupBy
-
-    Object.assign(Object, { groupBy: undefined })
-
-    try {
-      const grouped = groupTasksByStatus([
-        {
-          id: 29,
-          title: 'Review PR',
-          priority: 'medium',
-          value: 1,
-          repeat: 'none',
-          status: 'todo',
-          assigneeId: 61
-        },
-        {
-          id: 30,
-          title: 'Ship fix',
-          priority: 'high',
-          value: 2,
-          repeat: 'none',
-          status: 'done',
-          assigneeId: null
-        }
-      ])
-
-      expect(grouped.todo).toHaveLength(1)
-      expect(grouped.done).toHaveLength(1)
-      expect(grouped.doing).toEqual([])
-      expect(grouped.review).toEqual([])
-    } finally {
-      Object.assign(Object, { groupBy: originalGroupBy })
-    }
   })
 })

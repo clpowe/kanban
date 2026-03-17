@@ -7,7 +7,8 @@
     {
       "binding": "family_kanban",
       "database_name": "family-kanban",
-      "database_id": "9da947ae-9031-49bf-90c3-89ff668013e2"
+      "database_id": "9da947ae-9031-49bf-90c3-89ff668013e2",
+      "migrations_dir": "./drizzle"
     }
   ],
   "observability": {

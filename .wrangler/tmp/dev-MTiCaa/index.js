@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-JW0SHE/checked-fetch.js
+// .wrangler/tmp/bundle-xtbRV8/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -9937,23 +9937,7 @@ __name(jsxDEV2, "jsxDEV");
 // index.tsx
 var app = new Hono2();
 var htmxDeleteResponse = /* @__PURE__ */ __name((c) => c.body("", 200), "htmxDeleteResponse");
-var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
-  c.header("HX-Trigger", "refreshTasks");
-  return c.body("", 200);
-}, "htmxRefreshTasksResponse");
 var TASK_STATUSES = ["todo", "doing", "review", "done"];
-var groupTasksByStatus = /* @__PURE__ */ __name((taskList) => taskList.reduce(
-  (grouped, task) => {
-    grouped[task.status].push(task);
-    return grouped;
-  },
-  {
-    todo: [],
-    doing: [],
-    review: [],
-    done: []
-  }
-), "groupTasksByStatus");
 var Layout = /* @__PURE__ */ __name((props) => {
   return /* @__PURE__ */ jsxDEV2("html", { children: [
     /* @__PURE__ */ jsxDEV2("head", { children: [
@@ -9975,7 +9959,7 @@ var UserList = /* @__PURE__ */ __name(({ users: users2 }) => {
   return /* @__PURE__ */ jsxDEV2(Fragment, { children: /* @__PURE__ */ jsxDEV2("ul", { children: users2?.map((u) => /* @__PURE__ */ jsxDEV2("li", { "data-id": u.id, children: u.name }, u.id)) }) });
 }, "UserList");
 var TaskList = /* @__PURE__ */ __name(({ tasks: tasks2 }) => {
-  const grouped = groupTasksByStatus(tasks2);
+  const grouped = Object.groupBy(tasks2, (t) => t.status);
   return /* @__PURE__ */ jsxDEV2(Fragment, { children: TASK_STATUSES.map((status) => /* @__PURE__ */ jsxDEV2("div", { children: [
     /* @__PURE__ */ jsxDEV2("h3", { children: status }),
     /* @__PURE__ */ jsxDEV2("ul", { children: (grouped[status] ?? []).map((task) => /* @__PURE__ */ jsxDEV2(Task, { task })) })
@@ -10204,7 +10188,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-JW0SHE/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-xtbRV8/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -10236,7 +10220,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-JW0SHE/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-xtbRV8/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -10335,8 +10319,6 @@ var middleware_loader_entry_default = WRAPPED_ENTRY;
 export {
   __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default as default,
-  groupTasksByStatus,
-  htmxDeleteResponse,
-  htmxRefreshTasksResponse
+  htmxDeleteResponse
 };
 //# sourceMappingURL=index.js.map

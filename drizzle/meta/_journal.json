@@ -15,6 +15,13 @@
       "when": 1773676314701,
       "tag": "0001_perpetual_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773785996079,
+      "tag": "0002_mixed_black_panther",
+      "breakpoints": true
     }
   ]
 }

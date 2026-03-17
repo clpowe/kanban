@@ -15,26 +15,8 @@ export type Env = {
 const app = new Hono<Env>()
 
 export const htmxDeleteResponse = (c: Context) => c.body('', 200)
-export const htmxRefreshTasksResponse = (c: Context) => {
-  c.header('HX-Trigger', 'refreshTasks')
-  return c.body('', 200)
-}
 
 const TASK_STATUSES: Task['status'][] = ['todo', 'doing', 'review', 'done']
-
-export const groupTasksByStatus = (taskList: Task[]) =>
-  taskList.reduce<Record<Task['status'], Task[]>>(
-    (grouped, task) => {
-      grouped[task.status].push(task)
-      return grouped
-    },
-    {
-      todo: [],
-      doing: [],
-      review: [],
-      done: []
-    }
-  )
 
 const Layout: FC = (props) => {
   return (
@@ -66,7 +48,7 @@ const UserList: FC<{ users: User[] }> = ({ users }) => {
 }
 
 const TaskList: FC<{ tasks: Task[] }> = ({ tasks }) => {
-  const grouped = groupTasksByStatus(tasks)
+  const grouped = Object.groupBy(tasks, (t) => t.status!!)
 
   return (
     <>
