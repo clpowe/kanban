@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-vYDzwp/checked-fetch.js
+// .wrangler/tmp/bundle-oaLcJI/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -10080,9 +10080,17 @@ app.get("/users", async (c) => {
   return c.html(/* @__PURE__ */ jsxDEV2(UserList, { users: result }));
 });
 app.get("/tasks", async (c) => {
-  const db = drizzle(c.env.family_kanban);
-  const result = await db.select().from(tasks);
-  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result }));
+  try {
+    const db = drizzle(c.env.family_kanban);
+    const result = await db.select().from(tasks);
+    return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result }));
+  } catch (err) {
+    console.error("GET /tasks error:", err);
+    return c.html(
+      /* @__PURE__ */ jsxDEV2("div", { class: "error", children: "Failed to load tasks" }),
+      500
+    );
+  }
 });
 app.post("/tasks", async (c) => {
   const db = drizzle(c.env.family_kanban);
@@ -10176,7 +10184,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-vYDzwp/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-oaLcJI/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -10208,7 +10216,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-vYDzwp/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-oaLcJI/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

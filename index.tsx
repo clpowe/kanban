@@ -172,9 +172,21 @@ app.get('/users', async (c) => {
 })
 
 app.get('/tasks', async (c) => {
-  const db = drizzle(c.env.family_kanban)
-  const result = await db.select().from(tasks)
-  return c.html(<TaskList tasks={result} />)
+  try {
+    const db = drizzle(c.env.family_kanban)
+    const result = await db.select().from(tasks)
+
+    return c.html(<TaskList tasks={result} />)
+  } catch (err) {
+    console.error('GET /tasks error:', err)
+
+    return c.html(
+      <div class="error">
+        Failed to load tasks
+      </div>,
+      500
+    )
+  }
 })
 
 app.post('/tasks', async (c) => {
