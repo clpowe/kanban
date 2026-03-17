@@ -1,19 +1,19 @@
 {
-	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "kanban",
-	"compatibility_date": "2024-03-11",
-	"main": "./index.tsx",
-	"d1_databases": [
-		{
-			"binding": "family_kanban",
-			"database_name": "family-kanban",
-			"database_id": "9da947ae-9031-49bf-90c3-89ff668013e2"
-		}
-	],
-	"observability": {
-		"logs": {
-			"enabled": false,
-			"invocation_logs": true
-		}
-	}
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "kanban",
+  "compatibility_date": "2024-03-11",
+  "main": "./index.tsx",
+  "d1_databases": [
+    {
+      "binding": "family_kanban",
+      "database_name": "family-kanban",
+      "database_id": "9da947ae-9031-49bf-90c3-89ff668013e2"
+    }
+  ],
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
 }

@@ -116,6 +116,7 @@ const Task: FC<{ task: Task }> = ({ task }) => {
 }
 
 app.get('/', (c) => {
+  console.log('Root Request')
   return c.html(
     <Layout>
       Hello from hono
@@ -183,6 +184,11 @@ app.get('/tasks', async (c) => {
     return c.html(
       <div class="error">
         Failed to load tasks
+        <p>
+          {
+            err
+          }
+        </p>
       </div>,
       500
     )
