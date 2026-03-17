@@ -9937,7 +9937,23 @@ __name(jsxDEV2, "jsxDEV");
 // index.tsx
 var app = new Hono2();
 var htmxDeleteResponse = /* @__PURE__ */ __name((c) => c.body("", 200), "htmxDeleteResponse");
+var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
+  c.header("HX-Trigger", "refreshTasks");
+  return c.body("", 200);
+}, "htmxRefreshTasksResponse");
 var TASK_STATUSES = ["todo", "doing", "review", "done"];
+var groupTasksByStatus = /* @__PURE__ */ __name((taskList) => taskList.reduce(
+  (grouped, task) => {
+    grouped[task.status].push(task);
+    return grouped;
+  },
+  {
+    todo: [],
+    doing: [],
+    review: [],
+    done: []
+  }
+), "groupTasksByStatus");
 var Layout = /* @__PURE__ */ __name((props) => {
   return /* @__PURE__ */ jsxDEV2("html", { children: [
     /* @__PURE__ */ jsxDEV2("head", { children: [
@@ -9959,7 +9975,7 @@ var UserList = /* @__PURE__ */ __name(({ users: users2 }) => {
   return /* @__PURE__ */ jsxDEV2(Fragment, { children: /* @__PURE__ */ jsxDEV2("ul", { children: users2?.map((u) => /* @__PURE__ */ jsxDEV2("li", { "data-id": u.id, children: u.name }, u.id)) }) });
 }, "UserList");
 var TaskList = /* @__PURE__ */ __name(({ tasks: tasks2 }) => {
-  const grouped = Object.groupBy(tasks2, (t) => t.status);
+  const grouped = groupTasksByStatus(tasks2);
   return /* @__PURE__ */ jsxDEV2(Fragment, { children: TASK_STATUSES.map((status) => /* @__PURE__ */ jsxDEV2("div", { children: [
     /* @__PURE__ */ jsxDEV2("h3", { children: status }),
     /* @__PURE__ */ jsxDEV2("ul", { children: (grouped[status] ?? []).map((task) => /* @__PURE__ */ jsxDEV2(Task, { task })) })
@@ -10319,6 +10335,8 @@ var middleware_loader_entry_default = WRAPPED_ENTRY;
 export {
   __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default as default,
-  htmxDeleteResponse
+  groupTasksByStatus,
+  htmxDeleteResponse,
+  htmxRefreshTasksResponse
 };
 //# sourceMappingURL=index.js.map
