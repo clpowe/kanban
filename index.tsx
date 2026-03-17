@@ -15,8 +15,26 @@ export type Env = {
 const app = new Hono<Env>()
 
 export const htmxDeleteResponse = (c: Context) => c.body('', 200)
+export const htmxRefreshTasksResponse = (c: Context) => {
+  c.header('HX-Trigger', 'refreshTasks')
+  return c.body('', 200)
+}
 
 const TASK_STATUSES: Task['status'][] = ['todo', 'doing', 'review', 'done']
+
+export const groupTasksByStatus = (taskList: Task[]) =>
+  taskList.reduce<Record<Task['status'], Task[]>>(
+    (grouped, task) => {
+      grouped[task.status ?? 'todo'].push(task)
+      return grouped
+    },
+    {
+      todo: [],
+      doing: [],
+      review: [],
+      done: []
+    }
+  )
 
 const Layout: FC = (props) => {
   return (
@@ -47,8 +65,8 @@ const UserList: FC<{ users: User[] }> = ({ users }) => {
   )
 }
 
-const TaskList: FC<{ tasks: Task[] }> = ({ tasks }) => {
-  const grouped = Object.groupBy(tasks, (t) => t.status!!)
+export const TaskList: FC<{ tasks: Task[], users: User[] }> = ({ tasks, users }) => {
+  const grouped = groupTasksByStatus(tasks)
 
   return (
     <>
@@ -56,8 +74,8 @@ const TaskList: FC<{ tasks: Task[] }> = ({ tasks }) => {
         <div key={status}>
           <h3>{status}</h3>
           <ul>
-            {(grouped[status!!] ?? []).map((task) => (
-              <Task task={task} />
+            {(grouped[status] ?? []).map((task) => (
+              <Task task={task} users={users} />
             ))}
           </ul>
         </div>
@@ -66,7 +84,7 @@ const TaskList: FC<{ tasks: Task[] }> = ({ tasks }) => {
   )
 }
 
-const Task: FC<{ task: Task }> = ({ task }) => {
+export const Task: FC<{ task: Task, users?: User[] }> = ({ task, users = [] }) => {
   return (
     <li key={task.id} data-id={task.id}>
       <form
@@ -86,10 +104,11 @@ const Task: FC<{ task: Task }> = ({ task }) => {
 
         <select name="assigneeId">
           <option value="">Unassigned</option>
-          <option value="61" selected={task.assigneeId === 61}>Mom</option>
-          <option value="62" selected={task.assigneeId === 62}>Dad</option>
-          <option value="63" selected={task.assigneeId === 63}>Emma</option>
-          <option value="64" selected={task.assigneeId === 64}>Noah</option>
+          {users.map((user) => (
+            <option value={user.id} selected={task.assigneeId === user.id}>
+              {user.name}
+            </option>
+          ))}
         </select>
       </form>
 
@@ -116,10 +135,10 @@ const Task: FC<{ task: Task }> = ({ task }) => {
 }
 
 app.get('/', (c) => {
-  console.log('Root Request')
+
+
   return c.html(
     <Layout>
-      Hello from hono
       <form
         hx-post='/tasks'
         hx-target='#tasks-container'
@@ -176,8 +195,9 @@ app.get('/tasks', async (c) => {
   try {
     const db = drizzle(c.env.family_kanban)
     const result = await db.select().from(tasks)
+    const u = await db.select().from(users)
 
-    return c.html(<TaskList tasks={result} />)
+    return c.html(<TaskList tasks={result} users={u} />)
   } catch (err) {
     console.error('GET /tasks error:', err)
 
@@ -208,9 +228,11 @@ app.post('/tasks', async (c) => {
     assigneeId: body.assigneeId ? Number(body.assigneeId) : null
   })
 
+
+  const u = await db.select().from(users)
   const result = await db.select().from(tasks)
 
-  return c.html(<TaskList tasks={result} />)
+  return c.html(<TaskList tasks={result} users={u} />)
 })
 
 app.patch('/task/:id', async (c) => {
@@ -232,12 +254,12 @@ app.patch('/task/:id', async (c) => {
     .where(eq(tasks.id, id))
 
   if (updates.status) {
-    c.header('HX-Trigger', 'refreshTasks')
-    return c.body('', 200)
+    return htmxRefreshTasksResponse(c)
   }
 
+  const u = await db.select().from(users)
   const task = await db.select().from(tasks).where(eq(tasks.id, id)).get()
-  return c.html(<Task task={task} />)
+  return c.html(<Task task={task} users={u} />)
 })
 
 app.patch('/task/status/:id', async (c) => {
@@ -254,8 +276,9 @@ app.patch('/task/status/:id', async (c) => {
     .where(eq(tasks.id, id))
 
   const result = await db.select().from(tasks)
+  const u = await db.select().from(users)
 
-  return c.html(<TaskList tasks={result} />)
+  return c.html(<TaskList tasks={result} users={u} />)
 })
 
 

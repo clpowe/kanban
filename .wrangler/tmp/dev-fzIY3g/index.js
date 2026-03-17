@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-xtbRV8/checked-fetch.js
+// .wrangler/tmp/bundle-1eVpJD/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -9937,7 +9937,23 @@ __name(jsxDEV2, "jsxDEV");
 // index.tsx
 var app = new Hono2();
 var htmxDeleteResponse = /* @__PURE__ */ __name((c) => c.body("", 200), "htmxDeleteResponse");
+var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
+  c.header("HX-Trigger", "refreshTasks");
+  return c.body("", 200);
+}, "htmxRefreshTasksResponse");
 var TASK_STATUSES = ["todo", "doing", "review", "done"];
+var groupTasksByStatus = /* @__PURE__ */ __name((taskList) => taskList.reduce(
+  (grouped, task) => {
+    grouped[task.status ?? "todo"].push(task);
+    return grouped;
+  },
+  {
+    todo: [],
+    doing: [],
+    review: [],
+    done: []
+  }
+), "groupTasksByStatus");
 var Layout = /* @__PURE__ */ __name((props) => {
   return /* @__PURE__ */ jsxDEV2("html", { children: [
     /* @__PURE__ */ jsxDEV2("head", { children: [
@@ -9958,14 +9974,14 @@ var Layout = /* @__PURE__ */ __name((props) => {
 var UserList = /* @__PURE__ */ __name(({ users: users2 }) => {
   return /* @__PURE__ */ jsxDEV2(Fragment, { children: /* @__PURE__ */ jsxDEV2("ul", { children: users2?.map((u) => /* @__PURE__ */ jsxDEV2("li", { "data-id": u.id, children: u.name }, u.id)) }) });
 }, "UserList");
-var TaskList = /* @__PURE__ */ __name(({ tasks: tasks2 }) => {
-  const grouped = Object.groupBy(tasks2, (t) => t.status);
+var TaskList = /* @__PURE__ */ __name(({ tasks: tasks2, users: users2 }) => {
+  const grouped = groupTasksByStatus(tasks2);
   return /* @__PURE__ */ jsxDEV2(Fragment, { children: TASK_STATUSES.map((status) => /* @__PURE__ */ jsxDEV2("div", { children: [
     /* @__PURE__ */ jsxDEV2("h3", { children: status }),
-    /* @__PURE__ */ jsxDEV2("ul", { children: (grouped[status] ?? []).map((task) => /* @__PURE__ */ jsxDEV2(Task, { task })) })
+    /* @__PURE__ */ jsxDEV2("ul", { children: (grouped[status] ?? []).map((task) => /* @__PURE__ */ jsxDEV2(Task, { task, users: users2 })) })
   ] }, status)) });
 }, "TaskList");
-var Task = /* @__PURE__ */ __name(({ task }) => {
+var Task = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
   return /* @__PURE__ */ jsxDEV2("li", { "data-id": task.id, children: [
     /* @__PURE__ */ jsxDEV2(
       "form",
@@ -9989,10 +10005,7 @@ var Task = /* @__PURE__ */ __name(({ task }) => {
           ),
           /* @__PURE__ */ jsxDEV2("select", { name: "assigneeId", children: [
             /* @__PURE__ */ jsxDEV2("option", { value: "", children: "Unassigned" }),
-            /* @__PURE__ */ jsxDEV2("option", { value: "61", selected: task.assigneeId === 61, children: "Mom" }),
-            /* @__PURE__ */ jsxDEV2("option", { value: "62", selected: task.assigneeId === 62, children: "Dad" }),
-            /* @__PURE__ */ jsxDEV2("option", { value: "63", selected: task.assigneeId === 63, children: "Emma" }),
-            /* @__PURE__ */ jsxDEV2("option", { value: "64", selected: task.assigneeId === 64, children: "Noah" })
+            users2.map((user) => /* @__PURE__ */ jsxDEV2("option", { value: user.id, selected: task.assigneeId === user.id, children: user.name }))
           ] })
         ]
       }
@@ -10026,10 +10039,8 @@ var Task = /* @__PURE__ */ __name(({ task }) => {
   ] }, task.id);
 }, "Task");
 app.get("/", (c) => {
-  console.log("Root Request");
   return c.html(
     /* @__PURE__ */ jsxDEV2(Layout, { children: [
-      "Hello from hono",
       /* @__PURE__ */ jsxDEV2(
         "form",
         {
@@ -10084,7 +10095,8 @@ app.get("/tasks", async (c) => {
   try {
     const db = drizzle(c.env.family_kanban);
     const result = await db.select().from(tasks);
-    return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result }));
+    const u = await db.select().from(users);
+    return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result, users: u }));
   } catch (err) {
     console.error("GET /tasks error:", err);
     return c.html(
@@ -10107,8 +10119,9 @@ app.post("/tasks", async (c) => {
     status: "todo",
     assigneeId: body.assigneeId ? Number(body.assigneeId) : null
   });
+  const u = await db.select().from(users);
   const result = await db.select().from(tasks);
-  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result }));
+  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result, users: u }));
 });
 app.patch("/task/:id", async (c) => {
   const id = Number(c.req.param("id"));
@@ -10123,11 +10136,11 @@ app.patch("/task/:id", async (c) => {
   if (body.status) updates.status = body.status;
   await db.update(tasks).set(updates).where(eq(tasks.id, id));
   if (updates.status) {
-    c.header("HX-Trigger", "refreshTasks");
-    return c.body("", 200);
+    return htmxRefreshTasksResponse(c);
   }
+  const u = await db.select().from(users);
   const task = await db.select().from(tasks).where(eq(tasks.id, id)).get();
-  return c.html(/* @__PURE__ */ jsxDEV2(Task, { task }));
+  return c.html(/* @__PURE__ */ jsxDEV2(Task, { task, users: u }));
 });
 app.patch("/task/status/:id", async (c) => {
   const id = Number(c.req.param("id"));
@@ -10137,7 +10150,8 @@ app.patch("/task/status/:id", async (c) => {
   if (body.status) updates.status = body.status;
   await db.update(tasks).set(updates).where(eq(tasks.id, id));
   const result = await db.select().from(tasks);
-  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result }));
+  const u = await db.select().from(users);
+  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result, users: u }));
 });
 app.delete("/task/:id", async (c) => {
   const id = Number(c.req.param("id"));
@@ -10188,7 +10202,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-xtbRV8/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-1eVpJD/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -10220,7 +10234,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-xtbRV8/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-1eVpJD/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -10317,8 +10331,12 @@ if (typeof middleware_insertion_facade_default === "object") {
 }
 var middleware_loader_entry_default = WRAPPED_ENTRY;
 export {
+  Task,
+  TaskList,
   __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default as default,
-  htmxDeleteResponse
+  groupTasksByStatus,
+  htmxDeleteResponse,
+  htmxRefreshTasksResponse
 };
 //# sourceMappingURL=index.js.map

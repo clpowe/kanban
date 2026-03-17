@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { Hono } from 'hono'
-import app, { htmxDeleteResponse, htmxRefreshTasksResponse } from './index'
+import app, {
+  groupTasksByStatus,
+  htmxDeleteResponse,
+  htmxRefreshTasksResponse,
+  Task,
+  TaskList
+} from './index'
 
 describe('htmxDeleteResponse', () => {
   test('returns an empty 200 response so htmx can apply hx-swap="delete"', async () => {
@@ -37,5 +43,102 @@ describe('home page HTMX wiring', () => {
     expect(response.status).toBe(200)
     expect(html).toContain('id="tasks-container"')
     expect(html).toContain('hx-trigger="load, refreshTasks from:body"')
+  })
+})
+
+describe('groupTasksByStatus', () => {
+  test('groups tasks without depending on Object.groupBy being available', () => {
+    const originalGroupBy = Object.groupBy
+
+    Object.assign(Object, { groupBy: undefined })
+
+    try {
+      const grouped = groupTasksByStatus([
+        {
+          id: 29,
+          title: 'Review PR',
+          priority: 'medium',
+          value: 1,
+          repeat: 'none',
+          status: 'todo',
+          assigneeId: 61
+        },
+        {
+          id: 30,
+          title: 'Ship fix',
+          priority: 'high',
+          value: 2,
+          repeat: 'none',
+          status: 'done',
+          assigneeId: null
+        }
+      ])
+
+      expect(grouped.todo).toHaveLength(1)
+      expect(grouped.done).toHaveLength(1)
+      expect(grouped.doing).toEqual([])
+      expect(grouped.review).toEqual([])
+    } finally {
+      Object.assign(Object, { groupBy: originalGroupBy })
+    }
+  })
+})
+
+describe('task assignee rendering', () => {
+  test('renders assignee options from the users passed into TaskList', async () => {
+    const app = new Hono()
+
+    app.get('/task-list', (c) =>
+      c.html(
+        TaskList({
+          tasks: [
+            {
+              id: 29,
+              title: 'Review PR',
+              priority: 'medium',
+              value: 1,
+              repeat: 'none',
+              status: 'todo',
+              assigneeId: 2
+            }
+          ],
+          users: [
+            { id: 1, name: 'Mom', points: 0, type: 'parent' },
+            { id: 2, name: 'Emma', points: 0, type: 'child' }
+          ]
+        })
+      )
+    )
+
+    const response = await app.request('/task-list')
+    const html = await response.text()
+
+    expect(response.status).toBe(200)
+    expect(html).toContain('>Mom<')
+    expect(html).toContain('>Emma<')
+  })
+
+  test('does not throw when Task is rendered with no users prop', async () => {
+    const app = new Hono()
+
+    app.get('/task', (c) =>
+      c.html(
+        Task({
+          task: {
+            id: 30,
+            title: 'Ship fix',
+            priority: 'high',
+            value: 2,
+            repeat: 'none',
+            status: 'doing',
+            assigneeId: null
+          }
+        })
+      )
+    )
+
+    const response = await app.request('/task')
+
+    expect(response.status).toBe(200)
   })
 })
