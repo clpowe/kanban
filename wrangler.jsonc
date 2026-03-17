@@ -8,5 +8,11 @@
       "database_name": "family-kanban",
       "database_id": "9da947ae-9031-49bf-90c3-89ff668013e2"
     }
-  ]
+  ],
+  "observability": {
+    "logs": {
+      "enabled": false,
+      "invocation_logs": true
+    }
+  }
 }
