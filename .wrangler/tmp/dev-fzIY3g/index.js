@@ -10038,7 +10038,9 @@ var Task = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
     )
   ] }, task.id);
 }, "Task");
-app.get("/", (c) => {
+app.get("/", async (c) => {
+  const db = drizzle(c.env.family_kanban);
+  const u = await db.select().from(users);
   return c.html(
     /* @__PURE__ */ jsxDEV2(Layout, { children: [
       /* @__PURE__ */ jsxDEV2(
@@ -10063,10 +10065,7 @@ app.get("/", (c) => {
             ] }),
             /* @__PURE__ */ jsxDEV2("select", { name: "assigneeId", children: [
               /* @__PURE__ */ jsxDEV2("option", { value: "", children: "Unassigned" }),
-              /* @__PURE__ */ jsxDEV2("option", { value: "61", children: "Mom" }),
-              /* @__PURE__ */ jsxDEV2("option", { value: "62", children: "Dad" }),
-              /* @__PURE__ */ jsxDEV2("option", { value: "63", children: "Emma" }),
-              /* @__PURE__ */ jsxDEV2("option", { value: "64", children: "Noah" })
+              u.map((us) => /* @__PURE__ */ jsxDEV2("option", { value: us.id, children: us.name }))
             ] }),
             /* @__PURE__ */ jsxDEV2("button", { type: "submit", children: "Add Task" })
           ]

@@ -134,7 +134,9 @@ export const Task: FC<{ task: Task, users?: User[] }> = ({ task, users = [] }) =
   )
 }
 
-app.get('/', (c) => {
+app.get('/', async (c) => {
+  const db = drizzle(c.env.family_kanban)
+  const u = await db.select().from(users)
 
 
   return c.html(
@@ -165,10 +167,9 @@ app.get('/', (c) => {
 
         <select name='assigneeId'>
           <option value=''>Unassigned</option>
-          <option value='61'>Mom</option>
-          <option value='62'>Dad</option>
-          <option value='63'>Emma</option>
-          <option value='64'>Noah</option>
+          {
+            u.map(us => <option value={us.id}>{us.name}</option>)
+          }
         </select>
 
         <button type='submit'>Add Task</button>
