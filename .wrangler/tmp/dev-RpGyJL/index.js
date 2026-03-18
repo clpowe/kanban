@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-1eVpJD/checked-fetch.js
+// .wrangler/tmp/bundle-9aoOmf/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -9978,10 +9978,10 @@ var TaskList = /* @__PURE__ */ __name(({ tasks: tasks2, users: users2 }) => {
   const grouped = groupTasksByStatus(tasks2);
   return /* @__PURE__ */ jsxDEV2(Fragment, { children: TASK_STATUSES.map((status) => /* @__PURE__ */ jsxDEV2("div", { children: [
     /* @__PURE__ */ jsxDEV2("h3", { children: status }),
-    /* @__PURE__ */ jsxDEV2("ul", { children: (grouped[status] ?? []).map((task) => /* @__PURE__ */ jsxDEV2(Task, { task, users: users2 })) })
+    /* @__PURE__ */ jsxDEV2("ul", { children: (grouped[status] ?? []).map((task) => /* @__PURE__ */ jsxDEV2(TaskItem, { task, users: users2 })) })
   ] }, status)) });
 }, "TaskList");
-var Task = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
+var TaskItem = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
   return /* @__PURE__ */ jsxDEV2("li", { "data-id": task.id, children: [
     /* @__PURE__ */ jsxDEV2(
       "form",
@@ -10037,7 +10037,7 @@ var Task = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
       }
     )
   ] }, task.id);
-}, "Task");
+}, "TaskItem");
 app.get("/", async (c) => {
   const db = drizzle(c.env.family_kanban);
   const u = await db.select().from(users);
@@ -10133,13 +10133,13 @@ app.patch("/task/:id", async (c) => {
     updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null;
   }
   if (body.status) updates.status = body.status;
-  await db.update(tasks).set(updates).where(eq(tasks.id, id));
+  await db.update(tasks).set(updates).where(eq(tasks.id, id)).get();
   if (updates.status) {
     return htmxRefreshTasksResponse(c);
   }
   const u = await db.select().from(users);
   const task = await db.select().from(tasks).where(eq(tasks.id, id)).get();
-  return c.html(/* @__PURE__ */ jsxDEV2(Task, { task, users: u }));
+  return c.html(/* @__PURE__ */ jsxDEV2(TaskItem, { task, users: u }));
 });
 app.patch("/task/status/:id", async (c) => {
   const id = Number(c.req.param("id"));
@@ -10201,7 +10201,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-1eVpJD/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-9aoOmf/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -10233,7 +10233,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-1eVpJD/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-9aoOmf/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -10330,7 +10330,7 @@ if (typeof middleware_insertion_facade_default === "object") {
 }
 var middleware_loader_entry_default = WRAPPED_ENTRY;
 export {
-  Task,
+  TaskItem,
   TaskList,
   __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default as default,

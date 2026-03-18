@@ -3,7 +3,7 @@ import type { Context } from 'hono'
 import { drizzle } from 'drizzle-orm/d1'
 import { tasks, users } from './schema'
 import { Fragment, type FC } from 'hono/jsx'
-import type { User, Task } from './types'
+import type { User, Task, TaskUpdate } from './types'
 import { eq } from 'drizzle-orm'
 
 export type Env = {
@@ -75,7 +75,7 @@ export const TaskList: FC<{ tasks: Task[], users: User[] }> = ({ tasks, users })
           <h3>{status}</h3>
           <ul>
             {(grouped[status] ?? []).map((task) => (
-              <Task task={task} users={users} />
+              <TaskItem task={task} users={users} />
             ))}
           </ul>
         </div>
@@ -84,7 +84,7 @@ export const TaskList: FC<{ tasks: Task[], users: User[] }> = ({ tasks, users })
   )
 }
 
-export const Task: FC<{ task: Task, users?: User[] }> = ({ task, users = [] }) => {
+export const TaskItem: FC<{ task: Task, users?: User[] }> = ({ task, users = [] }) => {
   return (
     <li key={task.id} data-id={task.id}>
       <form
@@ -241,18 +241,19 @@ app.patch('/task/:id', async (c) => {
   const db = drizzle(c.env.family_kanban)
 
   const body = await c.req.parseBody()
-  const updates: any = {}
+  const updates: TaskUpdate = {}
 
-  if (body.title) updates.title = body.title
-  if (body.priority) updates.priority = body.priority
+
+  if (body.title) updates.title = body.title as string
+  if (body.priority) updates.priority = body.priority as "high" | "medium" | "low"
   if ('assigneeId' in body) {
     updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null
   }
-  if (body.status) updates.status = body.status
+  if (body.status) updates.status = body.status as any
 
   await db.update(tasks)
     .set(updates)
-    .where(eq(tasks.id, id))
+    .where(eq(tasks.id, id)).get()
 
   if (updates.status) {
     return htmxRefreshTasksResponse(c)
@@ -260,7 +261,8 @@ app.patch('/task/:id', async (c) => {
 
   const u = await db.select().from(users)
   const task = await db.select().from(tasks).where(eq(tasks.id, id)).get()
-  return c.html(<Task task={task} users={u} />)
+
+  return c.html(<TaskItem task={task} users={u} />)
 })
 
 app.patch('/task/status/:id', async (c) => {
