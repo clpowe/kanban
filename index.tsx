@@ -1,17 +1,13 @@
 import { Hono } from 'hono'
 import { drizzle } from 'drizzle-orm/d1'
-import { tasks, users } from './schema'
+import { tasks, users } from './src/db/schema.ts'
 import { type FC } from 'hono/jsx'
-import type { User, Task, TaskUpdate } from './types'
+import type { User, Task, TaskUpdate } from './src/types'
 import { groupTasksByStatus, sortTasksByPriority } from './src/utils/tasks'
 import { htmxDeleteResponse, htmxRefreshTasksResponse } from './src/utils/htmx.ts'
 import { eq } from 'drizzle-orm'
+import { type Env, getDB } from './src/db/client.ts'
 
-export type Env = {
-  Bindings: {
-    family_kanban: D1Database
-  }
-}
 
 const app = new Hono<Env>()
 
@@ -152,13 +148,13 @@ app.get('/', async (c) => {
 })
 
 app.get('/users', async (c) => {
-  const db = drizzle(c.env.family_kanban)
+  const db = getDB(c.env)
   const result = await db.select().from(users)
 })
 
 app.get('/tasks', async (c) => {
   try {
-    const db = drizzle(c.env.family_kanban)
+    const db = getDB(c.env)
     const result = await db.select().from(tasks)
     const u = await db.select().from(users)
 
@@ -169,11 +165,6 @@ app.get('/tasks', async (c) => {
     return c.html(
       <div class="error">
         Failed to load tasks
-        <p>
-          {
-            err
-          }
-        </p>
       </div>,
       500
     )
@@ -181,7 +172,7 @@ app.get('/tasks', async (c) => {
 })
 
 app.post('/tasks', async (c) => {
-  const db = drizzle(c.env.family_kanban)
+  const db = getDB(c.env)
   const body = await c.req.parseBody()
 
   await db.insert(tasks).values({
@@ -202,7 +193,7 @@ app.post('/tasks', async (c) => {
 
 app.patch('/task/:id', async (c) => {
   const id = Number(c.req.param('id'))
-  const db = drizzle(c.env.family_kanban)
+  const db = getDB(c.env)
 
   const body = await c.req.parseBody()
   const updates: TaskUpdate = {}
@@ -231,7 +222,7 @@ app.patch('/task/:id', async (c) => {
 
 app.patch('/task/status/:id', async (c) => {
   const id = Number(c.req.param('id'))
-  const db = drizzle(c.env.family_kanban)
+  const db = getDB(c.env)
 
   const body = await c.req.parseBody()
   const updates: any = {}
@@ -251,7 +242,7 @@ app.patch('/task/status/:id', async (c) => {
 
 app.delete('/task/:id', async (c) => {
   const id = Number(c.req.param('id'))
-  const db = drizzle(c.env.family_kanban)
+  const db = getDB(c.env)
   await db.delete(tasks).where(eq(tasks.id, id))
   return htmxDeleteResponse(c)
 })

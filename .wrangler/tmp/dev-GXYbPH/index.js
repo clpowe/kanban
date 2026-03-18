@@ -8009,7 +8009,7 @@ function drizzle(client, config = {}) {
 }
 __name(drizzle, "drizzle");
 
-// schema.ts
+// src/db/schema.ts
 var users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -9953,6 +9953,12 @@ var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
   return c.body("", 200);
 }, "htmxRefreshTasksResponse");
 
+// src/db/client.ts
+function getDB(env) {
+  return drizzle(env.family_kanban);
+}
+__name(getDB, "getDB");
+
 // node_modules/hono/dist/jsx/jsx-dev-runtime.js
 function jsxDEV2(tag, props, key) {
   let node;
@@ -10096,28 +10102,25 @@ app.get("/", async (c) => {
   );
 });
 app.get("/users", async (c) => {
-  const db = drizzle(c.env.family_kanban);
+  const db = getDB(c.env);
   const result = await db.select().from(users);
 });
 app.get("/tasks", async (c) => {
   try {
-    const db = drizzle(c.env.family_kanban);
+    const db = getDB(c.env);
     const result = await db.select().from(tasks);
     const u = await db.select().from(users);
     return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result, users: u }));
   } catch (err) {
     console.error("GET /tasks error:", err);
     return c.html(
-      /* @__PURE__ */ jsxDEV2("div", { class: "error", children: [
-        "Failed to load tasks",
-        /* @__PURE__ */ jsxDEV2("p", { children: err })
-      ] }),
+      /* @__PURE__ */ jsxDEV2("div", { class: "error", children: "Failed to load tasks" }),
       500
     );
   }
 });
 app.post("/tasks", async (c) => {
-  const db = drizzle(c.env.family_kanban);
+  const db = getDB(c.env);
   const body = await c.req.parseBody();
   await db.insert(tasks).values({
     title: body.title,
@@ -10133,7 +10136,7 @@ app.post("/tasks", async (c) => {
 });
 app.patch("/task/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const db = drizzle(c.env.family_kanban);
+  const db = getDB(c.env);
   const body = await c.req.parseBody();
   const updates = {};
   if (body.title) updates.title = body.title;
@@ -10152,7 +10155,7 @@ app.patch("/task/:id", async (c) => {
 });
 app.patch("/task/status/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const db = drizzle(c.env.family_kanban);
+  const db = getDB(c.env);
   const body = await c.req.parseBody();
   const updates = {};
   if (body.status) updates.status = body.status;
@@ -10163,7 +10166,7 @@ app.patch("/task/status/:id", async (c) => {
 });
 app.delete("/task/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const db = drizzle(c.env.family_kanban);
+  const db = getDB(c.env);
   await db.delete(tasks).where(eq(tasks.id, id));
   return htmxDeleteResponse(c);
 });

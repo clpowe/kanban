@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
-import { tasks, rewards, users } from './schema'
+import { tasks, rewards, users } from '../db/schema.ts'
 
 export type User = InferSelectModel<typeof users>
 export type Task = InferSelectModel<typeof tasks>
