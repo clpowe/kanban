@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-Z10hCb/checked-fetch.js
+// .wrangler/tmp/bundle-Bg4tuV/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -8850,7 +8850,7 @@ function taskRoutes(app2) {
 }
 __name(taskRoutes, "taskRoutes");
 
-// index.tsx
+// src/index.tsx
 var app = new Hono2();
 app.get("/", async (c) => {
   const db = getDB(c.env);
@@ -8871,7 +8871,7 @@ app.get("/", async (c) => {
   );
 });
 taskRoutes(app);
-var index_default = app;
+var src_default = app;
 
 // node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
 var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {
@@ -8914,12 +8914,12 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-Z10hCb/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-Bg4tuV/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
 ];
-var middleware_insertion_facade_default = index_default;
+var middleware_insertion_facade_default = src_default;
 
 // node_modules/wrangler/templates/middleware/common.ts
 var __facade_middleware__ = [];
@@ -8946,7 +8946,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-Z10hCb/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-Bg4tuV/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
