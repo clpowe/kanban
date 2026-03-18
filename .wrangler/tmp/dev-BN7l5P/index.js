@@ -2227,116 +2227,6 @@ function is(value, type) {
 }
 __name(is, "is");
 
-// node_modules/drizzle-orm/logger.js
-var ConsoleLogWriter = class {
-  static {
-    __name(this, "ConsoleLogWriter");
-  }
-  static [entityKind] = "ConsoleLogWriter";
-  write(message) {
-    console.log(message);
-  }
-};
-var DefaultLogger = class {
-  static {
-    __name(this, "DefaultLogger");
-  }
-  static [entityKind] = "DefaultLogger";
-  writer;
-  constructor(config) {
-    this.writer = config?.writer ?? new ConsoleLogWriter();
-  }
-  logQuery(query, params) {
-    const stringifiedParams = params.map((p) => {
-      try {
-        return JSON.stringify(p);
-      } catch {
-        return String(p);
-      }
-    });
-    const paramsStr = stringifiedParams.length ? ` -- params: [${stringifiedParams.join(", ")}]` : "";
-    this.writer.write(`Query: ${query}${paramsStr}`);
-  }
-};
-var NoopLogger = class {
-  static {
-    __name(this, "NoopLogger");
-  }
-  static [entityKind] = "NoopLogger";
-  logQuery() {
-  }
-};
-
-// node_modules/drizzle-orm/table.utils.js
-var TableName = /* @__PURE__ */ Symbol.for("drizzle:Name");
-
-// node_modules/drizzle-orm/table.js
-var Schema = /* @__PURE__ */ Symbol.for("drizzle:Schema");
-var Columns = /* @__PURE__ */ Symbol.for("drizzle:Columns");
-var ExtraConfigColumns = /* @__PURE__ */ Symbol.for("drizzle:ExtraConfigColumns");
-var OriginalName = /* @__PURE__ */ Symbol.for("drizzle:OriginalName");
-var BaseName = /* @__PURE__ */ Symbol.for("drizzle:BaseName");
-var IsAlias = /* @__PURE__ */ Symbol.for("drizzle:IsAlias");
-var ExtraConfigBuilder = /* @__PURE__ */ Symbol.for("drizzle:ExtraConfigBuilder");
-var IsDrizzleTable = /* @__PURE__ */ Symbol.for("drizzle:IsDrizzleTable");
-var Table = class {
-  static {
-    __name(this, "Table");
-  }
-  static [entityKind] = "Table";
-  /** @internal */
-  static Symbol = {
-    Name: TableName,
-    Schema,
-    OriginalName,
-    Columns,
-    ExtraConfigColumns,
-    BaseName,
-    IsAlias,
-    ExtraConfigBuilder
-  };
-  /**
-   * @internal
-   * Can be changed if the table is aliased.
-   */
-  [TableName];
-  /**
-   * @internal
-   * Used to store the original name of the table, before any aliasing.
-   */
-  [OriginalName];
-  /** @internal */
-  [Schema];
-  /** @internal */
-  [Columns];
-  /** @internal */
-  [ExtraConfigColumns];
-  /**
-   *  @internal
-   * Used to store the table name before the transformation via the `tableCreator` functions.
-   */
-  [BaseName];
-  /** @internal */
-  [IsAlias] = false;
-  /** @internal */
-  [IsDrizzleTable] = true;
-  /** @internal */
-  [ExtraConfigBuilder] = void 0;
-  constructor(name, schema, baseName) {
-    this[TableName] = this[OriginalName] = name;
-    this[Schema] = schema;
-    this[BaseName] = baseName;
-  }
-};
-function getTableName(table) {
-  return table[TableName];
-}
-__name(getTableName, "getTableName");
-function getTableUniqueName(table) {
-  return `${table[Schema] ?? "public"}.${table[TableName]}`;
-}
-__name(getTableUniqueName, "getTableUniqueName");
-
 // node_modules/drizzle-orm/column.js
 var Column = class {
   static {
@@ -2496,6 +2386,9 @@ var ColumnBuilder = class {
     this.config.name = name;
   }
 };
+
+// node_modules/drizzle-orm/table.utils.js
+var TableName = /* @__PURE__ */ Symbol.for("drizzle:Name");
 
 // node_modules/drizzle-orm/pg-core/foreign-keys.js
 var ForeignKeyBuilder = class {
@@ -3047,6 +2940,73 @@ var tracer = {
 // node_modules/drizzle-orm/view-common.js
 var ViewBaseConfig = /* @__PURE__ */ Symbol.for("drizzle:ViewBaseConfig");
 
+// node_modules/drizzle-orm/table.js
+var Schema = /* @__PURE__ */ Symbol.for("drizzle:Schema");
+var Columns = /* @__PURE__ */ Symbol.for("drizzle:Columns");
+var ExtraConfigColumns = /* @__PURE__ */ Symbol.for("drizzle:ExtraConfigColumns");
+var OriginalName = /* @__PURE__ */ Symbol.for("drizzle:OriginalName");
+var BaseName = /* @__PURE__ */ Symbol.for("drizzle:BaseName");
+var IsAlias = /* @__PURE__ */ Symbol.for("drizzle:IsAlias");
+var ExtraConfigBuilder = /* @__PURE__ */ Symbol.for("drizzle:ExtraConfigBuilder");
+var IsDrizzleTable = /* @__PURE__ */ Symbol.for("drizzle:IsDrizzleTable");
+var Table = class {
+  static {
+    __name(this, "Table");
+  }
+  static [entityKind] = "Table";
+  /** @internal */
+  static Symbol = {
+    Name: TableName,
+    Schema,
+    OriginalName,
+    Columns,
+    ExtraConfigColumns,
+    BaseName,
+    IsAlias,
+    ExtraConfigBuilder
+  };
+  /**
+   * @internal
+   * Can be changed if the table is aliased.
+   */
+  [TableName];
+  /**
+   * @internal
+   * Used to store the original name of the table, before any aliasing.
+   */
+  [OriginalName];
+  /** @internal */
+  [Schema];
+  /** @internal */
+  [Columns];
+  /** @internal */
+  [ExtraConfigColumns];
+  /**
+   *  @internal
+   * Used to store the table name before the transformation via the `tableCreator` functions.
+   */
+  [BaseName];
+  /** @internal */
+  [IsAlias] = false;
+  /** @internal */
+  [IsDrizzleTable] = true;
+  /** @internal */
+  [ExtraConfigBuilder] = void 0;
+  constructor(name, schema, baseName) {
+    this[TableName] = this[OriginalName] = name;
+    this[Schema] = schema;
+    this[BaseName] = baseName;
+  }
+};
+function getTableName(table) {
+  return table[TableName];
+}
+__name(getTableName, "getTableName");
+function getTableUniqueName(table) {
+  return `${table[Schema] ?? "public"}.${table[TableName]}`;
+}
+__name(getTableUniqueName, "getTableUniqueName");
+
 // node_modules/drizzle-orm/sql/sql.js
 var FakePrimitiveParam = class {
   static {
@@ -3477,6 +3437,115 @@ Subquery.prototype.getSQL = function() {
   return new SQL([this]);
 };
 
+// node_modules/drizzle-orm/alias.js
+var ColumnAliasProxyHandler = class {
+  static {
+    __name(this, "ColumnAliasProxyHandler");
+  }
+  constructor(table) {
+    this.table = table;
+  }
+  static [entityKind] = "ColumnAliasProxyHandler";
+  get(columnObj, prop) {
+    if (prop === "table") {
+      return this.table;
+    }
+    return columnObj[prop];
+  }
+};
+var TableAliasProxyHandler = class {
+  static {
+    __name(this, "TableAliasProxyHandler");
+  }
+  constructor(alias, replaceOriginalName) {
+    this.alias = alias;
+    this.replaceOriginalName = replaceOriginalName;
+  }
+  static [entityKind] = "TableAliasProxyHandler";
+  get(target, prop) {
+    if (prop === Table.Symbol.IsAlias) {
+      return true;
+    }
+    if (prop === Table.Symbol.Name) {
+      return this.alias;
+    }
+    if (this.replaceOriginalName && prop === Table.Symbol.OriginalName) {
+      return this.alias;
+    }
+    if (prop === ViewBaseConfig) {
+      return {
+        ...target[ViewBaseConfig],
+        name: this.alias,
+        isAlias: true
+      };
+    }
+    if (prop === Table.Symbol.Columns) {
+      const columns = target[Table.Symbol.Columns];
+      if (!columns) {
+        return columns;
+      }
+      const proxiedColumns = {};
+      Object.keys(columns).map((key) => {
+        proxiedColumns[key] = new Proxy(
+          columns[key],
+          new ColumnAliasProxyHandler(new Proxy(target, this))
+        );
+      });
+      return proxiedColumns;
+    }
+    const value = target[prop];
+    if (is(value, Column)) {
+      return new Proxy(value, new ColumnAliasProxyHandler(new Proxy(target, this)));
+    }
+    return value;
+  }
+};
+var RelationTableAliasProxyHandler = class {
+  static {
+    __name(this, "RelationTableAliasProxyHandler");
+  }
+  constructor(alias) {
+    this.alias = alias;
+  }
+  static [entityKind] = "RelationTableAliasProxyHandler";
+  get(target, prop) {
+    if (prop === "sourceTable") {
+      return aliasedTable(target.sourceTable, this.alias);
+    }
+    return target[prop];
+  }
+};
+function aliasedTable(table, tableAlias) {
+  return new Proxy(table, new TableAliasProxyHandler(tableAlias, false));
+}
+__name(aliasedTable, "aliasedTable");
+function aliasedTableColumn(column, tableAlias) {
+  return new Proxy(
+    column,
+    new ColumnAliasProxyHandler(new Proxy(column.table, new TableAliasProxyHandler(tableAlias, false)))
+  );
+}
+__name(aliasedTableColumn, "aliasedTableColumn");
+function mapColumnsInAliasedSQLToAlias(query, alias) {
+  return new SQL.Aliased(mapColumnsInSQLToAlias(query.sql, alias), query.fieldAlias);
+}
+__name(mapColumnsInAliasedSQLToAlias, "mapColumnsInAliasedSQLToAlias");
+function mapColumnsInSQLToAlias(query, alias) {
+  return sql.join(query.queryChunks.map((c) => {
+    if (is(c, Column)) {
+      return aliasedTableColumn(c, alias);
+    }
+    if (is(c, SQL)) {
+      return mapColumnsInSQLToAlias(c, alias);
+    }
+    if (is(c, SQL.Aliased)) {
+      return mapColumnsInAliasedSQLToAlias(c, alias);
+    }
+    return c;
+  }));
+}
+__name(mapColumnsInSQLToAlias, "mapColumnsInSQLToAlias");
+
 // node_modules/drizzle-orm/utils.js
 function mapResultRow(columns, row, joinsNotNullableMap) {
   const nullifyMap = {};
@@ -3600,706 +3669,6 @@ function getColumnNameAndConfig(a, b) {
 }
 __name(getColumnNameAndConfig, "getColumnNameAndConfig");
 var textDecoder = typeof TextDecoder === "undefined" ? null : new TextDecoder();
-
-// node_modules/drizzle-orm/pg-core/table.js
-var InlineForeignKeys = /* @__PURE__ */ Symbol.for("drizzle:PgInlineForeignKeys");
-var EnableRLS = /* @__PURE__ */ Symbol.for("drizzle:EnableRLS");
-var PgTable = class extends Table {
-  static {
-    __name(this, "PgTable");
-  }
-  static [entityKind] = "PgTable";
-  /** @internal */
-  static Symbol = Object.assign({}, Table.Symbol, {
-    InlineForeignKeys,
-    EnableRLS
-  });
-  /**@internal */
-  [InlineForeignKeys] = [];
-  /** @internal */
-  [EnableRLS] = false;
-  /** @internal */
-  [Table.Symbol.ExtraConfigBuilder] = void 0;
-  /** @internal */
-  [Table.Symbol.ExtraConfigColumns] = {};
-};
-
-// node_modules/drizzle-orm/pg-core/primary-keys.js
-var PrimaryKeyBuilder = class {
-  static {
-    __name(this, "PrimaryKeyBuilder");
-  }
-  static [entityKind] = "PgPrimaryKeyBuilder";
-  /** @internal */
-  columns;
-  /** @internal */
-  name;
-  constructor(columns, name) {
-    this.columns = columns;
-    this.name = name;
-  }
-  /** @internal */
-  build(table) {
-    return new PrimaryKey(table, this.columns, this.name);
-  }
-};
-var PrimaryKey = class {
-  static {
-    __name(this, "PrimaryKey");
-  }
-  constructor(table, columns, name) {
-    this.table = table;
-    this.columns = columns;
-    this.name = name;
-  }
-  static [entityKind] = "PgPrimaryKey";
-  columns;
-  name;
-  getName() {
-    return this.name ?? `${this.table[PgTable.Symbol.Name]}_${this.columns.map((column) => column.name).join("_")}_pk`;
-  }
-};
-
-// node_modules/drizzle-orm/sql/expressions/conditions.js
-function bindIfParam(value, column) {
-  if (isDriverValueEncoder(column) && !isSQLWrapper(value) && !is(value, Param) && !is(value, Placeholder) && !is(value, Column) && !is(value, Table) && !is(value, View)) {
-    return new Param(value, column);
-  }
-  return value;
-}
-__name(bindIfParam, "bindIfParam");
-var eq = /* @__PURE__ */ __name((left, right) => {
-  return sql`${left} = ${bindIfParam(right, left)}`;
-}, "eq");
-var ne = /* @__PURE__ */ __name((left, right) => {
-  return sql`${left} <> ${bindIfParam(right, left)}`;
-}, "ne");
-function and(...unfilteredConditions) {
-  const conditions = unfilteredConditions.filter(
-    (c) => c !== void 0
-  );
-  if (conditions.length === 0) {
-    return void 0;
-  }
-  if (conditions.length === 1) {
-    return new SQL(conditions);
-  }
-  return new SQL([
-    new StringChunk("("),
-    sql.join(conditions, new StringChunk(" and ")),
-    new StringChunk(")")
-  ]);
-}
-__name(and, "and");
-function or(...unfilteredConditions) {
-  const conditions = unfilteredConditions.filter(
-    (c) => c !== void 0
-  );
-  if (conditions.length === 0) {
-    return void 0;
-  }
-  if (conditions.length === 1) {
-    return new SQL(conditions);
-  }
-  return new SQL([
-    new StringChunk("("),
-    sql.join(conditions, new StringChunk(" or ")),
-    new StringChunk(")")
-  ]);
-}
-__name(or, "or");
-function not(condition) {
-  return sql`not ${condition}`;
-}
-__name(not, "not");
-var gt = /* @__PURE__ */ __name((left, right) => {
-  return sql`${left} > ${bindIfParam(right, left)}`;
-}, "gt");
-var gte = /* @__PURE__ */ __name((left, right) => {
-  return sql`${left} >= ${bindIfParam(right, left)}`;
-}, "gte");
-var lt = /* @__PURE__ */ __name((left, right) => {
-  return sql`${left} < ${bindIfParam(right, left)}`;
-}, "lt");
-var lte = /* @__PURE__ */ __name((left, right) => {
-  return sql`${left} <= ${bindIfParam(right, left)}`;
-}, "lte");
-function inArray(column, values) {
-  if (Array.isArray(values)) {
-    if (values.length === 0) {
-      return sql`false`;
-    }
-    return sql`${column} in ${values.map((v) => bindIfParam(v, column))}`;
-  }
-  return sql`${column} in ${bindIfParam(values, column)}`;
-}
-__name(inArray, "inArray");
-function notInArray(column, values) {
-  if (Array.isArray(values)) {
-    if (values.length === 0) {
-      return sql`true`;
-    }
-    return sql`${column} not in ${values.map((v) => bindIfParam(v, column))}`;
-  }
-  return sql`${column} not in ${bindIfParam(values, column)}`;
-}
-__name(notInArray, "notInArray");
-function isNull(value) {
-  return sql`${value} is null`;
-}
-__name(isNull, "isNull");
-function isNotNull(value) {
-  return sql`${value} is not null`;
-}
-__name(isNotNull, "isNotNull");
-function exists(subquery) {
-  return sql`exists ${subquery}`;
-}
-__name(exists, "exists");
-function notExists(subquery) {
-  return sql`not exists ${subquery}`;
-}
-__name(notExists, "notExists");
-function between(column, min, max) {
-  return sql`${column} between ${bindIfParam(min, column)} and ${bindIfParam(
-    max,
-    column
-  )}`;
-}
-__name(between, "between");
-function notBetween(column, min, max) {
-  return sql`${column} not between ${bindIfParam(
-    min,
-    column
-  )} and ${bindIfParam(max, column)}`;
-}
-__name(notBetween, "notBetween");
-function like(column, value) {
-  return sql`${column} like ${value}`;
-}
-__name(like, "like");
-function notLike(column, value) {
-  return sql`${column} not like ${value}`;
-}
-__name(notLike, "notLike");
-function ilike(column, value) {
-  return sql`${column} ilike ${value}`;
-}
-__name(ilike, "ilike");
-function notIlike(column, value) {
-  return sql`${column} not ilike ${value}`;
-}
-__name(notIlike, "notIlike");
-
-// node_modules/drizzle-orm/sql/expressions/select.js
-function asc(column) {
-  return sql`${column} asc`;
-}
-__name(asc, "asc");
-function desc(column) {
-  return sql`${column} desc`;
-}
-__name(desc, "desc");
-
-// node_modules/drizzle-orm/relations.js
-var Relation = class {
-  static {
-    __name(this, "Relation");
-  }
-  constructor(sourceTable, referencedTable, relationName) {
-    this.sourceTable = sourceTable;
-    this.referencedTable = referencedTable;
-    this.relationName = relationName;
-    this.referencedTableName = referencedTable[Table.Symbol.Name];
-  }
-  static [entityKind] = "Relation";
-  referencedTableName;
-  fieldName;
-};
-var Relations = class {
-  static {
-    __name(this, "Relations");
-  }
-  constructor(table, config) {
-    this.table = table;
-    this.config = config;
-  }
-  static [entityKind] = "Relations";
-};
-var One = class _One extends Relation {
-  static {
-    __name(this, "One");
-  }
-  constructor(sourceTable, referencedTable, config, isNullable) {
-    super(sourceTable, referencedTable, config?.relationName);
-    this.config = config;
-    this.isNullable = isNullable;
-  }
-  static [entityKind] = "One";
-  withFieldName(fieldName) {
-    const relation = new _One(
-      this.sourceTable,
-      this.referencedTable,
-      this.config,
-      this.isNullable
-    );
-    relation.fieldName = fieldName;
-    return relation;
-  }
-};
-var Many = class _Many extends Relation {
-  static {
-    __name(this, "Many");
-  }
-  constructor(sourceTable, referencedTable, config) {
-    super(sourceTable, referencedTable, config?.relationName);
-    this.config = config;
-  }
-  static [entityKind] = "Many";
-  withFieldName(fieldName) {
-    const relation = new _Many(
-      this.sourceTable,
-      this.referencedTable,
-      this.config
-    );
-    relation.fieldName = fieldName;
-    return relation;
-  }
-};
-function getOperators() {
-  return {
-    and,
-    between,
-    eq,
-    exists,
-    gt,
-    gte,
-    ilike,
-    inArray,
-    isNull,
-    isNotNull,
-    like,
-    lt,
-    lte,
-    ne,
-    not,
-    notBetween,
-    notExists,
-    notLike,
-    notIlike,
-    notInArray,
-    or,
-    sql
-  };
-}
-__name(getOperators, "getOperators");
-function getOrderByOperators() {
-  return {
-    sql,
-    asc,
-    desc
-  };
-}
-__name(getOrderByOperators, "getOrderByOperators");
-function extractTablesRelationalConfig(schema, configHelpers) {
-  if (Object.keys(schema).length === 1 && "default" in schema && !is(schema["default"], Table)) {
-    schema = schema["default"];
-  }
-  const tableNamesMap = {};
-  const relationsBuffer = {};
-  const tablesConfig = {};
-  for (const [key, value] of Object.entries(schema)) {
-    if (is(value, Table)) {
-      const dbName = getTableUniqueName(value);
-      const bufferedRelations = relationsBuffer[dbName];
-      tableNamesMap[dbName] = key;
-      tablesConfig[key] = {
-        tsName: key,
-        dbName: value[Table.Symbol.Name],
-        schema: value[Table.Symbol.Schema],
-        columns: value[Table.Symbol.Columns],
-        relations: bufferedRelations?.relations ?? {},
-        primaryKey: bufferedRelations?.primaryKey ?? []
-      };
-      for (const column of Object.values(
-        value[Table.Symbol.Columns]
-      )) {
-        if (column.primary) {
-          tablesConfig[key].primaryKey.push(column);
-        }
-      }
-      const extraConfig = value[Table.Symbol.ExtraConfigBuilder]?.(value[Table.Symbol.ExtraConfigColumns]);
-      if (extraConfig) {
-        for (const configEntry of Object.values(extraConfig)) {
-          if (is(configEntry, PrimaryKeyBuilder)) {
-            tablesConfig[key].primaryKey.push(...configEntry.columns);
-          }
-        }
-      }
-    } else if (is(value, Relations)) {
-      const dbName = getTableUniqueName(value.table);
-      const tableName = tableNamesMap[dbName];
-      const relations2 = value.config(
-        configHelpers(value.table)
-      );
-      let primaryKey;
-      for (const [relationName, relation] of Object.entries(relations2)) {
-        if (tableName) {
-          const tableConfig = tablesConfig[tableName];
-          tableConfig.relations[relationName] = relation;
-          if (primaryKey) {
-            tableConfig.primaryKey.push(...primaryKey);
-          }
-        } else {
-          if (!(dbName in relationsBuffer)) {
-            relationsBuffer[dbName] = {
-              relations: {},
-              primaryKey
-            };
-          }
-          relationsBuffer[dbName].relations[relationName] = relation;
-        }
-      }
-    }
-  }
-  return { tables: tablesConfig, tableNamesMap };
-}
-__name(extractTablesRelationalConfig, "extractTablesRelationalConfig");
-function relations(table, relations2) {
-  return new Relations(
-    table,
-    (helpers) => Object.fromEntries(
-      Object.entries(relations2(helpers)).map(([key, value]) => [
-        key,
-        value.withFieldName(key)
-      ])
-    )
-  );
-}
-__name(relations, "relations");
-function createOne(sourceTable) {
-  return /* @__PURE__ */ __name(function one(table, config) {
-    return new One(
-      sourceTable,
-      table,
-      config,
-      config?.fields.reduce((res, f) => res && f.notNull, true) ?? false
-    );
-  }, "one");
-}
-__name(createOne, "createOne");
-function createMany(sourceTable) {
-  return /* @__PURE__ */ __name(function many(referencedTable, config) {
-    return new Many(sourceTable, referencedTable, config);
-  }, "many");
-}
-__name(createMany, "createMany");
-function normalizeRelation(schema, tableNamesMap, relation) {
-  if (is(relation, One) && relation.config) {
-    return {
-      fields: relation.config.fields,
-      references: relation.config.references
-    };
-  }
-  const referencedTableTsName = tableNamesMap[getTableUniqueName(relation.referencedTable)];
-  if (!referencedTableTsName) {
-    throw new Error(
-      `Table "${relation.referencedTable[Table.Symbol.Name]}" not found in schema`
-    );
-  }
-  const referencedTableConfig = schema[referencedTableTsName];
-  if (!referencedTableConfig) {
-    throw new Error(`Table "${referencedTableTsName}" not found in schema`);
-  }
-  const sourceTable = relation.sourceTable;
-  const sourceTableTsName = tableNamesMap[getTableUniqueName(sourceTable)];
-  if (!sourceTableTsName) {
-    throw new Error(
-      `Table "${sourceTable[Table.Symbol.Name]}" not found in schema`
-    );
-  }
-  const reverseRelations = [];
-  for (const referencedTableRelation of Object.values(
-    referencedTableConfig.relations
-  )) {
-    if (relation.relationName && relation !== referencedTableRelation && referencedTableRelation.relationName === relation.relationName || !relation.relationName && referencedTableRelation.referencedTable === relation.sourceTable) {
-      reverseRelations.push(referencedTableRelation);
-    }
-  }
-  if (reverseRelations.length > 1) {
-    throw relation.relationName ? new Error(
-      `There are multiple relations with name "${relation.relationName}" in table "${referencedTableTsName}"`
-    ) : new Error(
-      `There are multiple relations between "${referencedTableTsName}" and "${relation.sourceTable[Table.Symbol.Name]}". Please specify relation name`
-    );
-  }
-  if (reverseRelations[0] && is(reverseRelations[0], One) && reverseRelations[0].config) {
-    return {
-      fields: reverseRelations[0].config.references,
-      references: reverseRelations[0].config.fields
-    };
-  }
-  throw new Error(
-    `There is not enough information to infer relation "${sourceTableTsName}.${relation.fieldName}"`
-  );
-}
-__name(normalizeRelation, "normalizeRelation");
-function createTableRelationsHelpers(sourceTable) {
-  return {
-    one: createOne(sourceTable),
-    many: createMany(sourceTable)
-  };
-}
-__name(createTableRelationsHelpers, "createTableRelationsHelpers");
-function mapRelationalRow(tablesConfig, tableConfig, row, buildQueryResultSelection, mapColumnValue = (value) => value) {
-  const result = {};
-  for (const [
-    selectionItemIndex,
-    selectionItem
-  ] of buildQueryResultSelection.entries()) {
-    if (selectionItem.isJson) {
-      const relation = tableConfig.relations[selectionItem.tsKey];
-      const rawSubRows = row[selectionItemIndex];
-      const subRows = typeof rawSubRows === "string" ? JSON.parse(rawSubRows) : rawSubRows;
-      result[selectionItem.tsKey] = is(relation, One) ? subRows && mapRelationalRow(
-        tablesConfig,
-        tablesConfig[selectionItem.relationTableTsKey],
-        subRows,
-        selectionItem.selection,
-        mapColumnValue
-      ) : subRows.map(
-        (subRow) => mapRelationalRow(
-          tablesConfig,
-          tablesConfig[selectionItem.relationTableTsKey],
-          subRow,
-          selectionItem.selection,
-          mapColumnValue
-        )
-      );
-    } else {
-      const value = mapColumnValue(row[selectionItemIndex]);
-      const field = selectionItem.field;
-      let decoder;
-      if (is(field, Column)) {
-        decoder = field;
-      } else if (is(field, SQL)) {
-        decoder = field.decoder;
-      } else {
-        decoder = field.sql.decoder;
-      }
-      result[selectionItem.tsKey] = value === null ? null : decoder.mapFromDriverValue(value);
-    }
-  }
-  return result;
-}
-__name(mapRelationalRow, "mapRelationalRow");
-
-// node_modules/drizzle-orm/alias.js
-var ColumnAliasProxyHandler = class {
-  static {
-    __name(this, "ColumnAliasProxyHandler");
-  }
-  constructor(table) {
-    this.table = table;
-  }
-  static [entityKind] = "ColumnAliasProxyHandler";
-  get(columnObj, prop) {
-    if (prop === "table") {
-      return this.table;
-    }
-    return columnObj[prop];
-  }
-};
-var TableAliasProxyHandler = class {
-  static {
-    __name(this, "TableAliasProxyHandler");
-  }
-  constructor(alias, replaceOriginalName) {
-    this.alias = alias;
-    this.replaceOriginalName = replaceOriginalName;
-  }
-  static [entityKind] = "TableAliasProxyHandler";
-  get(target, prop) {
-    if (prop === Table.Symbol.IsAlias) {
-      return true;
-    }
-    if (prop === Table.Symbol.Name) {
-      return this.alias;
-    }
-    if (this.replaceOriginalName && prop === Table.Symbol.OriginalName) {
-      return this.alias;
-    }
-    if (prop === ViewBaseConfig) {
-      return {
-        ...target[ViewBaseConfig],
-        name: this.alias,
-        isAlias: true
-      };
-    }
-    if (prop === Table.Symbol.Columns) {
-      const columns = target[Table.Symbol.Columns];
-      if (!columns) {
-        return columns;
-      }
-      const proxiedColumns = {};
-      Object.keys(columns).map((key) => {
-        proxiedColumns[key] = new Proxy(
-          columns[key],
-          new ColumnAliasProxyHandler(new Proxy(target, this))
-        );
-      });
-      return proxiedColumns;
-    }
-    const value = target[prop];
-    if (is(value, Column)) {
-      return new Proxy(value, new ColumnAliasProxyHandler(new Proxy(target, this)));
-    }
-    return value;
-  }
-};
-var RelationTableAliasProxyHandler = class {
-  static {
-    __name(this, "RelationTableAliasProxyHandler");
-  }
-  constructor(alias) {
-    this.alias = alias;
-  }
-  static [entityKind] = "RelationTableAliasProxyHandler";
-  get(target, prop) {
-    if (prop === "sourceTable") {
-      return aliasedTable(target.sourceTable, this.alias);
-    }
-    return target[prop];
-  }
-};
-function aliasedTable(table, tableAlias) {
-  return new Proxy(table, new TableAliasProxyHandler(tableAlias, false));
-}
-__name(aliasedTable, "aliasedTable");
-function aliasedTableColumn(column, tableAlias) {
-  return new Proxy(
-    column,
-    new ColumnAliasProxyHandler(new Proxy(column.table, new TableAliasProxyHandler(tableAlias, false)))
-  );
-}
-__name(aliasedTableColumn, "aliasedTableColumn");
-function mapColumnsInAliasedSQLToAlias(query, alias) {
-  return new SQL.Aliased(mapColumnsInSQLToAlias(query.sql, alias), query.fieldAlias);
-}
-__name(mapColumnsInAliasedSQLToAlias, "mapColumnsInAliasedSQLToAlias");
-function mapColumnsInSQLToAlias(query, alias) {
-  return sql.join(query.queryChunks.map((c) => {
-    if (is(c, Column)) {
-      return aliasedTableColumn(c, alias);
-    }
-    if (is(c, SQL)) {
-      return mapColumnsInSQLToAlias(c, alias);
-    }
-    if (is(c, SQL.Aliased)) {
-      return mapColumnsInAliasedSQLToAlias(c, alias);
-    }
-    return c;
-  }));
-}
-__name(mapColumnsInSQLToAlias, "mapColumnsInSQLToAlias");
-
-// node_modules/drizzle-orm/selection-proxy.js
-var SelectionProxyHandler = class _SelectionProxyHandler {
-  static {
-    __name(this, "SelectionProxyHandler");
-  }
-  static [entityKind] = "SelectionProxyHandler";
-  config;
-  constructor(config) {
-    this.config = { ...config };
-  }
-  get(subquery, prop) {
-    if (prop === "_") {
-      return {
-        ...subquery["_"],
-        selectedFields: new Proxy(
-          subquery._.selectedFields,
-          this
-        )
-      };
-    }
-    if (prop === ViewBaseConfig) {
-      return {
-        ...subquery[ViewBaseConfig],
-        selectedFields: new Proxy(
-          subquery[ViewBaseConfig].selectedFields,
-          this
-        )
-      };
-    }
-    if (typeof prop === "symbol") {
-      return subquery[prop];
-    }
-    const columns = is(subquery, Subquery) ? subquery._.selectedFields : is(subquery, View) ? subquery[ViewBaseConfig].selectedFields : subquery;
-    const value = columns[prop];
-    if (is(value, SQL.Aliased)) {
-      if (this.config.sqlAliasedBehavior === "sql" && !value.isSelectionField) {
-        return value.sql;
-      }
-      const newValue = value.clone();
-      newValue.isSelectionField = true;
-      return newValue;
-    }
-    if (is(value, SQL)) {
-      if (this.config.sqlBehavior === "sql") {
-        return value;
-      }
-      throw new Error(
-        `You tried to reference "${prop}" field from a subquery, which is a raw SQL field, but it doesn't have an alias declared. Please add an alias to the field using ".as('alias')" method.`
-      );
-    }
-    if (is(value, Column)) {
-      if (this.config.alias) {
-        return new Proxy(
-          value,
-          new ColumnAliasProxyHandler(
-            new Proxy(
-              value.table,
-              new TableAliasProxyHandler(this.config.alias, this.config.replaceOriginalName ?? false)
-            )
-          )
-        );
-      }
-      return value;
-    }
-    if (typeof value !== "object" || value === null) {
-      return value;
-    }
-    return new Proxy(value, new _SelectionProxyHandler(this.config));
-  }
-};
-
-// node_modules/drizzle-orm/query-promise.js
-var QueryPromise = class {
-  static {
-    __name(this, "QueryPromise");
-  }
-  static [entityKind] = "QueryPromise";
-  [Symbol.toStringTag] = "QueryPromise";
-  catch(onRejected) {
-    return this.then(void 0, onRejected);
-  }
-  finally(onFinally) {
-    return this.then(
-      (value) => {
-        onFinally?.();
-        return value;
-      },
-      (reason) => {
-        onFinally?.();
-        throw reason;
-      }
-    );
-  }
-  then(onFulfilled, onRejected) {
-    return this.execute().then(onFulfilled, onRejected);
-  }
-};
 
 // node_modules/drizzle-orm/sqlite-core/foreign-keys.js
 var ForeignKeyBuilder2 = class {
@@ -4965,6 +4334,104 @@ function text(a, b = {}) {
 }
 __name(text, "text");
 
+// node_modules/drizzle-orm/selection-proxy.js
+var SelectionProxyHandler = class _SelectionProxyHandler {
+  static {
+    __name(this, "SelectionProxyHandler");
+  }
+  static [entityKind] = "SelectionProxyHandler";
+  config;
+  constructor(config) {
+    this.config = { ...config };
+  }
+  get(subquery, prop) {
+    if (prop === "_") {
+      return {
+        ...subquery["_"],
+        selectedFields: new Proxy(
+          subquery._.selectedFields,
+          this
+        )
+      };
+    }
+    if (prop === ViewBaseConfig) {
+      return {
+        ...subquery[ViewBaseConfig],
+        selectedFields: new Proxy(
+          subquery[ViewBaseConfig].selectedFields,
+          this
+        )
+      };
+    }
+    if (typeof prop === "symbol") {
+      return subquery[prop];
+    }
+    const columns = is(subquery, Subquery) ? subquery._.selectedFields : is(subquery, View) ? subquery[ViewBaseConfig].selectedFields : subquery;
+    const value = columns[prop];
+    if (is(value, SQL.Aliased)) {
+      if (this.config.sqlAliasedBehavior === "sql" && !value.isSelectionField) {
+        return value.sql;
+      }
+      const newValue = value.clone();
+      newValue.isSelectionField = true;
+      return newValue;
+    }
+    if (is(value, SQL)) {
+      if (this.config.sqlBehavior === "sql") {
+        return value;
+      }
+      throw new Error(
+        `You tried to reference "${prop}" field from a subquery, which is a raw SQL field, but it doesn't have an alias declared. Please add an alias to the field using ".as('alias')" method.`
+      );
+    }
+    if (is(value, Column)) {
+      if (this.config.alias) {
+        return new Proxy(
+          value,
+          new ColumnAliasProxyHandler(
+            new Proxy(
+              value.table,
+              new TableAliasProxyHandler(this.config.alias, this.config.replaceOriginalName ?? false)
+            )
+          )
+        );
+      }
+      return value;
+    }
+    if (typeof value !== "object" || value === null) {
+      return value;
+    }
+    return new Proxy(value, new _SelectionProxyHandler(this.config));
+  }
+};
+
+// node_modules/drizzle-orm/query-promise.js
+var QueryPromise = class {
+  static {
+    __name(this, "QueryPromise");
+  }
+  static [entityKind] = "QueryPromise";
+  [Symbol.toStringTag] = "QueryPromise";
+  catch(onRejected) {
+    return this.then(void 0, onRejected);
+  }
+  finally(onFinally) {
+    return this.then(
+      (value) => {
+        onFinally?.();
+        return value;
+      },
+      (reason) => {
+        onFinally?.();
+        throw reason;
+      }
+    );
+  }
+  then(onFulfilled, onRejected) {
+    return this.execute().then(onFulfilled, onRejected);
+  }
+};
+
 // node_modules/drizzle-orm/sqlite-core/columns/all.js
 function getSQLiteColumnBuilders() {
   return {
@@ -4979,7 +4446,7 @@ function getSQLiteColumnBuilders() {
 __name(getSQLiteColumnBuilders, "getSQLiteColumnBuilders");
 
 // node_modules/drizzle-orm/sqlite-core/table.js
-var InlineForeignKeys2 = /* @__PURE__ */ Symbol.for("drizzle:SQLiteInlineForeignKeys");
+var InlineForeignKeys = /* @__PURE__ */ Symbol.for("drizzle:SQLiteInlineForeignKeys");
 var SQLiteTable = class extends Table {
   static {
     __name(this, "SQLiteTable");
@@ -4987,12 +4454,12 @@ var SQLiteTable = class extends Table {
   static [entityKind] = "SQLiteTable";
   /** @internal */
   static Symbol = Object.assign({}, Table.Symbol, {
-    InlineForeignKeys: InlineForeignKeys2
+    InlineForeignKeys
   });
   /** @internal */
   [Table.Symbol.Columns];
   /** @internal */
-  [InlineForeignKeys2] = [];
+  [InlineForeignKeys] = [];
   /** @internal */
   [Table.Symbol.ExtraConfigBuilder] = void 0;
 };
@@ -5004,7 +4471,7 @@ function sqliteTableBase(name, columns, extraConfig, schema, baseName = name) {
       const colBuilder = colBuilderBase;
       colBuilder.setName(name2);
       const column = colBuilder.build(rawTable);
-      rawTable[InlineForeignKeys2].push(...colBuilder.buildForeignKeys(column, rawTable));
+      rawTable[InlineForeignKeys].push(...colBuilder.buildForeignKeys(column, rawTable));
       return [name2, column];
     })
   );
@@ -5246,6 +4713,499 @@ var TransactionRollbackError = class extends DrizzleError {
     super({ message: "Rollback" });
   }
 };
+
+// node_modules/drizzle-orm/pg-core/table.js
+var InlineForeignKeys2 = /* @__PURE__ */ Symbol.for("drizzle:PgInlineForeignKeys");
+var EnableRLS = /* @__PURE__ */ Symbol.for("drizzle:EnableRLS");
+var PgTable = class extends Table {
+  static {
+    __name(this, "PgTable");
+  }
+  static [entityKind] = "PgTable";
+  /** @internal */
+  static Symbol = Object.assign({}, Table.Symbol, {
+    InlineForeignKeys: InlineForeignKeys2,
+    EnableRLS
+  });
+  /**@internal */
+  [InlineForeignKeys2] = [];
+  /** @internal */
+  [EnableRLS] = false;
+  /** @internal */
+  [Table.Symbol.ExtraConfigBuilder] = void 0;
+  /** @internal */
+  [Table.Symbol.ExtraConfigColumns] = {};
+};
+
+// node_modules/drizzle-orm/pg-core/primary-keys.js
+var PrimaryKeyBuilder = class {
+  static {
+    __name(this, "PrimaryKeyBuilder");
+  }
+  static [entityKind] = "PgPrimaryKeyBuilder";
+  /** @internal */
+  columns;
+  /** @internal */
+  name;
+  constructor(columns, name) {
+    this.columns = columns;
+    this.name = name;
+  }
+  /** @internal */
+  build(table) {
+    return new PrimaryKey(table, this.columns, this.name);
+  }
+};
+var PrimaryKey = class {
+  static {
+    __name(this, "PrimaryKey");
+  }
+  constructor(table, columns, name) {
+    this.table = table;
+    this.columns = columns;
+    this.name = name;
+  }
+  static [entityKind] = "PgPrimaryKey";
+  columns;
+  name;
+  getName() {
+    return this.name ?? `${this.table[PgTable.Symbol.Name]}_${this.columns.map((column) => column.name).join("_")}_pk`;
+  }
+};
+
+// node_modules/drizzle-orm/sql/expressions/conditions.js
+function bindIfParam(value, column) {
+  if (isDriverValueEncoder(column) && !isSQLWrapper(value) && !is(value, Param) && !is(value, Placeholder) && !is(value, Column) && !is(value, Table) && !is(value, View)) {
+    return new Param(value, column);
+  }
+  return value;
+}
+__name(bindIfParam, "bindIfParam");
+var eq = /* @__PURE__ */ __name((left, right) => {
+  return sql`${left} = ${bindIfParam(right, left)}`;
+}, "eq");
+var ne = /* @__PURE__ */ __name((left, right) => {
+  return sql`${left} <> ${bindIfParam(right, left)}`;
+}, "ne");
+function and(...unfilteredConditions) {
+  const conditions = unfilteredConditions.filter(
+    (c) => c !== void 0
+  );
+  if (conditions.length === 0) {
+    return void 0;
+  }
+  if (conditions.length === 1) {
+    return new SQL(conditions);
+  }
+  return new SQL([
+    new StringChunk("("),
+    sql.join(conditions, new StringChunk(" and ")),
+    new StringChunk(")")
+  ]);
+}
+__name(and, "and");
+function or(...unfilteredConditions) {
+  const conditions = unfilteredConditions.filter(
+    (c) => c !== void 0
+  );
+  if (conditions.length === 0) {
+    return void 0;
+  }
+  if (conditions.length === 1) {
+    return new SQL(conditions);
+  }
+  return new SQL([
+    new StringChunk("("),
+    sql.join(conditions, new StringChunk(" or ")),
+    new StringChunk(")")
+  ]);
+}
+__name(or, "or");
+function not(condition) {
+  return sql`not ${condition}`;
+}
+__name(not, "not");
+var gt = /* @__PURE__ */ __name((left, right) => {
+  return sql`${left} > ${bindIfParam(right, left)}`;
+}, "gt");
+var gte = /* @__PURE__ */ __name((left, right) => {
+  return sql`${left} >= ${bindIfParam(right, left)}`;
+}, "gte");
+var lt = /* @__PURE__ */ __name((left, right) => {
+  return sql`${left} < ${bindIfParam(right, left)}`;
+}, "lt");
+var lte = /* @__PURE__ */ __name((left, right) => {
+  return sql`${left} <= ${bindIfParam(right, left)}`;
+}, "lte");
+function inArray(column, values) {
+  if (Array.isArray(values)) {
+    if (values.length === 0) {
+      return sql`false`;
+    }
+    return sql`${column} in ${values.map((v) => bindIfParam(v, column))}`;
+  }
+  return sql`${column} in ${bindIfParam(values, column)}`;
+}
+__name(inArray, "inArray");
+function notInArray(column, values) {
+  if (Array.isArray(values)) {
+    if (values.length === 0) {
+      return sql`true`;
+    }
+    return sql`${column} not in ${values.map((v) => bindIfParam(v, column))}`;
+  }
+  return sql`${column} not in ${bindIfParam(values, column)}`;
+}
+__name(notInArray, "notInArray");
+function isNull(value) {
+  return sql`${value} is null`;
+}
+__name(isNull, "isNull");
+function isNotNull(value) {
+  return sql`${value} is not null`;
+}
+__name(isNotNull, "isNotNull");
+function exists(subquery) {
+  return sql`exists ${subquery}`;
+}
+__name(exists, "exists");
+function notExists(subquery) {
+  return sql`not exists ${subquery}`;
+}
+__name(notExists, "notExists");
+function between(column, min, max) {
+  return sql`${column} between ${bindIfParam(min, column)} and ${bindIfParam(
+    max,
+    column
+  )}`;
+}
+__name(between, "between");
+function notBetween(column, min, max) {
+  return sql`${column} not between ${bindIfParam(
+    min,
+    column
+  )} and ${bindIfParam(max, column)}`;
+}
+__name(notBetween, "notBetween");
+function like(column, value) {
+  return sql`${column} like ${value}`;
+}
+__name(like, "like");
+function notLike(column, value) {
+  return sql`${column} not like ${value}`;
+}
+__name(notLike, "notLike");
+function ilike(column, value) {
+  return sql`${column} ilike ${value}`;
+}
+__name(ilike, "ilike");
+function notIlike(column, value) {
+  return sql`${column} not ilike ${value}`;
+}
+__name(notIlike, "notIlike");
+
+// node_modules/drizzle-orm/sql/expressions/select.js
+function asc(column) {
+  return sql`${column} asc`;
+}
+__name(asc, "asc");
+function desc(column) {
+  return sql`${column} desc`;
+}
+__name(desc, "desc");
+
+// node_modules/drizzle-orm/relations.js
+var Relation = class {
+  static {
+    __name(this, "Relation");
+  }
+  constructor(sourceTable, referencedTable, relationName) {
+    this.sourceTable = sourceTable;
+    this.referencedTable = referencedTable;
+    this.relationName = relationName;
+    this.referencedTableName = referencedTable[Table.Symbol.Name];
+  }
+  static [entityKind] = "Relation";
+  referencedTableName;
+  fieldName;
+};
+var Relations = class {
+  static {
+    __name(this, "Relations");
+  }
+  constructor(table, config) {
+    this.table = table;
+    this.config = config;
+  }
+  static [entityKind] = "Relations";
+};
+var One = class _One extends Relation {
+  static {
+    __name(this, "One");
+  }
+  constructor(sourceTable, referencedTable, config, isNullable) {
+    super(sourceTable, referencedTable, config?.relationName);
+    this.config = config;
+    this.isNullable = isNullable;
+  }
+  static [entityKind] = "One";
+  withFieldName(fieldName) {
+    const relation = new _One(
+      this.sourceTable,
+      this.referencedTable,
+      this.config,
+      this.isNullable
+    );
+    relation.fieldName = fieldName;
+    return relation;
+  }
+};
+var Many = class _Many extends Relation {
+  static {
+    __name(this, "Many");
+  }
+  constructor(sourceTable, referencedTable, config) {
+    super(sourceTable, referencedTable, config?.relationName);
+    this.config = config;
+  }
+  static [entityKind] = "Many";
+  withFieldName(fieldName) {
+    const relation = new _Many(
+      this.sourceTable,
+      this.referencedTable,
+      this.config
+    );
+    relation.fieldName = fieldName;
+    return relation;
+  }
+};
+function getOperators() {
+  return {
+    and,
+    between,
+    eq,
+    exists,
+    gt,
+    gte,
+    ilike,
+    inArray,
+    isNull,
+    isNotNull,
+    like,
+    lt,
+    lte,
+    ne,
+    not,
+    notBetween,
+    notExists,
+    notLike,
+    notIlike,
+    notInArray,
+    or,
+    sql
+  };
+}
+__name(getOperators, "getOperators");
+function getOrderByOperators() {
+  return {
+    sql,
+    asc,
+    desc
+  };
+}
+__name(getOrderByOperators, "getOrderByOperators");
+function extractTablesRelationalConfig(schema, configHelpers) {
+  if (Object.keys(schema).length === 1 && "default" in schema && !is(schema["default"], Table)) {
+    schema = schema["default"];
+  }
+  const tableNamesMap = {};
+  const relationsBuffer = {};
+  const tablesConfig = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (is(value, Table)) {
+      const dbName = getTableUniqueName(value);
+      const bufferedRelations = relationsBuffer[dbName];
+      tableNamesMap[dbName] = key;
+      tablesConfig[key] = {
+        tsName: key,
+        dbName: value[Table.Symbol.Name],
+        schema: value[Table.Symbol.Schema],
+        columns: value[Table.Symbol.Columns],
+        relations: bufferedRelations?.relations ?? {},
+        primaryKey: bufferedRelations?.primaryKey ?? []
+      };
+      for (const column of Object.values(
+        value[Table.Symbol.Columns]
+      )) {
+        if (column.primary) {
+          tablesConfig[key].primaryKey.push(column);
+        }
+      }
+      const extraConfig = value[Table.Symbol.ExtraConfigBuilder]?.(value[Table.Symbol.ExtraConfigColumns]);
+      if (extraConfig) {
+        for (const configEntry of Object.values(extraConfig)) {
+          if (is(configEntry, PrimaryKeyBuilder)) {
+            tablesConfig[key].primaryKey.push(...configEntry.columns);
+          }
+        }
+      }
+    } else if (is(value, Relations)) {
+      const dbName = getTableUniqueName(value.table);
+      const tableName = tableNamesMap[dbName];
+      const relations2 = value.config(
+        configHelpers(value.table)
+      );
+      let primaryKey;
+      for (const [relationName, relation] of Object.entries(relations2)) {
+        if (tableName) {
+          const tableConfig = tablesConfig[tableName];
+          tableConfig.relations[relationName] = relation;
+          if (primaryKey) {
+            tableConfig.primaryKey.push(...primaryKey);
+          }
+        } else {
+          if (!(dbName in relationsBuffer)) {
+            relationsBuffer[dbName] = {
+              relations: {},
+              primaryKey
+            };
+          }
+          relationsBuffer[dbName].relations[relationName] = relation;
+        }
+      }
+    }
+  }
+  return { tables: tablesConfig, tableNamesMap };
+}
+__name(extractTablesRelationalConfig, "extractTablesRelationalConfig");
+function relations(table, relations2) {
+  return new Relations(
+    table,
+    (helpers) => Object.fromEntries(
+      Object.entries(relations2(helpers)).map(([key, value]) => [
+        key,
+        value.withFieldName(key)
+      ])
+    )
+  );
+}
+__name(relations, "relations");
+function createOne(sourceTable) {
+  return /* @__PURE__ */ __name(function one(table, config) {
+    return new One(
+      sourceTable,
+      table,
+      config,
+      config?.fields.reduce((res, f) => res && f.notNull, true) ?? false
+    );
+  }, "one");
+}
+__name(createOne, "createOne");
+function createMany(sourceTable) {
+  return /* @__PURE__ */ __name(function many(referencedTable, config) {
+    return new Many(sourceTable, referencedTable, config);
+  }, "many");
+}
+__name(createMany, "createMany");
+function normalizeRelation(schema, tableNamesMap, relation) {
+  if (is(relation, One) && relation.config) {
+    return {
+      fields: relation.config.fields,
+      references: relation.config.references
+    };
+  }
+  const referencedTableTsName = tableNamesMap[getTableUniqueName(relation.referencedTable)];
+  if (!referencedTableTsName) {
+    throw new Error(
+      `Table "${relation.referencedTable[Table.Symbol.Name]}" not found in schema`
+    );
+  }
+  const referencedTableConfig = schema[referencedTableTsName];
+  if (!referencedTableConfig) {
+    throw new Error(`Table "${referencedTableTsName}" not found in schema`);
+  }
+  const sourceTable = relation.sourceTable;
+  const sourceTableTsName = tableNamesMap[getTableUniqueName(sourceTable)];
+  if (!sourceTableTsName) {
+    throw new Error(
+      `Table "${sourceTable[Table.Symbol.Name]}" not found in schema`
+    );
+  }
+  const reverseRelations = [];
+  for (const referencedTableRelation of Object.values(
+    referencedTableConfig.relations
+  )) {
+    if (relation.relationName && relation !== referencedTableRelation && referencedTableRelation.relationName === relation.relationName || !relation.relationName && referencedTableRelation.referencedTable === relation.sourceTable) {
+      reverseRelations.push(referencedTableRelation);
+    }
+  }
+  if (reverseRelations.length > 1) {
+    throw relation.relationName ? new Error(
+      `There are multiple relations with name "${relation.relationName}" in table "${referencedTableTsName}"`
+    ) : new Error(
+      `There are multiple relations between "${referencedTableTsName}" and "${relation.sourceTable[Table.Symbol.Name]}". Please specify relation name`
+    );
+  }
+  if (reverseRelations[0] && is(reverseRelations[0], One) && reverseRelations[0].config) {
+    return {
+      fields: reverseRelations[0].config.references,
+      references: reverseRelations[0].config.fields
+    };
+  }
+  throw new Error(
+    `There is not enough information to infer relation "${sourceTableTsName}.${relation.fieldName}"`
+  );
+}
+__name(normalizeRelation, "normalizeRelation");
+function createTableRelationsHelpers(sourceTable) {
+  return {
+    one: createOne(sourceTable),
+    many: createMany(sourceTable)
+  };
+}
+__name(createTableRelationsHelpers, "createTableRelationsHelpers");
+function mapRelationalRow(tablesConfig, tableConfig, row, buildQueryResultSelection, mapColumnValue = (value) => value) {
+  const result = {};
+  for (const [
+    selectionItemIndex,
+    selectionItem
+  ] of buildQueryResultSelection.entries()) {
+    if (selectionItem.isJson) {
+      const relation = tableConfig.relations[selectionItem.tsKey];
+      const rawSubRows = row[selectionItemIndex];
+      const subRows = typeof rawSubRows === "string" ? JSON.parse(rawSubRows) : rawSubRows;
+      result[selectionItem.tsKey] = is(relation, One) ? subRows && mapRelationalRow(
+        tablesConfig,
+        tablesConfig[selectionItem.relationTableTsKey],
+        subRows,
+        selectionItem.selection,
+        mapColumnValue
+      ) : subRows.map(
+        (subRow) => mapRelationalRow(
+          tablesConfig,
+          tablesConfig[selectionItem.relationTableTsKey],
+          subRow,
+          selectionItem.selection,
+          mapColumnValue
+        )
+      );
+    } else {
+      const value = mapColumnValue(row[selectionItemIndex]);
+      const field = selectionItem.field;
+      let decoder;
+      if (is(field, Column)) {
+        decoder = field;
+      } else if (is(field, SQL)) {
+        decoder = field.decoder;
+      } else {
+        decoder = field.sql.decoder;
+      }
+      result[selectionItem.tsKey] = value === null ? null : decoder.mapFromDriverValue(value);
+    }
+  }
+  return result;
+}
+__name(mapRelationalRow, "mapRelationalRow");
 
 // node_modules/drizzle-orm/sqlite-core/view-base.js
 var SQLiteViewBase = class extends View {
@@ -7775,6 +7735,83 @@ var SQLiteTransaction = class extends BaseSQLiteDatabase {
   }
 };
 
+// node_modules/drizzle-orm/logger.js
+var ConsoleLogWriter = class {
+  static {
+    __name(this, "ConsoleLogWriter");
+  }
+  static [entityKind] = "ConsoleLogWriter";
+  write(message) {
+    console.log(message);
+  }
+};
+var DefaultLogger = class {
+  static {
+    __name(this, "DefaultLogger");
+  }
+  static [entityKind] = "DefaultLogger";
+  writer;
+  constructor(config) {
+    this.writer = config?.writer ?? new ConsoleLogWriter();
+  }
+  logQuery(query, params) {
+    const stringifiedParams = params.map((p) => {
+      try {
+        return JSON.stringify(p);
+      } catch {
+        return String(p);
+      }
+    });
+    const paramsStr = stringifiedParams.length ? ` -- params: [${stringifiedParams.join(", ")}]` : "";
+    this.writer.write(`Query: ${query}${paramsStr}`);
+  }
+};
+var NoopLogger = class {
+  static {
+    __name(this, "NoopLogger");
+  }
+  static [entityKind] = "NoopLogger";
+  logQuery() {
+  }
+};
+
+// src/db/schema.ts
+var users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  points: integer("points").notNull().default(0),
+  type: text("type", { enum: ["parent", "child"] }).notNull()
+});
+var tasks = sqliteTable("tasks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  priority: text("priority", {
+    enum: ["high", "medium", "low"]
+  }).notNull(),
+  value: integer("value").notNull(),
+  status: text("status", {
+    enum: ["todo", "doing", "review", "done"]
+  }).notNull().default("todo"),
+  repeat: text("repeat", {
+    enum: ["daily", "weekly", "none"]
+  }).default("none"),
+  assigneeId: integer("assignee_id").references(() => users.id)
+});
+var rewards = sqliteTable("rewards", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  value: integer("value").notNull()
+});
+var usersRelations = relations(users, ({ many }) => ({
+  tasks: many(tasks)
+}));
+var tasksRelations = relations(tasks, ({ one }) => ({
+  assignee: one(users, {
+    fields: [tasks.assigneeId],
+    references: [users.id]
+  })
+}));
+
 // node_modules/drizzle-orm/d1/session.js
 var SQLiteD1Session = class extends SQLiteSession {
   static {
@@ -8008,50 +8045,6 @@ function drizzle(client, config = {}) {
   return db;
 }
 __name(drizzle, "drizzle");
-
-// src/db/schema.ts
-var users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  points: integer("points").notNull().default(0),
-  type: text("type", { enum: ["parent", "child"] }).notNull()
-});
-var tasks = sqliteTable("tasks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),
-  priority: text("priority", {
-    enum: ["high", "medium", "low"]
-  }).notNull(),
-  value: integer("value").notNull(),
-  status: text("status", {
-    enum: ["todo", "doing", "review", "done"]
-  }).notNull().default("todo"),
-  repeat: text("repeat", {
-    enum: ["daily", "weekly", "none"]
-  }).default("none"),
-  assigneeId: integer("assignee_id").references(() => users.id)
-});
-var rewards = sqliteTable("rewards", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  value: integer("value").notNull()
-});
-var usersRelations = relations(users, ({ many }) => ({
-  tasks: many(tasks)
-}));
-var tasksRelations = relations(tasks, ({ one }) => ({
-  assignee: one(users, {
-    fields: [tasks.assigneeId],
-    references: [users.id]
-  })
-}));
-
-// src/utils/htmx.ts
-var htmxDeleteResponse = /* @__PURE__ */ __name((c) => c.body("", 200), "htmxDeleteResponse");
-var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
-  c.header("HX-Trigger", "refreshTasks");
-  return c.body("", 200);
-}, "htmxRefreshTasksResponse");
 
 // src/db/client.ts
 function getDB(env) {
@@ -8631,6 +8624,38 @@ var Layout = /* @__PURE__ */ __name((props) => {
   ] });
 }, "Layout");
 
+// src/components/TaskInputForm.tsx
+var TaskInputForm = /* @__PURE__ */ __name(async ({ users: users2 }) => {
+  return /* @__PURE__ */ jsxDEV(
+    "form",
+    {
+      "hx-post": "/tasks",
+      "hx-target": "#tasks-container",
+      "hx-swap": "innerHTML",
+      "hx-on--after-request": "if(event.detail.successful) this.reset()",
+      children: [
+        /* @__PURE__ */ jsxDEV("input", { type: "text", name: "title", placeholder: "Enter a task", required: true }),
+        /* @__PURE__ */ jsxDEV("select", { name: "priority", children: [
+          /* @__PURE__ */ jsxDEV("option", { value: "low", children: "Low" }),
+          /* @__PURE__ */ jsxDEV("option", { value: "medium", selected: true, children: "Medium" }),
+          /* @__PURE__ */ jsxDEV("option", { value: "high", children: "High" })
+        ] }),
+        /* @__PURE__ */ jsxDEV("input", { type: "number", name: "value", placeholder: "Points", min: "1" }),
+        /* @__PURE__ */ jsxDEV("select", { name: "repeat", children: [
+          /* @__PURE__ */ jsxDEV("option", { value: "none", children: "No Repeat" }),
+          /* @__PURE__ */ jsxDEV("option", { value: "daily", children: "Daily" }),
+          /* @__PURE__ */ jsxDEV("option", { value: "weekly", children: "Weekly" })
+        ] }),
+        /* @__PURE__ */ jsxDEV("select", { name: "assigneeId", children: [
+          /* @__PURE__ */ jsxDEV("option", { value: "", children: "Unassigned" }),
+          users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, children: user.name }))
+        ] }),
+        /* @__PURE__ */ jsxDEV("button", { type: "submit", children: "Add Task" })
+      ]
+    }
+  );
+}, "TaskInputForm");
+
 // src/utils/tasks.ts
 var PRIORITY_RANK = {
   high: 0,
@@ -8727,37 +8752,81 @@ var TaskList = /* @__PURE__ */ __name(({
   ] }, status)) });
 }, "TaskList");
 
-// src/components/TaskInputForm.tsx
-var TaskInputForm = /* @__PURE__ */ __name(async ({ users: users2 }) => {
-  return /* @__PURE__ */ jsxDEV(
-    "form",
-    {
-      "hx-post": "/tasks",
-      "hx-target": "#tasks-container",
-      "hx-swap": "innerHTML",
-      "hx-on--after-request": "if(event.detail.successful) this.reset()",
-      children: [
-        /* @__PURE__ */ jsxDEV("input", { type: "text", name: "title", placeholder: "Enter a task", required: true }),
-        /* @__PURE__ */ jsxDEV("select", { name: "priority", children: [
-          /* @__PURE__ */ jsxDEV("option", { value: "low", children: "Low" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "medium", selected: true, children: "Medium" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "high", children: "High" })
-        ] }),
-        /* @__PURE__ */ jsxDEV("input", { type: "number", name: "value", placeholder: "Points", min: "1" }),
-        /* @__PURE__ */ jsxDEV("select", { name: "repeat", children: [
-          /* @__PURE__ */ jsxDEV("option", { value: "none", children: "No Repeat" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "daily", children: "Daily" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "weekly", children: "Weekly" })
-        ] }),
-        /* @__PURE__ */ jsxDEV("select", { name: "assigneeId", children: [
-          /* @__PURE__ */ jsxDEV("option", { value: "", children: "Unassigned" }),
-          users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, children: user.name }))
-        ] }),
-        /* @__PURE__ */ jsxDEV("button", { type: "submit", children: "Add Task" })
-      ]
+// src/utils/htmx.ts
+var htmxDeleteResponse = /* @__PURE__ */ __name((c) => c.body("", 200), "htmxDeleteResponse");
+var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
+  c.header("HX-Trigger", "refreshTasks");
+  return c.body("", 200);
+}, "htmxRefreshTasksResponse");
+
+// src/routes/tasks.tsx
+function taskRoutes(app2) {
+  app2.get("/tasks", async (c) => {
+    try {
+      const db = getDB(c.env);
+      const result = await db.select().from(tasks);
+      const u = await db.select().from(users);
+      return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
+    } catch (err) {
+      console.error("GET /tasks error:", err);
+      return c.html(/* @__PURE__ */ jsxDEV("div", { class: "error", children: "Failed to load tasks" }), 500);
     }
-  );
-}, "TaskInputForm");
+  });
+  app2.post("/tasks", async (c) => {
+    const db = getDB(c.env);
+    const body = await c.req.parseBody();
+    await db.insert(tasks).values({
+      title: body.title,
+      priority: body.priority,
+      value: Number(body.value),
+      repeat: body.repeat,
+      status: "todo",
+      assigneeId: body.assigneeId ? Number(body.assigneeId) : null
+    });
+    const u = await db.select().from(users);
+    const result = await db.select().from(tasks);
+    return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
+  });
+  app2.patch("/task/:id/status", async (c) => {
+    const id = Number(c.req.param("id"));
+    const db = getDB(c.env);
+    const body = await c.req.parseBody();
+    const updates = {};
+    if (body.status) updates.status = body.status;
+    await db.update(tasks).set(updates).where(eq(tasks.id, id));
+    const result = await db.select().from(tasks);
+    const u = await db.select().from(users);
+    return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
+  });
+  app2.patch("/task/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+    console.log("PATCH /task/:id fired for", id);
+    const db = getDB(c.env);
+    const body = await c.req.parseBody();
+    const updates = {};
+    if (body.title) updates.title = body.title;
+    if (body.priority)
+      updates.priority = body.priority;
+    if ("assigneeId" in body) {
+      updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null;
+    }
+    if (body.status) updates.status = body.status;
+    await db.update(tasks).set(updates).where(eq(tasks.id, id)).get();
+    if (updates.status) {
+      return htmxRefreshTasksResponse(c);
+    }
+    const u = await db.select().from(users);
+    const task = await db.select().from(tasks).where(eq(tasks.id, id)).get();
+    return c.html(/* @__PURE__ */ jsxDEV(TaskItem, { task, users: u }));
+  });
+  app2.delete("/task/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+    const db = getDB(c.env);
+    await db.delete(tasks).where(eq(tasks.id, id));
+    return htmxDeleteResponse(c);
+  });
+}
+__name(taskRoutes, "taskRoutes");
 
 // index.tsx
 var app = new Hono2();
@@ -8779,74 +8848,7 @@ app.get("/", async (c) => {
     ] })
   );
 });
-app.get("/users", async (c) => {
-  const db = getDB(c.env);
-  const result = await db.select().from(users);
-});
-app.get("/tasks", async (c) => {
-  try {
-    const db = getDB(c.env);
-    const result = await db.select().from(tasks);
-    const u = await db.select().from(users);
-    return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
-  } catch (err) {
-    console.error("GET /tasks error:", err);
-    return c.html(/* @__PURE__ */ jsxDEV("div", { class: "error", children: "Failed to load tasks" }), 500);
-  }
-});
-app.post("/tasks", async (c) => {
-  const db = getDB(c.env);
-  const body = await c.req.parseBody();
-  await db.insert(tasks).values({
-    title: body.title,
-    priority: body.priority,
-    value: Number(body.value),
-    repeat: body.repeat,
-    status: "todo",
-    assigneeId: body.assigneeId ? Number(body.assigneeId) : null
-  });
-  const u = await db.select().from(users);
-  const result = await db.select().from(tasks);
-  return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
-});
-app.patch("/task/:id/status", async (c) => {
-  const id = Number(c.req.param("id"));
-  const db = getDB(c.env);
-  const body = await c.req.parseBody();
-  const updates = {};
-  if (body.status) updates.status = body.status;
-  await db.update(tasks).set(updates).where(eq(tasks.id, id));
-  const result = await db.select().from(tasks);
-  const u = await db.select().from(users);
-  return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
-});
-app.patch("/task/:id", async (c) => {
-  const id = Number(c.req.param("id"));
-  console.log("PATCH /task/:id fired for", id);
-  const db = getDB(c.env);
-  const body = await c.req.parseBody();
-  const updates = {};
-  if (body.title) updates.title = body.title;
-  if (body.priority)
-    updates.priority = body.priority;
-  if ("assigneeId" in body) {
-    updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null;
-  }
-  if (body.status) updates.status = body.status;
-  await db.update(tasks).set(updates).where(eq(tasks.id, id)).get();
-  if (updates.status) {
-    return htmxRefreshTasksResponse(c);
-  }
-  const u = await db.select().from(users);
-  const task = await db.select().from(tasks).where(eq(tasks.id, id)).get();
-  return c.html(/* @__PURE__ */ jsxDEV(TaskItem, { task, users: u }));
-});
-app.delete("/task/:id", async (c) => {
-  const id = Number(c.req.param("id"));
-  const db = getDB(c.env);
-  await db.delete(tasks).where(eq(tasks.id, id));
-  return htmxDeleteResponse(c);
-});
+taskRoutes(app);
 var index_default = app;
 
 // node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
