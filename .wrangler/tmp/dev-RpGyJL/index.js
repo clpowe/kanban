@@ -9941,7 +9941,11 @@ var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
   c.header("HX-Trigger", "refreshTasks");
   return c.body("", 200);
 }, "htmxRefreshTasksResponse");
-var TASK_STATUSES = ["todo", "doing", "review", "done"];
+var PRIORITY_RANK = {
+  high: 0,
+  medium: 1,
+  low: 2
+};
 var groupTasksByStatus = /* @__PURE__ */ __name((taskList) => taskList.reduce(
   (grouped, task) => {
     grouped[task.status ?? "todo"].push(task);
@@ -9954,6 +9958,13 @@ var groupTasksByStatus = /* @__PURE__ */ __name((taskList) => taskList.reduce(
     done: []
   }
 ), "groupTasksByStatus");
+var sortTasksByPriority = /* @__PURE__ */ __name((taskList) => [...taskList].sort((left, right) => {
+  const priorityDifference = PRIORITY_RANK[left.priority] - PRIORITY_RANK[right.priority];
+  if (priorityDifference !== 0) {
+    return priorityDifference;
+  }
+  return left.id - right.id;
+}), "sortTasksByPriority");
 var Layout = /* @__PURE__ */ __name((props) => {
   return /* @__PURE__ */ jsxDEV2("html", { children: [
     /* @__PURE__ */ jsxDEV2("head", { children: [
@@ -9971,14 +9982,11 @@ var Layout = /* @__PURE__ */ __name((props) => {
     /* @__PURE__ */ jsxDEV2("body", { children: props.children })
   ] });
 }, "Layout");
-var UserList = /* @__PURE__ */ __name(({ users: users2 }) => {
-  return /* @__PURE__ */ jsxDEV2(Fragment, { children: /* @__PURE__ */ jsxDEV2("ul", { children: users2?.map((u) => /* @__PURE__ */ jsxDEV2("li", { "data-id": u.id, children: u.name }, u.id)) }) });
-}, "UserList");
 var TaskList = /* @__PURE__ */ __name(({ tasks: tasks2, users: users2 }) => {
   const grouped = groupTasksByStatus(tasks2);
-  return /* @__PURE__ */ jsxDEV2(Fragment, { children: TASK_STATUSES.map((status) => /* @__PURE__ */ jsxDEV2("div", { children: [
+  return /* @__PURE__ */ jsxDEV2(Fragment, { children: ["todo", "doing", "review", "done"].map((status) => /* @__PURE__ */ jsxDEV2("div", { children: [
     /* @__PURE__ */ jsxDEV2("h3", { children: status }),
-    /* @__PURE__ */ jsxDEV2("ul", { children: (grouped[status] ?? []).map((task) => /* @__PURE__ */ jsxDEV2(TaskItem, { task, users: users2 })) })
+    /* @__PURE__ */ jsxDEV2("ul", { children: sortTasksByPriority(grouped[status]).map((task) => /* @__PURE__ */ jsxDEV2(TaskItem, { task, users: users2 })) })
   ] }, status)) });
 }, "TaskList");
 var TaskItem = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
@@ -10039,8 +10047,8 @@ var TaskItem = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
   ] }, task.id);
 }, "TaskItem");
 app.get("/", async (c) => {
-  const db = drizzle(c.env.family_kanban);
-  const u = await db.select().from(users);
+  const binding = c.env?.family_kanban;
+  const u = binding ? await drizzle(binding).select().from(users) : [];
   return c.html(
     /* @__PURE__ */ jsxDEV2(Layout, { children: [
       /* @__PURE__ */ jsxDEV2(
@@ -10071,8 +10079,6 @@ app.get("/", async (c) => {
           ]
         }
       ),
-      /* @__PURE__ */ jsxDEV2("div", { "hx-get": "/users", "hx-trigger": "load", "hx-target": "#user-container" }),
-      /* @__PURE__ */ jsxDEV2("div", { id: "user-container" }),
       /* @__PURE__ */ jsxDEV2(
         "div",
         {
@@ -10336,6 +10342,7 @@ export {
   middleware_loader_entry_default as default,
   groupTasksByStatus,
   htmxDeleteResponse,
-  htmxRefreshTasksResponse
+  htmxRefreshTasksResponse,
+  sortTasksByPriority
 };
 //# sourceMappingURL=index.js.map

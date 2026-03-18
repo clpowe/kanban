@@ -20,7 +20,11 @@ export const htmxRefreshTasksResponse = (c: Context) => {
   return c.body('', 200)
 }
 
-const TASK_STATUSES: Task['status'][] = ['todo', 'doing', 'review', 'done']
+const PRIORITY_RANK: Record<Task['priority'], number> = {
+  high: 0,
+  medium: 1,
+  low: 2
+}
 
 export const groupTasksByStatus = (taskList: Task[]) =>
   taskList.reduce<Record<Task['status'], Task[]>>(
@@ -35,6 +39,17 @@ export const groupTasksByStatus = (taskList: Task[]) =>
       done: []
     }
   )
+
+export const sortTasksByPriority = (taskList: Task[]) =>
+  [...taskList].sort((left, right) => {
+    const priorityDifference = PRIORITY_RANK[left.priority] - PRIORITY_RANK[right.priority]
+
+    if (priorityDifference !== 0) {
+      return priorityDifference
+    }
+
+    return left.id - right.id
+  })
 
 const Layout: FC = (props) => {
   return (
@@ -53,28 +68,18 @@ const Layout: FC = (props) => {
   )
 }
 
-const UserList: FC<{ users: User[] }> = ({ users }) => {
-  return (
-    <Fragment>
-      <ul>
-        {users?.map((u) => (
-          <li key={u.id} data-id={u.id}>{u.name}</li>
-        ))}
-      </ul>
-    </Fragment>
-  )
-}
+
 
 export const TaskList: FC<{ tasks: Task[], users: User[] }> = ({ tasks, users }) => {
   const grouped = groupTasksByStatus(tasks)
 
   return (
     <>
-      {TASK_STATUSES.map((status) => (
+      {(['todo', 'doing', 'review', 'done'] as const).map((status) => (
         <div key={status}>
           <h3>{status}</h3>
           <ul>
-            {(grouped[status] ?? []).map((task) => (
+            {sortTasksByPriority(grouped[status]).map((task) => (
               <TaskItem task={task} users={users} />
             ))}
           </ul>
@@ -135,8 +140,8 @@ export const TaskItem: FC<{ task: Task, users?: User[] }> = ({ task, users = [] 
 }
 
 app.get('/', async (c) => {
-  const db = drizzle(c.env.family_kanban)
-  const u = await db.select().from(users)
+  const binding = c.env?.family_kanban
+  const u = binding ? await drizzle(binding).select().from(users) : []
 
 
   return c.html(
@@ -174,8 +179,6 @@ app.get('/', async (c) => {
 
         <button type='submit'>Add Task</button>
       </form>
-      <div hx-get='/users' hx-trigger='load' hx-target='#user-container'></div>
-      <div id='user-container'></div>
       <div
         id='tasks-container'
         hx-get='/tasks'
