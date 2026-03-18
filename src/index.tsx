@@ -9,28 +9,28 @@ import { userRoutes } from './routes/users.tsx'
 const app = new Hono<Env>()
 
 app.get('/', async (c) => {
-	const db = getDB(c.env)
-	const usersRes = await db.select().from(users)
+  const db = getDB(c.env)
+  const usersRes = await db.select().from(users)
 
-	return c.html(
-		<Layout>
-			<TaskInputForm users={usersRes} />
-			<main>
-				<section
-					id='tasks-container'
-					hx-get='/tasks'
-					hx-trigger='load, refreshTasks from:body'
-					hx-swap='innerHTML'
-				></section>
-				<aside
-					id='users-container'
-					hx-get='/users'
-					hx-trigger='load, refreshUsers from:body'
-					hx-swap='innerHTML'
-				></aside>
-			</main>
-		</Layout>
-	)
+  return c.html(
+    <Layout>
+      <TaskInputForm users={usersRes} />
+      <main>
+        <section
+          id='tasks-container'
+          hx-get='/tasks'
+          hx-trigger='load, refreshTasks from:body'
+          hx-swap='innerHTML'
+        ></section>
+        <aside
+          id='users-container'
+          hx-get='/users'
+          hx-trigger='load, refreshUsers from:body'
+          hx-swap='innerHTML'
+        ></aside>
+      </main>
+    </Layout>
+  )
 })
 
 taskRoutes(app)
