@@ -6,6 +6,13 @@ import { eq } from 'drizzle-orm'
 import type { TaskUpdate } from '../types'
 import { htmxDeleteResponse, htmxRefreshTasksResponse } from '../utils/htmx'
 import { TaskItem } from '../components/TaskItem'
+import {
+	createTask,
+	deleteTask,
+	getAllTasks,
+	getTaskById,
+	updateTask
+} from '../services/task.service'
 
 export function taskRoutes(app: Hono<Env>) {
 	app.get('/tasks', async (c) => {
@@ -26,17 +33,10 @@ export function taskRoutes(app: Hono<Env>) {
 		const db = getDB(c.env)
 		const body = await c.req.parseBody()
 
-		await db.insert(tasks).values({
-			title: body.title as string,
-			priority: body.priority as any,
-			value: Number(body.value),
-			repeat: body.repeat as any,
-			status: 'todo',
-			assigneeId: body.assigneeId ? Number(body.assigneeId) : null
-		})
+		await createTask(db, body)
 
 		const u = await db.select().from(users)
-		const result = await db.select().from(tasks)
+		const result = await getAllTasks(db)
 
 		return c.html(<TaskList tasks={result} users={u} />)
 	})
@@ -52,7 +52,7 @@ export function taskRoutes(app: Hono<Env>) {
 
 		await db.update(tasks).set(updates).where(eq(tasks.id, id))
 
-		const result = await db.select().from(tasks)
+		const result = await getAllTasks(db)
 		const u = await db.select().from(users)
 
 		return c.html(<TaskList tasks={result} users={u} />)
@@ -60,10 +60,9 @@ export function taskRoutes(app: Hono<Env>) {
 
 	app.patch('/task/:id', async (c) => {
 		const id = Number(c.req.param('id'))
-		console.log('PATCH /task/:id fired for', id)
 		const db = getDB(c.env)
-
 		const body = await c.req.parseBody()
+
 		const updates: TaskUpdate = {}
 
 		if (body.title) updates.title = body.title as string
@@ -74,14 +73,14 @@ export function taskRoutes(app: Hono<Env>) {
 		}
 		if (body.status) updates.status = body.status as any
 
-		await db.update(tasks).set(updates).where(eq(tasks.id, id)).get()
+		await updateTask(db, id, updates)
 
 		if (updates.status) {
 			return htmxRefreshTasksResponse(c)
 		}
 
 		const u = await db.select().from(users)
-		const task = await db.select().from(tasks).where(eq(tasks.id, id)).get()
+		const task = await getTaskById(db, id)
 
 		return c.html(<TaskItem task={task} users={u} />)
 	})
@@ -89,7 +88,7 @@ export function taskRoutes(app: Hono<Env>) {
 	app.delete('/task/:id', async (c) => {
 		const id = Number(c.req.param('id'))
 		const db = getDB(c.env)
-		await db.delete(tasks).where(eq(tasks.id, id))
+		await deleteTask(db, id)
 		return htmxDeleteResponse(c)
 	})
 }

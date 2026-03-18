@@ -8732,7 +8732,7 @@ var TaskItem = /* @__PURE__ */ __name(({
       {
         "hx-delete": `/task/${task.id}`,
         "hx-target": "closest li",
-        "hx-swap": "delete ",
+        "hx-swap": "delete",
         "hx-trigger": "click",
         children: "Delete"
       }
@@ -8759,6 +8759,30 @@ var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
   return c.body("", 200);
 }, "htmxRefreshTasksResponse");
 
+// src/services/task.service.ts
+var getAllTasks = /* @__PURE__ */ __name(async (db) => {
+  return db.select().from(tasks);
+}, "getAllTasks");
+var getTaskById = /* @__PURE__ */ __name(async (db, id) => {
+  return db.select().from(tasks).where(eq(tasks.id, id)).get();
+}, "getTaskById");
+var createTask = /* @__PURE__ */ __name(async (db, data) => {
+  return await db.insert(tasks).values({
+    title: data.title,
+    priority: data.priority,
+    value: Number(data.value),
+    repeat: data.repeat,
+    status: "todo",
+    assigneeId: data.assigneeId ? Number(data.assigneeId) : null
+  }).returning();
+}, "createTask");
+var updateTask = /* @__PURE__ */ __name(async (db, id, updates) => {
+  await db.update(tasks).set(updates).where(eq(tasks.id, id));
+}, "updateTask");
+var deleteTask = /* @__PURE__ */ __name(async (db, id) => {
+  await db.delete(tasks).where(eq(tasks.id, id));
+}, "deleteTask");
+
 // src/routes/tasks.tsx
 function taskRoutes(app2) {
   app2.get("/tasks", async (c) => {
@@ -8775,16 +8799,9 @@ function taskRoutes(app2) {
   app2.post("/tasks", async (c) => {
     const db = getDB(c.env);
     const body = await c.req.parseBody();
-    await db.insert(tasks).values({
-      title: body.title,
-      priority: body.priority,
-      value: Number(body.value),
-      repeat: body.repeat,
-      status: "todo",
-      assigneeId: body.assigneeId ? Number(body.assigneeId) : null
-    });
+    await createTask(db, body);
     const u = await db.select().from(users);
-    const result = await db.select().from(tasks);
+    const result = await getAllTasks(db);
     return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
   });
   app2.patch("/task/:id/status", async (c) => {
@@ -8794,13 +8811,12 @@ function taskRoutes(app2) {
     const updates = {};
     if (body.status) updates.status = body.status;
     await db.update(tasks).set(updates).where(eq(tasks.id, id));
-    const result = await db.select().from(tasks);
+    const result = await getAllTasks(db);
     const u = await db.select().from(users);
     return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
   });
   app2.patch("/task/:id", async (c) => {
     const id = Number(c.req.param("id"));
-    console.log("PATCH /task/:id fired for", id);
     const db = getDB(c.env);
     const body = await c.req.parseBody();
     const updates = {};
@@ -8811,18 +8827,18 @@ function taskRoutes(app2) {
       updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null;
     }
     if (body.status) updates.status = body.status;
-    await db.update(tasks).set(updates).where(eq(tasks.id, id)).get();
+    await updateTask(db, id, updates);
     if (updates.status) {
       return htmxRefreshTasksResponse(c);
     }
     const u = await db.select().from(users);
-    const task = await db.select().from(tasks).where(eq(tasks.id, id)).get();
+    const task = await getTaskById(db, id);
     return c.html(/* @__PURE__ */ jsxDEV(TaskItem, { task, users: u }));
   });
   app2.delete("/task/:id", async (c) => {
     const id = Number(c.req.param("id"));
     const db = getDB(c.env);
-    await db.delete(tasks).where(eq(tasks.id, id));
+    await deleteTask(db, id);
     return htmxDeleteResponse(c);
   });
 }

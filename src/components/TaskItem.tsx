@@ -61,7 +61,7 @@ export const TaskItem: FC<{ task: Task; users?: User[] }> = ({
 			<button
 				hx-delete={`/task/${task.id}`}
 				hx-target='closest li'
-				hx-swap='delete '
+				hx-swap='delete'
 				hx-trigger='click'
 			>
 				Delete
