@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-BBhcGA/checked-fetch.js
+// .wrangler/tmp/bundle-7SoVsp/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -10005,9 +10005,10 @@ var TaskItem = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
       "form",
       {
         "hx-patch": `/task/${task.id}`,
-        "hx-trigger": "change from:input, change from:select, consume",
+        "hx-trigger": "change",
         "hx-target": "closest li",
         "hx-swap": "outerHTML",
+        "hx-sync": "this:replace",
         children: [
           /* @__PURE__ */ jsxDEV2("input", { type: "text", value: task.title }),
           /* @__PURE__ */ jsxDEV2(
@@ -10032,8 +10033,9 @@ var TaskItem = /* @__PURE__ */ __name(({ task, users: users2 = [] }) => {
       "select",
       {
         name: "status",
-        "hx-patch": `/task/status/${task.id}`,
-        "hx-trigger": "change",
+        id: `task-${task.id}`,
+        "hx-patch": `/task/${task.id}/status`,
+        "hx-trigger": "change consume",
         "hx-swap": "innerHTML",
         "hx-target": "#tasks-container",
         children: [
@@ -10134,8 +10136,20 @@ app.post("/tasks", async (c) => {
   const result = await db.select().from(tasks);
   return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result, users: u }));
 });
+app.patch("/task/:id/status", async (c) => {
+  const id = Number(c.req.param("id"));
+  const db = getDB(c.env);
+  const body = await c.req.parseBody();
+  const updates = {};
+  if (body.status) updates.status = body.status;
+  await db.update(tasks).set(updates).where(eq(tasks.id, id));
+  const result = await db.select().from(tasks);
+  const u = await db.select().from(users);
+  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result, users: u }));
+});
 app.patch("/task/:id", async (c) => {
   const id = Number(c.req.param("id"));
+  console.log("PATCH /task/:id fired for", id);
   const db = getDB(c.env);
   const body = await c.req.parseBody();
   const updates = {};
@@ -10152,17 +10166,6 @@ app.patch("/task/:id", async (c) => {
   const u = await db.select().from(users);
   const task = await db.select().from(tasks).where(eq(tasks.id, id)).get();
   return c.html(/* @__PURE__ */ jsxDEV2(TaskItem, { task, users: u }));
-});
-app.patch("/task/status/:id", async (c) => {
-  const id = Number(c.req.param("id"));
-  const db = getDB(c.env);
-  const body = await c.req.parseBody();
-  const updates = {};
-  if (body.status) updates.status = body.status;
-  await db.update(tasks).set(updates).where(eq(tasks.id, id));
-  const result = await db.select().from(tasks);
-  const u = await db.select().from(users);
-  return c.html(/* @__PURE__ */ jsxDEV2(TaskList, { tasks: result, users: u }));
 });
 app.delete("/task/:id", async (c) => {
   const id = Number(c.req.param("id"));
@@ -10213,7 +10216,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-BBhcGA/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-7SoVsp/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -10245,7 +10248,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-BBhcGA/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-7SoVsp/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

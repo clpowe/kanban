@@ -52,9 +52,10 @@ export const TaskItem: FC<{ task: Task, users?: User[] }> = ({ task, users = [] 
     <li key={task.id} data-id={task.id}>
       <form
         hx-patch={`/task/${task.id}`}
-        hx-trigger="change from:input, change from:select, consume"
+        hx-trigger="change"
         hx-target="closest li"
         hx-swap="outerHTML"
+        hx-sync="this:replace"
       >
         <input type="text" value={task.title} />
         <select
@@ -77,8 +78,9 @@ export const TaskItem: FC<{ task: Task, users?: User[] }> = ({ task, users = [] 
 
       <select
         name="status"
-        hx-patch={`/task/status/${task.id}`}
-        hx-trigger="change"
+        id={`task-${task.id}`}
+        hx-patch={`/task/${task.id}/status`}
+        hx-trigger="change consume"
         hx-swap="innerHTML"
         hx-target='#tasks-container'
       >
@@ -191,8 +193,28 @@ app.post('/tasks', async (c) => {
   return c.html(<TaskList tasks={result} users={u} />)
 })
 
+app.patch('/task/:id/status', async (c) => {
+  const id = Number(c.req.param('id'))
+  const db = getDB(c.env)
+
+  const body = await c.req.parseBody()
+  const updates: any = {}
+
+  if (body.status) updates.status = body.status
+
+  await db.update(tasks)
+    .set(updates)
+    .where(eq(tasks.id, id))
+
+  const result = await db.select().from(tasks)
+  const u = await db.select().from(users)
+
+  return c.html(<TaskList tasks={result} users={u} />)
+})
+
 app.patch('/task/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  console.log('PATCH /task/:id fired for', id)
   const db = getDB(c.env)
 
   const body = await c.req.parseBody()
@@ -220,24 +242,6 @@ app.patch('/task/:id', async (c) => {
   return c.html(<TaskItem task={task} users={u} />)
 })
 
-app.patch('/task/status/:id', async (c) => {
-  const id = Number(c.req.param('id'))
-  const db = getDB(c.env)
-
-  const body = await c.req.parseBody()
-  const updates: any = {}
-
-  if (body.status) updates.status = body.status
-
-  await db.update(tasks)
-    .set(updates)
-    .where(eq(tasks.id, id))
-
-  const result = await db.select().from(tasks)
-  const u = await db.select().from(users)
-
-  return c.html(<TaskList tasks={result} users={u} />)
-})
 
 
 app.delete('/task/:id', async (c) => {
