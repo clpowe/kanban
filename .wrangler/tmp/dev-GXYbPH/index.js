@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-9aoOmf/checked-fetch.js
+// .wrangler/tmp/bundle-BBhcGA/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -8025,7 +8025,7 @@ var tasks = sqliteTable("tasks", {
   value: integer("value").notNull(),
   status: text("status", {
     enum: ["todo", "doing", "review", "done"]
-  }).default("todo"),
+  }).notNull().default("todo"),
   repeat: text("repeat", {
     enum: ["daily", "weekly", "none"]
   }).default("none"),
@@ -9920,27 +9920,7 @@ d.remove()
 }, "ErrorBoundary");
 ErrorBoundary2[DOM_RENDERER] = ErrorBoundary;
 
-// node_modules/hono/dist/jsx/jsx-dev-runtime.js
-function jsxDEV2(tag, props, key) {
-  let node;
-  if (!props || !("children" in props)) {
-    node = jsxFn(tag, props, []);
-  } else {
-    const children = props.children;
-    node = Array.isArray(children) ? jsxFn(tag, props, children) : jsxFn(tag, props, [children]);
-  }
-  node.key = key;
-  return node;
-}
-__name(jsxDEV2, "jsxDEV");
-
-// index.tsx
-var app = new Hono2();
-var htmxDeleteResponse = /* @__PURE__ */ __name((c) => c.body("", 200), "htmxDeleteResponse");
-var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
-  c.header("HX-Trigger", "refreshTasks");
-  return c.body("", 200);
-}, "htmxRefreshTasksResponse");
+// src/utils/tasks.ts
 var PRIORITY_RANK = {
   high: 0,
   medium: 1,
@@ -9965,6 +9945,30 @@ var sortTasksByPriority = /* @__PURE__ */ __name((taskList) => [...taskList].sor
   }
   return left.id - right.id;
 }), "sortTasksByPriority");
+
+// src/utils/htmx.ts
+var htmxDeleteResponse = /* @__PURE__ */ __name((c) => c.body("", 200), "htmxDeleteResponse");
+var htmxRefreshTasksResponse = /* @__PURE__ */ __name((c) => {
+  c.header("HX-Trigger", "refreshTasks");
+  return c.body("", 200);
+}, "htmxRefreshTasksResponse");
+
+// node_modules/hono/dist/jsx/jsx-dev-runtime.js
+function jsxDEV2(tag, props, key) {
+  let node;
+  if (!props || !("children" in props)) {
+    node = jsxFn(tag, props, []);
+  } else {
+    const children = props.children;
+    node = Array.isArray(children) ? jsxFn(tag, props, children) : jsxFn(tag, props, [children]);
+  }
+  node.key = key;
+  return node;
+}
+__name(jsxDEV2, "jsxDEV");
+
+// index.tsx
+var app = new Hono2();
 var Layout = /* @__PURE__ */ __name((props) => {
   return /* @__PURE__ */ jsxDEV2("html", { children: [
     /* @__PURE__ */ jsxDEV2("head", { children: [
@@ -10094,7 +10098,6 @@ app.get("/", async (c) => {
 app.get("/users", async (c) => {
   const db = drizzle(c.env.family_kanban);
   const result = await db.select().from(users);
-  return c.html(/* @__PURE__ */ jsxDEV2(UserList, { users: result }));
 });
 app.get("/tasks", async (c) => {
   try {
@@ -10207,7 +10210,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-9aoOmf/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-BBhcGA/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -10239,7 +10242,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-9aoOmf/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-BBhcGA/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -10339,10 +10342,6 @@ export {
   TaskItem,
   TaskList,
   __INTERNAL_WRANGLER_MIDDLEWARE__,
-  middleware_loader_entry_default as default,
-  groupTasksByStatus,
-  htmxDeleteResponse,
-  htmxRefreshTasksResponse,
-  sortTasksByPriority
+  middleware_loader_entry_default as default
 };
 //# sourceMappingURL=index.js.map

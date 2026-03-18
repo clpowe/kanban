@@ -1,9 +1,10 @@
 import { Hono } from 'hono'
-import type { Context } from 'hono'
 import { drizzle } from 'drizzle-orm/d1'
 import { tasks, users } from './schema'
-import { Fragment, type FC } from 'hono/jsx'
+import { type FC } from 'hono/jsx'
 import type { User, Task, TaskUpdate } from './types'
+import { groupTasksByStatus, sortTasksByPriority } from './src/utils/tasks'
+import { htmxDeleteResponse, htmxRefreshTasksResponse } from './src/utils/htmx.ts'
 import { eq } from 'drizzle-orm'
 
 export type Env = {
@@ -13,43 +14,6 @@ export type Env = {
 }
 
 const app = new Hono<Env>()
-
-export const htmxDeleteResponse = (c: Context) => c.body('', 200)
-export const htmxRefreshTasksResponse = (c: Context) => {
-  c.header('HX-Trigger', 'refreshTasks')
-  return c.body('', 200)
-}
-
-const PRIORITY_RANK: Record<Task['priority'], number> = {
-  high: 0,
-  medium: 1,
-  low: 2
-}
-
-export const groupTasksByStatus = (taskList: Task[]) =>
-  taskList.reduce<Record<Task['status'], Task[]>>(
-    (grouped, task) => {
-      grouped[task.status ?? 'todo'].push(task)
-      return grouped
-    },
-    {
-      todo: [],
-      doing: [],
-      review: [],
-      done: []
-    }
-  )
-
-export const sortTasksByPriority = (taskList: Task[]) =>
-  [...taskList].sort((left, right) => {
-    const priorityDifference = PRIORITY_RANK[left.priority] - PRIORITY_RANK[right.priority]
-
-    if (priorityDifference !== 0) {
-      return priorityDifference
-    }
-
-    return left.id - right.id
-  })
 
 const Layout: FC = (props) => {
   return (
@@ -67,8 +31,6 @@ const Layout: FC = (props) => {
     </html>
   )
 }
-
-
 
 export const TaskList: FC<{ tasks: Task[], users: User[] }> = ({ tasks, users }) => {
   const grouped = groupTasksByStatus(tasks)
@@ -192,7 +154,6 @@ app.get('/', async (c) => {
 app.get('/users', async (c) => {
   const db = drizzle(c.env.family_kanban)
   const result = await db.select().from(users)
-  return c.html(<UserList users={result} />)
 })
 
 app.get('/tasks', async (c) => {
