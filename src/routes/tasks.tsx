@@ -5,86 +5,87 @@ import type { TaskUpdate } from '../types'
 import { htmxDeleteResponse, htmxRefreshTasksResponse } from '../utils/htmx'
 import { TaskItem } from '../components/TaskItem'
 import {
-	createTask,
-	deleteTask,
-	getAllTasks,
-	getTaskById,
-	updateTask,
-	updateTaskStatus
+  createTask,
+  deleteTask,
+  getAllTasks,
+  getTaskById,
+  updateTask,
+  updateTaskStatus
 } from '../services/task.service'
 import { getAllUsers } from '../services/user.service'
 
 export function taskRoutes(app: Hono<Env>) {
-	app.get('/tasks', async (c) => {
-		try {
-			const db = getDB(c.env)
-			const result = await getAllTasks(db)
-			const users = await getAllUsers(db)
+  app.get('/tasks', async (c) => {
+    try {
+      const db = getDB(c.env)
+      const result = await getAllTasks(db)
+      const users = await getAllUsers(db)
 
-			return c.html(<TaskList tasks={result} users={users} />)
-		} catch (err) {
-			console.error('GET /tasks error:', err)
+      return c.html(<TaskList tasks={result} users={users} />)
+    } catch (err) {
+      console.error('GET /tasks error:', err)
 
-			return c.html(<div class='error'>Failed to load tasks</div>, 500)
-		}
-	})
+      return c.html(<div class='error'>Failed to load tasks</div>, 500)
+    }
+  })
 
-	app.post('/tasks', async (c) => {
-		const db = getDB(c.env)
-		const body = await c.req.parseBody()
+  app.post('/tasks', async (c) => {
+    const db = getDB(c.env)
+    const body = await c.req.parseBody()
 
-		await createTask(db, body)
+    await createTask(db, body)
 
-		const users = await getAllUsers(db)
-		const result = await getAllTasks(db)
+    const users = await getAllUsers(db)
+    const result = await getAllTasks(db)
 
-		return c.html(<TaskList tasks={result} users={users} />)
-	})
+    return c.html(<TaskList tasks={result} users={users} />)
+  })
 
-	app.patch('/task/:id/status', async (c) => {
-		const id = Number(c.req.param('id'))
-		const db = getDB(c.env)
-		const body = await c.req.parseBody()
+  app.patch('/task/:id/status', async (c) => {
+    const id = Number(c.req.param('id'))
+    const db = getDB(c.env)
+    const body = await c.req.parseBody()
 
-		await updateTaskStatus(db, id, body.status as string)
+    await updateTaskStatus(db, id, body.status as string)
 
-		const result = await getAllTasks(db)
-		const users = await getAllUsers(db)
+    const result = await getAllTasks(db)
+    const users = await getAllUsers(db)
 
-		return c.html(<TaskList tasks={result} users={users} />)
-	})
+    c.header('HX-Trigger', 'refreshUsers')
+    return c.html(<TaskList tasks={result} users={users} />)
+  })
 
-	app.patch('/task/:id', async (c) => {
-		const id = Number(c.req.param('id'))
-		const db = getDB(c.env)
-		const body = await c.req.parseBody()
+  app.patch('/task/:id', async (c) => {
+    const id = Number(c.req.param('id'))
+    const db = getDB(c.env)
+    const body = await c.req.parseBody()
 
-		const updates: TaskUpdate = {}
+    const updates: TaskUpdate = {}
 
-		if (body.title) updates.title = body.title as string
-		if (body.priority)
-			updates.priority = body.priority as 'high' | 'medium' | 'low'
-		if ('assigneeId' in body) {
-			updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null
-		}
-		if (body.status) updates.status = body.status as any
+    if (body.title) updates.title = body.title as string
+    if (body.priority)
+      updates.priority = body.priority as 'high' | 'medium' | 'low'
+    if ('assigneeId' in body) {
+      updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null
+    }
+    if (body.status) updates.status = body.status as any
 
-		await updateTask(db, id, updates)
+    await updateTask(db, id, updates)
 
-		if (updates.status) {
-			return htmxRefreshTasksResponse(c)
-		}
+    if (updates.status) {
+      return htmxRefreshTasksResponse(c)
+    }
 
-		const users = await getAllUsers(db)
-		const task = await getTaskById(db, id)
+    const users = await getAllUsers(db)
+    const task = await getTaskById(db, id)
 
-		return c.html(<TaskItem task={task} users={users} />)
-	})
+    return c.html(<TaskItem task={task} users={users} />)
+  })
 
-	app.delete('/task/:id', async (c) => {
-		const id = Number(c.req.param('id'))
-		const db = getDB(c.env)
-		await deleteTask(db, id)
-		return htmxDeleteResponse(c)
-	})
+  app.delete('/task/:id', async (c) => {
+    const id = Number(c.req.param('id'))
+    const db = getDB(c.env)
+    await deleteTask(db, id)
+    return htmxDeleteResponse(c)
+  })
 }
