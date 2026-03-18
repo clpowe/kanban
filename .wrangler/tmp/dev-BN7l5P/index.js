@@ -8779,18 +8779,26 @@ var createTask = /* @__PURE__ */ __name(async (db, data) => {
 var updateTask = /* @__PURE__ */ __name(async (db, id, updates) => {
   await db.update(tasks).set(updates).where(eq(tasks.id, id));
 }, "updateTask");
+var updateTaskStatus = /* @__PURE__ */ __name(async (db, id, status) => {
+  await db.update(tasks).set({ status }).where(eq(tasks.id, id));
+}, "updateTaskStatus");
 var deleteTask = /* @__PURE__ */ __name(async (db, id) => {
   await db.delete(tasks).where(eq(tasks.id, id));
 }, "deleteTask");
+
+// src/services/user.service.ts
+var getAllUsers = /* @__PURE__ */ __name(async (db) => {
+  return db.select().from(users);
+}, "getAllUsers");
 
 // src/routes/tasks.tsx
 function taskRoutes(app2) {
   app2.get("/tasks", async (c) => {
     try {
       const db = getDB(c.env);
-      const result = await db.select().from(tasks);
-      const u = await db.select().from(users);
-      return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
+      const result = await getAllTasks(db);
+      const users2 = await getAllUsers(db);
+      return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: users2 }));
     } catch (err) {
       console.error("GET /tasks error:", err);
       return c.html(/* @__PURE__ */ jsxDEV("div", { class: "error", children: "Failed to load tasks" }), 500);
@@ -8800,20 +8808,18 @@ function taskRoutes(app2) {
     const db = getDB(c.env);
     const body = await c.req.parseBody();
     await createTask(db, body);
-    const u = await db.select().from(users);
+    const users2 = await getAllUsers(db);
     const result = await getAllTasks(db);
-    return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
+    return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: users2 }));
   });
   app2.patch("/task/:id/status", async (c) => {
     const id = Number(c.req.param("id"));
     const db = getDB(c.env);
     const body = await c.req.parseBody();
-    const updates = {};
-    if (body.status) updates.status = body.status;
-    await db.update(tasks).set(updates).where(eq(tasks.id, id));
+    await updateTaskStatus(db, id, body.status);
     const result = await getAllTasks(db);
-    const u = await db.select().from(users);
-    return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: u }));
+    const users2 = await getAllUsers(db);
+    return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: users2 }));
   });
   app2.patch("/task/:id", async (c) => {
     const id = Number(c.req.param("id"));
@@ -8831,9 +8837,9 @@ function taskRoutes(app2) {
     if (updates.status) {
       return htmxRefreshTasksResponse(c);
     }
-    const u = await db.select().from(users);
+    const users2 = await getAllUsers(db);
     const task = await getTaskById(db, id);
-    return c.html(/* @__PURE__ */ jsxDEV(TaskItem, { task, users: u }));
+    return c.html(/* @__PURE__ */ jsxDEV(TaskItem, { task, users: users2 }));
   });
   app2.delete("/task/:id", async (c) => {
     const id = Number(c.req.param("id"));

@@ -1,8 +1,6 @@
 import { TaskList } from '../components/TaskList'
 import type { Hono } from 'hono'
 import { getDB, type Env } from '../db/client'
-import { tasks, users } from '../db/schema'
-import { eq } from 'drizzle-orm'
 import type { TaskUpdate } from '../types'
 import { htmxDeleteResponse, htmxRefreshTasksResponse } from '../utils/htmx'
 import { TaskItem } from '../components/TaskItem'
@@ -11,17 +9,19 @@ import {
 	deleteTask,
 	getAllTasks,
 	getTaskById,
-	updateTask
+	updateTask,
+	updateTaskStatus
 } from '../services/task.service'
+import { getAllUsers } from '../services/user.service'
 
 export function taskRoutes(app: Hono<Env>) {
 	app.get('/tasks', async (c) => {
 		try {
 			const db = getDB(c.env)
-			const result = await db.select().from(tasks)
-			const u = await db.select().from(users)
+			const result = await getAllTasks(db)
+			const users = await getAllUsers(db)
 
-			return c.html(<TaskList tasks={result} users={u} />)
+			return c.html(<TaskList tasks={result} users={users} />)
 		} catch (err) {
 			console.error('GET /tasks error:', err)
 
@@ -35,27 +35,23 @@ export function taskRoutes(app: Hono<Env>) {
 
 		await createTask(db, body)
 
-		const u = await db.select().from(users)
+		const users = await getAllUsers(db)
 		const result = await getAllTasks(db)
 
-		return c.html(<TaskList tasks={result} users={u} />)
+		return c.html(<TaskList tasks={result} users={users} />)
 	})
 
 	app.patch('/task/:id/status', async (c) => {
 		const id = Number(c.req.param('id'))
 		const db = getDB(c.env)
-
 		const body = await c.req.parseBody()
-		const updates: any = {}
 
-		if (body.status) updates.status = body.status
-
-		await db.update(tasks).set(updates).where(eq(tasks.id, id))
+		await updateTaskStatus(db, id, body.status as string)
 
 		const result = await getAllTasks(db)
-		const u = await db.select().from(users)
+		const users = await getAllUsers(db)
 
-		return c.html(<TaskList tasks={result} users={u} />)
+		return c.html(<TaskList tasks={result} users={users} />)
 	})
 
 	app.patch('/task/:id', async (c) => {
@@ -79,10 +75,10 @@ export function taskRoutes(app: Hono<Env>) {
 			return htmxRefreshTasksResponse(c)
 		}
 
-		const u = await db.select().from(users)
+		const users = await getAllUsers(db)
 		const task = await getTaskById(db, id)
 
-		return c.html(<TaskItem task={task} users={u} />)
+		return c.html(<TaskItem task={task} users={users} />)
 	})
 
 	app.delete('/task/:id', async (c) => {
