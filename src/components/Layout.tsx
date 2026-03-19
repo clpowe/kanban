@@ -1,6 +1,8 @@
 import type { FC } from 'hono/jsx'
+import type { User } from '../types'
+import { UserSwitcher } from './UserSwitcher'
 
-export const Layout: FC = (props) => {
+export const Layout: FC<{ activeUser: User; users: User[] }> = (props) => {
 	return (
 		<html>
 			<head>
@@ -12,7 +14,10 @@ export const Layout: FC = (props) => {
 				></script>
 				<script src='https://unpkg.com/hyperscript.org@0.9.14'></script>
 			</head>
-			<body>{props.children}</body>
+			<body>
+				<UserSwitcher activeUser={props.activeUser} users={props.users} />
+				{props.children}
+			</body>
 		</html>
 	)
 }

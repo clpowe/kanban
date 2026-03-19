@@ -5,6 +5,7 @@ import { Layout } from './components/Layout.tsx'
 import { TaskInputForm } from './components/TaskInputForm.tsx'
 import { taskRoutes } from './routes/tasks.tsx'
 import { userRoutes } from './routes/users.tsx'
+import { sessionRoutes } from './routes/session.tsx'
 import { canManageTask } from './auth/authorization.ts'
 import { authMiddleware, requireAuthenticatedUser } from './auth/middleware.ts'
 import { resetDailyTasks } from './cron.ts'
@@ -19,7 +20,7 @@ app.get('/', async (c) => {
   const usersRes = await db.select().from(users)
 
   return c.html(
-    <Layout>
+    <Layout activeUser={authUser} users={usersRes}>
       {canManageTask(authUser) ? <TaskInputForm users={usersRes} /> : null}
       <main>
         <section
@@ -41,6 +42,7 @@ app.get('/', async (c) => {
 
 taskRoutes(app)
 userRoutes(app)
+sessionRoutes(app)
 
 export default {
   fetch: app.fetch,

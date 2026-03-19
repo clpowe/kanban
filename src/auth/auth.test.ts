@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { hashPassword, verifyPassword } from './password'
 import { canManageTask, canUpdateTaskStatus } from './authorization'
+import {
+  parseFamilySession,
+  requireAuthenticatedUser,
+  requireParent,
+  resolveActiveUser,
+  serializeFamilySession,
+  validateActiveUserSelection,
+} from './middleware'
 import type { User } from '../types'
 
 const parentUser = {
@@ -47,5 +55,86 @@ describe('authorization helpers', () => {
     expect(canUpdateTaskStatus(childUser, childUser.id)).toBe(true)
     expect(canUpdateTaskStatus(childUser, parentUser.id)).toBe(false)
     expect(canUpdateTaskStatus(childUser, null)).toBe(false)
+  })
+})
+
+describe('family session helpers', () => {
+  const users = [parentUser, childUser]
+
+  test('serializes and parses the family session cookie payload', () => {
+    const serialized = serializeFamilySession({
+      activeUserId: childUser.id,
+      familyUserIds: users.map((user) => user.id),
+    })
+
+    expect(parseFamilySession(serialized)).toEqual({
+      activeUserId: childUser.id,
+      familyUserIds: [parentUser.id, childUser.id],
+    })
+  })
+
+  test('resolves the active user from session state when present', () => {
+    const activeUser = resolveActiveUser(
+      users,
+      parentUser,
+      serializeFamilySession({
+        activeUserId: childUser.id,
+        familyUserIds: users.map((user) => user.id),
+      })
+    )
+
+    expect(activeUser).toEqual(childUser)
+  })
+
+  test('falls back to the login user when session state is missing', () => {
+    expect(resolveActiveUser(users, parentUser, undefined)).toEqual(parentUser)
+  })
+
+  test('rejects switching to a user outside the family session', () => {
+    expect(() =>
+      validateActiveUserSelection(
+        {
+          activeUserId: parentUser.id,
+          familyUserIds: [parentUser.id],
+        },
+        childUser.id
+      )
+    ).toThrow('Invalid active user selection')
+  })
+
+  test('request auth resolves the active user instead of the login user', () => {
+    const context = {
+      get(key: string) {
+        if (key === 'authUser') {
+          return parentUser
+        }
+
+        if (key === 'activeUser') {
+          return childUser
+        }
+
+        return undefined
+      },
+    } as any
+
+    expect(requireAuthenticatedUser(context)).toEqual(childUser)
+  })
+
+  test('parent-only guards use the active user role', () => {
+    const context = {
+      get(key: string) {
+        if (key === 'authUser') {
+          return parentUser
+        }
+
+        if (key === 'activeUser') {
+          return childUser
+        }
+
+        return undefined
+      },
+    } as any
+
+    expect(() => requireParent(context)).toThrow('Forbidden')
   })
 })

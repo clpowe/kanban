@@ -7,6 +7,8 @@ export type Env = {
   }
   Variables: {
     authUser: User
+    loginUser: User
+    activeUser: User
   }
 }
 
