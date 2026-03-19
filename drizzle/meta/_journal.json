@@ -22,6 +22,13 @@
       "when": 1773785996079,
       "tag": "0002_mixed_black_panther",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1773885266958,
+      "tag": "0003_minor_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

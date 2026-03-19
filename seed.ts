@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/d1'
 import { users, tasks, rewards } from './src/db/schema'
+import { hashPassword } from './src/auth/password'
 
 interface Env {
   family_kanban: D1Database
@@ -10,6 +11,8 @@ export default {
     const db = drizzle(env.family_kanban)
 
     try {
+      const defaultPasswordHash = await hashPassword('family123')
+
       // Clear existing data
       await db.delete(tasks)
       await db.delete(users)
@@ -19,15 +22,43 @@ export default {
       const insertedUsers = await db
         .insert(users)
         .values([
-          { name: 'Mom', points: 0, type: 'parent' },
-          { name: 'Dad', points: 0, type: 'parent' },
-          { name: 'Emma', points: 0, type: 'child' },
-          { name: 'Noah', points: 0, type: 'child' }
+          {
+            name: 'Mom',
+            points: 0,
+            type: 'parent',
+            username: 'mom',
+            passwordHash: defaultPasswordHash
+          },
+          {
+            name: 'Dad',
+            points: 0,
+            type: 'parent',
+            username: 'dad',
+            passwordHash: defaultPasswordHash
+          },
+          {
+            name: 'Emma',
+            points: 0,
+            type: 'child',
+            username: 'emma',
+            passwordHash: defaultPasswordHash
+          },
+          {
+            name: 'Noah',
+            points: 0,
+            type: 'child',
+            username: 'noah',
+            passwordHash: defaultPasswordHash
+          }
         ])
         .returning()
 
       const emma = insertedUsers.find((u) => u.name === 'Emma')
       const noah = insertedUsers.find((u) => u.name === 'Noah')
+
+      if (!emma || !noah) {
+        throw new Error('Expected seeded child users to exist')
+      }
 
       // Insert rewards
       await db.insert(rewards).values([

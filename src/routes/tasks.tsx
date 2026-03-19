@@ -5,6 +5,11 @@ import type { TaskUpdate } from '../types'
 import { htmxDeleteResponse, htmxRefreshTasksResponse } from '../utils/htmx'
 import { TaskItem } from '../components/TaskItem'
 import {
+  requireAuthenticatedUser,
+  requireChildOwnTaskAccess,
+  requireParent
+} from '../auth/middleware'
+import {
   createTask,
   deleteTask,
   getAllTasks,
@@ -17,11 +22,12 @@ import { getAllUsers } from '../services/user.service'
 export function taskRoutes(app: Hono<Env>) {
   app.get('/tasks', async (c) => {
     try {
+      const authUser = requireAuthenticatedUser(c)
       const db = getDB(c.env)
       const result = await getAllTasks(db)
       const users = await getAllUsers(db)
 
-      return c.html(<TaskList tasks={result} users={users} />)
+      return c.html(<TaskList tasks={result} users={users} authUser={authUser} />)
     } catch (err) {
       console.error('GET /tasks error:', err)
 
@@ -30,6 +36,7 @@ export function taskRoutes(app: Hono<Env>) {
   })
 
   app.post('/tasks', async (c) => {
+    requireParent(c)
     const db = getDB(c.env)
     const body = await c.req.parseBody()
 
@@ -37,12 +44,14 @@ export function taskRoutes(app: Hono<Env>) {
 
     const users = await getAllUsers(db)
     const result = await getAllTasks(db)
+    const authUser = requireAuthenticatedUser(c)
 
-    return c.html(<TaskList tasks={result} users={users} />)
+    return c.html(<TaskList tasks={result} users={users} authUser={authUser} />)
   })
 
   app.patch('/task/:id/status', async (c) => {
     const id = Number(c.req.param('id'))
+    await requireChildOwnTaskAccess(c, id)
     const db = getDB(c.env)
     const body = await c.req.parseBody()
 
@@ -50,12 +59,14 @@ export function taskRoutes(app: Hono<Env>) {
 
     const result = await getAllTasks(db)
     const users = await getAllUsers(db)
+    const authUser = requireAuthenticatedUser(c)
 
     c.header('HX-Trigger', 'refreshUsers')
-    return c.html(<TaskList tasks={result} users={users} />)
+    return c.html(<TaskList tasks={result} users={users} authUser={authUser} />)
   })
 
   app.patch('/task/:id', async (c) => {
+    requireParent(c)
     const id = Number(c.req.param('id'))
     const db = getDB(c.env)
     const body = await c.req.parseBody()
@@ -78,11 +89,13 @@ export function taskRoutes(app: Hono<Env>) {
 
     const users = await getAllUsers(db)
     const task = await getTaskById(db, id)
+    const authUser = requireAuthenticatedUser(c)
 
-    return c.html(<TaskItem task={task} users={users} />)
+    return c.html(<TaskItem task={task} users={users} authUser={authUser} />)
   })
 
   app.delete('/task/:id', async (c) => {
+    requireParent(c)
     const id = Number(c.req.param('id'))
     const db = getDB(c.env)
     await deleteTask(db, id)

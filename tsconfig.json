@@ -9,7 +9,7 @@
 		"jsxImportSource": "hono/jsx",
 		"allowJs": true,
 
-		"types": ["@cloudflare/workers-types", "node"],
+		"types": ["bun-types", "@cloudflare/workers-types", "node"],
 
 		// Bundler mode
 		"moduleResolution": "bundler",
