@@ -7,6 +7,7 @@ import { taskRoutes } from './routes/tasks.tsx'
 import { userRoutes } from './routes/users.tsx'
 import { canManageTask } from './auth/authorization.ts'
 import { authMiddleware, requireAuthenticatedUser } from './auth/middleware.ts'
+import { resetDailyTasks } from './cron.ts'
 
 const app = new Hono<Env>()
 
@@ -41,4 +42,26 @@ app.get('/', async (c) => {
 taskRoutes(app)
 userRoutes(app)
 
-export default app
+export default {
+  fetch: app.fetch,
+
+  async scheduled(controller: ScheduledController, env: Env) {
+    try {
+      console.log('[CRON] triggered')
+
+      const now = new Date()
+      const tampaHour = new Date(
+        now.toLocaleString('en-US', { timeZone: 'America/New_York' })
+      ).getHours()
+
+      console.log('[CRON] tampaHour:', tampaHour)
+
+      if (tampaHour === 0) {
+        await resetDailyTasks(env)
+      }
+    } catch (err) {
+      console.error('[CRON ERROR]', err)
+      throw err
+    }
+  }
+}
