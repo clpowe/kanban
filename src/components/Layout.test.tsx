@@ -71,4 +71,17 @@ describe('Layout', () => {
     expect(html).toContain('>Add Task<')
     expect(html).toContain('Create a new task and drop it into the board.')
   })
+
+  test('renders a parent reward creation affordance', async () => {
+    const html = await renderToString(
+      <Layout activeUser={parentUser} users={[parentUser, childUser]}>
+        <main>content</main>
+      </Layout>
+    )
+
+    expect(html).toContain('>Add Reward<')
+    expect(html).toContain('hx-post="/rewards"')
+    expect(html).toContain('name="title"')
+    expect(html).toContain('name="cost"')
+  })
 })

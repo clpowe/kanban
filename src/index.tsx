@@ -3,6 +3,7 @@ import { users } from './db/schema.ts'
 import { type Env, getDB } from './db/client.ts'
 import { Layout } from './components/Layout.tsx'
 import { taskRoutes } from './routes/tasks.tsx'
+import { rewardRoutes } from './routes/rewards.tsx'
 import { userRoutes } from './routes/users.tsx'
 import { sessionRoutes } from './routes/session.tsx'
 import { authMiddleware, requireAuthenticatedUser } from './auth/middleware.ts'
@@ -27,19 +28,27 @@ app.get('/', async (c) => {
           hx-trigger='load, refreshTasks from:body, every 30s'
           hx-swap='innerHTML'
         ></section>
-        <aside
-          class='min-w-0'
-          id='users-container'
-          hx-get='/users'
-          hx-trigger='load, refreshUsers from:body, every 60s'
-          hx-swap='innerHTML'
-        ></aside>
+        <aside class='min-w-0 space-y-6'>
+          <section
+            id='users-container'
+            hx-get='/users'
+            hx-trigger='load, refreshUsers from:body, every 60s'
+            hx-swap='innerHTML'
+          ></section>
+          <section
+            id='rewards-container'
+            hx-get='/rewards'
+            hx-trigger='load, refreshRewards from:body'
+            hx-swap='innerHTML'
+          ></section>
+        </aside>
       </main>
     </Layout>
   )
 })
 
 taskRoutes(app)
+rewardRoutes(app)
 userRoutes(app)
 sessionRoutes(app)
 

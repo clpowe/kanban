@@ -8,8 +8,19 @@ export function userRoutes(app: Hono<Env>) {
 	app.get('/users', async (c) => {
 		const db = getDB(c.env)
 		const result = await getAllUsers(db)
+    const sortedUsers = [...result].sort((a, b) => {
+      if (a.type !== b.type) {
+        return a.type === 'child' ? -1 : 1
+      }
 
-		return c.html(<UsersList users={result} />)
+      if (a.points !== b.points) {
+        return b.points - a.points
+      }
+
+      return a.name.localeCompare(b.name)
+    })
+
+		return c.html(<UsersList users={sortedUsers} />)
 	})
 	app.patch('/users/:id', async (c) => {
 		requireParent(c)

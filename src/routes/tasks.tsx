@@ -2,7 +2,10 @@ import { TaskList } from '../components/TaskList'
 import type { Hono } from 'hono'
 import { getDB, type Env } from '../db/client'
 import type { TaskUpdate } from '../types'
-import { htmxDeleteResponse, htmxRefreshTasksResponse } from '../utils/htmx'
+import {
+  htmxDeleteResponse,
+  htmxRefreshTasksResponse
+} from '../utils/htmx'
 import { TaskItem } from '../components/TaskItem'
 import {
   requireAuthenticatedUser,
@@ -61,7 +64,13 @@ export function taskRoutes(app: Hono<Env>) {
     const users = await getAllUsers(db)
     const authUser = requireAuthenticatedUser(c)
 
-    c.header('HX-Trigger', 'refreshUsers')
+    c.header(
+      'HX-Trigger',
+      JSON.stringify({
+        refreshUsers: true,
+        refreshRewards: true
+      })
+    )
     return c.html(<TaskList tasks={result} users={users} authUser={authUser} />)
   })
 

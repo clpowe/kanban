@@ -1,6 +1,7 @@
 import type { FC } from 'hono/jsx'
 import type { User } from '../types'
 import { UserSwitcher } from './UserSwitcher'
+import { RewardInputForm } from './RewardInputForm'
 import { TaskInputForm } from './TaskInputForm'
 
 export const Layout: FC<{ activeUser: User; users: User[] }> = (props) => {
@@ -34,8 +35,9 @@ export const Layout: FC<{ activeUser: User; users: User[] }> = (props) => {
           {canCreateTask ? (
             <div class='drawer-side z-20'>
               <label for='task-drawer' aria-label='close sidebar' class='drawer-overlay'></label>
-              <div class='min-h-full w-full max-w-lg bg-base-200 p-4 sm:p-6'>
+              <div class='flex min-h-full w-full max-w-lg flex-col gap-4 bg-base-200 p-4 sm:p-6'>
                 <TaskInputForm users={props.users} inDrawer />
+                <RewardInputForm inDrawer />
               </div>
             </div>
           ) : null}
