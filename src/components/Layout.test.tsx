@@ -31,8 +31,44 @@ describe('Layout', () => {
 
     expect(html).toContain('Switch User')
     expect(html).toContain('Active: Emma')
-    expect(html).toContain('Role: child')
+    expect(html).toContain('badge badge-outline badge-sm capitalize">child</span>')
     expect(html).toContain('<option value="1">Mom</option>')
     expect(html).toContain('<option value="2" selected="">Emma</option>')
+  })
+
+  test('links the compiled app stylesheet', async () => {
+    const html = await renderToString(
+      <Layout activeUser={childUser} users={[parentUser, childUser]}>
+        <main>content</main>
+      </Layout>
+    )
+
+    expect(html).toContain('<link rel="stylesheet" href="/app.css"/>')
+  })
+
+  test('uses an explicit light theme and visible navbar surface', async () => {
+    const html = await renderToString(
+      <Layout activeUser={childUser} users={[parentUser, childUser]}>
+        <main>content</main>
+      </Layout>
+    )
+
+    expect(html).toContain('<html data-theme="light">')
+    expect(html).toContain(
+      'class="navbar rounded-box border border-base-300 bg-base-100 px-4 shadow-sm md:px-6"'
+    )
+  })
+
+  test('renders a right-side task drawer with a header trigger', async () => {
+    const html = await renderToString(
+      <Layout activeUser={parentUser} users={[parentUser, childUser]}>
+        <main>content</main>
+      </Layout>
+    )
+
+    expect(html).toContain('class="drawer drawer-end"')
+    expect(html).toContain('id="task-drawer"')
+    expect(html).toContain('>Add Task<')
+    expect(html).toContain('Create a new task and drop it into the board.')
   })
 })

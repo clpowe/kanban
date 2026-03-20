@@ -5,11 +5,16 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
+    "dev:css": "tailwindcss -i ./src/styles/app.css -o ./public/app.css --watch",
+    "build:css": "tailwindcss -i ./src/styles/app.css -o ./public/app.css --minify",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260317.1",
+    "@tailwindcss/cli": "^4.2.2",
     "@types/bun": "latest",
+    "daisyui": "^5.5.19",
+    "tailwindcss": "^4.2.2",
     "typed-htmx": "^0.3.1",
     "wrangler": "^4.74.0"
   },

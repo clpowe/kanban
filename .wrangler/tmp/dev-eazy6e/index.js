@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-OgWPxN/checked-fetch.js
+// .wrangler/tmp/bundle-RpRHBD/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -8617,17 +8617,6 @@ var jsxFn = /* @__PURE__ */ __name((tag, props, children) => {
     return new JSXNode(tag, props, children);
   }
 }, "jsxFn");
-var Fragment = /* @__PURE__ */ __name(({
-  children
-}) => {
-  return new JSXFragmentNode(
-    "",
-    {
-      children
-    },
-    Array.isArray(children) ? children : children ? [children] : []
-  );
-}, "Fragment");
 
 // node_modules/hono/dist/jsx/jsx-dev-runtime.js
 function jsxDEV(tag, props, key) {
@@ -8646,32 +8635,110 @@ __name(jsxDEV, "jsxDEV");
 // src/components/UserSwitcher.tsx
 var UserSwitcher = /* @__PURE__ */ __name(({
   activeUser,
-  users: users2
+  users: users2,
+  canCreateTask
 }) => {
-  return /* @__PURE__ */ jsxDEV("header", { children: [
-    /* @__PURE__ */ jsxDEV("div", { children: [
-      /* @__PURE__ */ jsxDEV("h1", { children: "Family Task" }),
-      /* @__PURE__ */ jsxDEV("p", { children: [
-        "Active: ",
-        activeUser.name
-      ] }),
-      /* @__PURE__ */ jsxDEV("p", { children: [
-        "Role: ",
-        activeUser.type
+  return /* @__PURE__ */ jsxDEV("header", { class: "navbar rounded-box border border-base-300 bg-base-100 px-4 shadow-sm md:px-6", children: [
+    /* @__PURE__ */ jsxDEV("div", { class: "flex-1", children: /* @__PURE__ */ jsxDEV("div", { children: [
+      /* @__PURE__ */ jsxDEV("p", { class: "text-xs font-semibold uppercase tracking-[0.2em] text-base-content/60", children: "Family board" }),
+      /* @__PURE__ */ jsxDEV("h1", { class: "text-2xl font-semibold", children: "Family Task" }),
+      /* @__PURE__ */ jsxDEV("div", { class: "mt-2 flex flex-wrap items-center gap-2 text-sm text-base-content/70", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: [
+          "Active: ",
+          activeUser.name
+        ] }),
+        /* @__PURE__ */ jsxDEV("span", { class: "badge badge-outline badge-sm capitalize", children: activeUser.type })
       ] })
-    ] }),
-    /* @__PURE__ */ jsxDEV("form", { "hx-patch": "/session/active-user", "hx-trigger": "change", "hx-swap": "none", children: [
-      /* @__PURE__ */ jsxDEV("label", { for: "active-user-id", children: "Switch User" }),
-      /* @__PURE__ */ jsxDEV("select", { id: "active-user-id", name: "userId", children: users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, selected: user.id === activeUser.id, children: user.name })) })
+    ] }) }),
+    /* @__PURE__ */ jsxDEV("div", { class: "flex w-full max-w-md flex-col gap-3 md:items-end", children: [
+      canCreateTask ? /* @__PURE__ */ jsxDEV("label", { for: "task-drawer", class: "btn btn-primary btn-sm self-start md:self-end", children: "Add Task" }) : null,
+      /* @__PURE__ */ jsxDEV(
+        "form",
+        {
+          "hx-patch": "/session/active-user",
+          "hx-trigger": "change",
+          "hx-swap": "none",
+          class: "flex w-full flex-col gap-2",
+          children: [
+            /* @__PURE__ */ jsxDEV("label", { for: "active-user-id", class: "label px-1 pb-0", children: /* @__PURE__ */ jsxDEV("span", { class: "label-text text-xs uppercase tracking-wide text-base-content/60", children: "Switch User" }) }),
+            /* @__PURE__ */ jsxDEV("select", { id: "active-user-id", name: "userId", class: "select select-bordered w-full bg-base-100", children: users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, selected: user.id === activeUser.id, children: user.name })) })
+          ]
+        }
+      )
     ] })
   ] });
 }, "UserSwitcher");
 
+// src/components/TaskInputForm.tsx
+var TaskInputForm = /* @__PURE__ */ __name(({
+  users: users2,
+  inDrawer = false
+}) => {
+  return /* @__PURE__ */ jsxDEV("section", { class: "card bg-base-100 shadow-sm", children: /* @__PURE__ */ jsxDEV("div", { class: "card-body gap-4", children: [
+    /* @__PURE__ */ jsxDEV("div", { class: "flex items-start justify-between gap-3", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("h2", { class: "card-title", children: "Add a task" }),
+        /* @__PURE__ */ jsxDEV("p", { class: "text-sm text-base-content/70", children: "Create a new task and drop it into the board." })
+      ] }),
+      inDrawer ? /* @__PURE__ */ jsxDEV("label", { for: "task-drawer", class: "btn btn-ghost btn-sm btn-circle", children: "\u2715" }) : null
+    ] }),
+    /* @__PURE__ */ jsxDEV(
+      "form",
+      {
+        "hx-post": "/tasks",
+        "hx-target": "#tasks-container",
+        "hx-swap": "innerHTML",
+        "hx-on--after-request": 'if(event.detail.successful) { this.reset(); document.getElementById("task-drawer")?.click(); }',
+        class: "grid gap-3 md:grid-cols-2 xl:grid-cols-5",
+        children: [
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              class: "input input-bordered w-full md:col-span-2 xl:col-span-2",
+              type: "text",
+              name: "title",
+              placeholder: "Enter a task",
+              required: true
+            }
+          ),
+          /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full", name: "priority", children: [
+            /* @__PURE__ */ jsxDEV("option", { value: "low", children: "Low" }),
+            /* @__PURE__ */ jsxDEV("option", { value: "medium", selected: true, children: "Medium" }),
+            /* @__PURE__ */ jsxDEV("option", { value: "high", children: "High" })
+          ] }),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              class: "input input-bordered w-full",
+              type: "number",
+              name: "value",
+              placeholder: "Points",
+              min: "1"
+            }
+          ),
+          /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full", name: "repeat", children: [
+            /* @__PURE__ */ jsxDEV("option", { value: "none", children: "No Repeat" }),
+            /* @__PURE__ */ jsxDEV("option", { value: "daily", children: "Daily" }),
+            /* @__PURE__ */ jsxDEV("option", { value: "weekly", children: "Weekly" })
+          ] }),
+          /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full md:col-span-2 xl:col-span-1", name: "assigneeId", children: [
+            /* @__PURE__ */ jsxDEV("option", { value: "", children: "Unassigned" }),
+            users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, children: user.name }))
+          ] }),
+          /* @__PURE__ */ jsxDEV("div", { class: "md:col-span-2 xl:col-span-5 flex justify-end", children: /* @__PURE__ */ jsxDEV("button", { class: "btn btn-primary", type: "submit", children: "Add Task" }) })
+        ]
+      }
+    )
+  ] }) });
+}, "TaskInputForm");
+
 // src/components/Layout.tsx
 var Layout = /* @__PURE__ */ __name((props) => {
-  return /* @__PURE__ */ jsxDEV("html", { children: [
+  const canCreateTask = props.activeUser.type === "parent";
+  return /* @__PURE__ */ jsxDEV("html", { "data-theme": "light", children: [
     /* @__PURE__ */ jsxDEV("head", { children: [
       /* @__PURE__ */ jsxDEV("title", { children: "Family Task" }),
+      /* @__PURE__ */ jsxDEV("link", { rel: "stylesheet", href: "/app.css" }),
       /* @__PURE__ */ jsxDEV(
         "script",
         {
@@ -8682,44 +8749,26 @@ var Layout = /* @__PURE__ */ __name((props) => {
       ),
       /* @__PURE__ */ jsxDEV("script", { src: "https://unpkg.com/hyperscript.org@0.9.14" })
     ] }),
-    /* @__PURE__ */ jsxDEV("body", { children: [
-      /* @__PURE__ */ jsxDEV(UserSwitcher, { activeUser: props.activeUser, users: props.users }),
-      props.children
-    ] })
+    /* @__PURE__ */ jsxDEV("body", { class: "min-h-screen bg-base-200 text-base-content", children: /* @__PURE__ */ jsxDEV("div", { class: "drawer drawer-end", children: [
+      /* @__PURE__ */ jsxDEV("input", { id: "task-drawer", type: "checkbox", class: "drawer-toggle" }),
+      /* @__PURE__ */ jsxDEV("div", { class: "drawer-content", children: /* @__PURE__ */ jsxDEV("div", { class: "mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 lg:px-6", children: [
+        /* @__PURE__ */ jsxDEV(
+          UserSwitcher,
+          {
+            activeUser: props.activeUser,
+            users: props.users,
+            canCreateTask
+          }
+        ),
+        props.children
+      ] }) }),
+      canCreateTask ? /* @__PURE__ */ jsxDEV("div", { class: "drawer-side z-20", children: [
+        /* @__PURE__ */ jsxDEV("label", { for: "task-drawer", "aria-label": "close sidebar", class: "drawer-overlay" }),
+        /* @__PURE__ */ jsxDEV("div", { class: "min-h-full w-full max-w-lg bg-base-200 p-4 sm:p-6", children: /* @__PURE__ */ jsxDEV(TaskInputForm, { users: props.users, inDrawer: true }) })
+      ] }) : null
+    ] }) })
   ] });
 }, "Layout");
-
-// src/components/TaskInputForm.tsx
-var TaskInputForm = /* @__PURE__ */ __name(async ({ users: users2 }) => {
-  return /* @__PURE__ */ jsxDEV(
-    "form",
-    {
-      "hx-post": "/tasks",
-      "hx-target": "#tasks-container",
-      "hx-swap": "innerHTML",
-      "hx-on--after-request": "if(event.detail.successful) this.reset()",
-      children: [
-        /* @__PURE__ */ jsxDEV("input", { type: "text", name: "title", placeholder: "Enter a task", required: true }),
-        /* @__PURE__ */ jsxDEV("select", { name: "priority", children: [
-          /* @__PURE__ */ jsxDEV("option", { value: "low", children: "Low" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "medium", selected: true, children: "Medium" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "high", children: "High" })
-        ] }),
-        /* @__PURE__ */ jsxDEV("input", { type: "number", name: "value", placeholder: "Points", min: "1" }),
-        /* @__PURE__ */ jsxDEV("select", { name: "repeat", children: [
-          /* @__PURE__ */ jsxDEV("option", { value: "none", children: "No Repeat" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "daily", children: "Daily" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "weekly", children: "Weekly" })
-        ] }),
-        /* @__PURE__ */ jsxDEV("select", { name: "assigneeId", children: [
-          /* @__PURE__ */ jsxDEV("option", { value: "", children: "Unassigned" }),
-          users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, children: user.name }))
-        ] }),
-        /* @__PURE__ */ jsxDEV("button", { type: "submit", children: "Add Task" })
-      ]
-    }
-  );
-}, "TaskInputForm");
 
 // src/utils/tasks.ts
 var PRIORITY_RANK = {
@@ -8764,6 +8813,12 @@ function canUpdateTaskStatus(user, assigneeId) {
 __name(canUpdateTaskStatus, "canUpdateTaskStatus");
 
 // src/components/TaskItem.tsx
+var priorityBadgeClass = {
+  low: "badge badge-success badge-soft",
+  medium: "badge badge-warning badge-soft",
+  high: "badge badge-error badge-soft"
+};
+var statusOptions = ["todo", "doing", "review", "done"];
 var TaskItem = /* @__PURE__ */ __name(({
   task,
   users: users2 = [],
@@ -8772,64 +8827,84 @@ var TaskItem = /* @__PURE__ */ __name(({
   const assignee = users2.find((user) => user.id === task.assigneeId);
   const canManage = canManageTask(authUser);
   const canUpdateStatus = canUpdateTaskStatus(authUser, task.assigneeId);
-  return /* @__PURE__ */ jsxDEV("li", { "data-id": task.id, children: [
-    canManage ? /* @__PURE__ */ jsxDEV(
-      "form",
-      {
-        "hx-patch": `/task/${task.id}`,
-        "hx-trigger": "change",
-        "hx-target": "closest li",
-        "hx-swap": "outerHTML",
-        "hx-sync": "this:replace",
-        children: [
-          /* @__PURE__ */ jsxDEV("input", { type: "text", name: "title", value: task.title }),
-          /* @__PURE__ */ jsxDEV("select", { name: "priority", children: [
-            /* @__PURE__ */ jsxDEV("option", { value: "low", selected: task.priority === "low", children: "Low" }),
-            /* @__PURE__ */ jsxDEV("option", { value: "medium", selected: task.priority === "medium", children: "Medium" }),
-            /* @__PURE__ */ jsxDEV("option", { value: "high", selected: task.priority === "high", children: "High" })
-          ] }),
-          /* @__PURE__ */ jsxDEV("select", { name: "assigneeId", children: [
-            /* @__PURE__ */ jsxDEV("option", { value: "", children: "Unassigned" }),
-            users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, selected: task.assigneeId === user.id, children: user.name }))
+  return /* @__PURE__ */ jsxDEV(
+    "li",
+    {
+      "data-id": task.id,
+      class: "card bg-base-100 border border-base-300 shadow-sm",
+      children: /* @__PURE__ */ jsxDEV("div", { class: "card-body gap-3 p-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { class: "flex flex-wrap items-start justify-between gap-2", children: [
+          /* @__PURE__ */ jsxDEV("h4", { class: "text-base font-semibold", children: task.title }),
+          /* @__PURE__ */ jsxDEV("div", { class: "flex flex-wrap gap-2", children: [
+            /* @__PURE__ */ jsxDEV("span", { class: priorityBadgeClass[task.priority], children: task.priority }),
+            /* @__PURE__ */ jsxDEV("span", { class: "badge badge-outline", children: task.value ? `${task.value} pts` : "No points" })
           ] })
-        ]
-      }
-    ) : /* @__PURE__ */ jsxDEV("div", { children: [
-      /* @__PURE__ */ jsxDEV("p", { children: task.title }),
-      /* @__PURE__ */ jsxDEV("p", { children: task.priority }),
-      /* @__PURE__ */ jsxDEV("p", { children: assignee?.name ?? "Unassigned" })
-    ] }),
-    canUpdateStatus ? /* @__PURE__ */ jsxDEV(
-      "select",
-      {
-        name: "status",
-        id: `task-${task.id}`,
-        "hx-patch": `/task/${task.id}/status`,
-        "hx-trigger": "change consume",
-        "hx-swap": "innerHTML",
-        "hx-target": "#tasks-container",
-        children: [
-          /* @__PURE__ */ jsxDEV("option", { value: "todo", selected: task.status === "todo", children: "todo" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "doing", selected: task.status === "doing", children: "doing" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "review", selected: task.status === "review", children: "review" }),
-          /* @__PURE__ */ jsxDEV("option", { value: "done", selected: task.status === "done", children: "done" })
-        ]
-      }
-    ) : /* @__PURE__ */ jsxDEV("p", { children: [
-      "Status: ",
-      task.status
-    ] }),
-    canManage ? /* @__PURE__ */ jsxDEV(
-      "button",
-      {
-        "hx-delete": `/task/${task.id}`,
-        "hx-target": "closest li",
-        "hx-swap": "delete",
-        "hx-trigger": "click",
-        children: "Delete"
-      }
-    ) : null
-  ] }, task.id);
+        ] }),
+        canManage ? /* @__PURE__ */ jsxDEV(
+          "form",
+          {
+            class: "grid gap-3",
+            "hx-patch": `/task/${task.id}`,
+            "hx-trigger": "change",
+            "hx-target": "closest li",
+            "hx-swap": "outerHTML",
+            "hx-sync": "this:replace",
+            children: [
+              /* @__PURE__ */ jsxDEV("input", { class: "input input-bordered w-full", type: "text", name: "title", value: task.title }),
+              /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full", name: "priority", children: [
+                /* @__PURE__ */ jsxDEV("option", { value: "low", selected: task.priority === "low", children: "Low" }),
+                /* @__PURE__ */ jsxDEV("option", { value: "medium", selected: task.priority === "medium", children: "Medium" }),
+                /* @__PURE__ */ jsxDEV("option", { value: "high", selected: task.priority === "high", children: "High" })
+              ] }),
+              /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full", name: "assigneeId", children: [
+                /* @__PURE__ */ jsxDEV("option", { value: "", children: "Unassigned" }),
+                users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, selected: task.assigneeId === user.id, children: user.name }))
+              ] })
+            ]
+          }
+        ) : /* @__PURE__ */ jsxDEV("div", { class: "space-y-1 text-sm text-base-content/70", children: [
+          /* @__PURE__ */ jsxDEV("p", { children: [
+            "Assigned to ",
+            assignee?.name ?? "Unassigned"
+          ] }),
+          /* @__PURE__ */ jsxDEV("p", { children: [
+            "Repeats: ",
+            task.repeat ?? "none"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxDEV("div", { class: "flex flex-wrap items-center gap-3", children: [
+          canUpdateStatus ? /* @__PURE__ */ jsxDEV(
+            "select",
+            {
+              class: "select select-bordered w-full max-w-xs",
+              name: "status",
+              id: `task-${task.id}`,
+              "hx-patch": `/task/${task.id}/status`,
+              "hx-trigger": "change consume",
+              "hx-swap": "innerHTML",
+              "hx-target": "#tasks-container",
+              children: statusOptions.map((status) => /* @__PURE__ */ jsxDEV("option", { value: status, selected: task.status === status, children: status }))
+            }
+          ) : /* @__PURE__ */ jsxDEV("span", { class: "badge badge-outline capitalize", children: [
+            "Status: ",
+            task.status
+          ] }),
+          canManage ? /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              class: "btn btn-ghost btn-sm text-error",
+              "hx-delete": `/task/${task.id}`,
+              "hx-target": "closest li",
+              "hx-swap": "delete",
+              "hx-trigger": "click",
+              children: "Delete"
+            }
+          ) : null
+        ] })
+      ] })
+    },
+    task.id
+  );
 }, "TaskItem");
 
 // src/components/TaskList.tsx
@@ -8839,10 +8914,29 @@ var TaskList = /* @__PURE__ */ __name(({
   authUser
 }) => {
   const grouped = groupTasksByStatus(tasks2);
-  return /* @__PURE__ */ jsxDEV(Fragment, { children: ["todo", "doing", "review", "done"].map((status) => /* @__PURE__ */ jsxDEV("div", { children: [
-    /* @__PURE__ */ jsxDEV("h3", { children: status }),
-    /* @__PURE__ */ jsxDEV("ul", { children: sortTasksByPriority(grouped[status]).map((task) => /* @__PURE__ */ jsxDEV(TaskItem, { task, users: users2, authUser })) })
-  ] }, status)) });
+  const laneStyles = {
+    todo: "badge badge-info badge-soft",
+    doing: "badge badge-warning badge-soft",
+    review: "badge badge-secondary badge-soft",
+    done: "badge badge-success badge-soft"
+  };
+  return /* @__PURE__ */ jsxDEV("div", { class: "grid gap-4 md:grid-cols-2 xl:grid-cols-4", children: ["todo", "doing", "review", "done"].map((status) => /* @__PURE__ */ jsxDEV(
+    "section",
+    {
+      class: "card bg-base-100 shadow-sm border border-base-300",
+      children: /* @__PURE__ */ jsxDEV("div", { class: "card-body gap-4 p-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { class: "flex items-center justify-between gap-2", children: [
+          /* @__PURE__ */ jsxDEV("h3", { class: "text-sm font-semibold uppercase tracking-wide text-base-content/70", children: status }),
+          /* @__PURE__ */ jsxDEV("span", { class: `${laneStyles[status]} badge-outline`, children: grouped[status].length })
+        ] }),
+        /* @__PURE__ */ jsxDEV("ul", { class: "space-y-3", children: [
+          sortTasksByPriority(grouped[status]).map((task) => /* @__PURE__ */ jsxDEV(TaskItem, { task, users: users2, authUser })),
+          grouped[status].length === 0 ? /* @__PURE__ */ jsxDEV("li", { class: "rounded-box border border-dashed border-base-300 bg-base-200/60 px-4 py-6 text-center text-sm text-base-content/60", children: "Nothing here yet" }) : null
+        ] })
+      ] })
+    },
+    status
+  )) });
 }, "TaskList");
 
 // src/utils/htmx.ts
@@ -9455,10 +9549,19 @@ __name(taskRoutes, "taskRoutes");
 
 // src/components/UserList.tsx
 var UsersList = /* @__PURE__ */ __name(({ users: users2 }) => {
-  return /* @__PURE__ */ jsxDEV("ul", { children: users2.map((user) => /* @__PURE__ */ jsxDEV("li", { children: [
-    /* @__PURE__ */ jsxDEV("p", { children: user.name }),
-    /* @__PURE__ */ jsxDEV("p", { children: user.points })
-  ] }, user.id)) });
+  return /* @__PURE__ */ jsxDEV("section", { class: "card bg-base-100 shadow-sm border border-base-300", children: /* @__PURE__ */ jsxDEV("div", { class: "card-body p-4", children: [
+    /* @__PURE__ */ jsxDEV("div", { class: "flex items-center justify-between gap-3", children: /* @__PURE__ */ jsxDEV("div", { children: /* @__PURE__ */ jsxDEV("h2", { class: "card-title text-base", children: "Points" }) }) }),
+    /* @__PURE__ */ jsxDEV("ul", { class: "divide-y divide-base-300", children: users2.filter((u) => u.type === "child").map((user) => /* @__PURE__ */ jsxDEV("li", { class: "flex items-center justify-between gap-3 py-3", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("p", { class: "font-medium", children: user.name }),
+        /* @__PURE__ */ jsxDEV("p", { class: "text-sm capitalize text-base-content/60", children: user.type })
+      ] }),
+      /* @__PURE__ */ jsxDEV("span", { class: "badge badge-outline", children: [
+        user.points,
+        " pts"
+      ] })
+    ] }, user.id)) })
+  ] }) });
 }, "UsersList");
 
 // src/routes/users.tsx
@@ -9523,29 +9626,28 @@ app.get("/", async (c) => {
   const db = getDB(c.env);
   const usersRes = await db.select().from(users);
   return c.html(
-    /* @__PURE__ */ jsxDEV(Layout, { activeUser: authUser, users: usersRes, children: [
-      canManageTask(authUser) ? /* @__PURE__ */ jsxDEV(TaskInputForm, { users: usersRes }) : null,
-      /* @__PURE__ */ jsxDEV("main", { children: [
-        /* @__PURE__ */ jsxDEV(
-          "section",
-          {
-            id: "tasks-container",
-            "hx-get": "/tasks",
-            "hx-trigger": "load, refreshTasks from:body, every 30s",
-            "hx-swap": "innerHTML"
-          }
-        ),
-        /* @__PURE__ */ jsxDEV(
-          "aside",
-          {
-            id: "users-container",
-            "hx-get": "/users",
-            "hx-trigger": "load, refreshUsers from:body, every 60s",
-            "hx-swap": "innerHTML"
-          }
-        )
-      ] })
-    ] })
+    /* @__PURE__ */ jsxDEV(Layout, { activeUser: authUser, users: usersRes, children: /* @__PURE__ */ jsxDEV("main", { class: "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]", children: [
+      /* @__PURE__ */ jsxDEV(
+        "section",
+        {
+          class: "min-w-0",
+          id: "tasks-container",
+          "hx-get": "/tasks",
+          "hx-trigger": "load, refreshTasks from:body, every 30s",
+          "hx-swap": "innerHTML"
+        }
+      ),
+      /* @__PURE__ */ jsxDEV(
+        "aside",
+        {
+          class: "min-w-0",
+          id: "users-container",
+          "hx-get": "/users",
+          "hx-trigger": "load, refreshUsers from:body, every 60s",
+          "hx-swap": "innerHTML"
+        }
+      )
+    ] }) })
   );
 });
 taskRoutes(app);
@@ -9612,7 +9714,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-OgWPxN/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-RpRHBD/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -9644,7 +9746,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-OgWPxN/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-RpRHBD/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

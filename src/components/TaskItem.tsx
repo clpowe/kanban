@@ -2,6 +2,14 @@ import type { FC } from 'hono/jsx'
 import type { Task, User } from '../types'
 import { canManageTask, canUpdateTaskStatus } from '../auth/authorization'
 
+const priorityBadgeClass: Record<Task['priority'], string> = {
+  low: 'badge badge-success badge-soft',
+  medium: 'badge badge-warning badge-soft',
+  high: 'badge badge-error badge-soft',
+}
+
+const statusOptions = ['todo', 'doing', 'review', 'done'] as const
+
 export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
 	task,
 	users = [],
@@ -12,17 +20,32 @@ export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
 	const canUpdateStatus = canUpdateTaskStatus(authUser, task.assigneeId)
 
 	return (
-		<li key={task.id} data-id={task.id}>
+		<li
+      key={task.id}
+      data-id={task.id}
+      class='card bg-base-100 border border-base-300 shadow-sm'
+    >
+      <div class='card-body gap-3 p-4'>
+        <div class='flex flex-wrap items-start justify-between gap-2'>
+          <h4 class='text-base font-semibold'>{task.title}</h4>
+          <div class='flex flex-wrap gap-2'>
+            <span class={priorityBadgeClass[task.priority]}>{task.priority}</span>
+            <span class='badge badge-outline'>
+              {task.value ? `${task.value} pts` : 'No points'}
+            </span>
+          </div>
+        </div>
 			{canManage ? (
 				<form
+          class='grid gap-3'
 					hx-patch={`/task/${task.id}`}
 					hx-trigger='change'
 					hx-target='closest li'
 					hx-swap='outerHTML'
 					hx-sync='this:replace'
 				>
-					<input type='text' name='title' value={task.title} />
-					<select name='priority'>
+					<input class='input input-bordered w-full' type='text' name='title' value={task.title} />
+					<select class='select select-bordered w-full' name='priority'>
 						<option value='low' selected={task.priority === 'low'}>
 							Low
 						</option>
@@ -34,7 +57,7 @@ export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
 						</option>
 					</select>
 
-					<select name='assigneeId'>
+					<select class='select select-bordered w-full' name='assigneeId'>
 						<option value=''>Unassigned</option>
 						{users.map((user) => (
 							<option value={user.id} selected={task.assigneeId === user.id}>
@@ -44,48 +67,45 @@ export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
 					</select>
 				</form>
 			) : (
-				<div>
-					<p>{task.title}</p>
-					<p>{task.priority}</p>
-					<p>{assignee?.name ?? 'Unassigned'}</p>
+				<div class='space-y-1 text-sm text-base-content/70'>
+					<p>Assigned to {assignee?.name ?? 'Unassigned'}</p>
+          <p>Repeats: {task.repeat ?? 'none'}</p>
 				</div>
 			)}
 
-			{canUpdateStatus ? (
-				<select
-					name='status'
-					id={`task-${task.id}`}
-					hx-patch={`/task/${task.id}/status`}
-					hx-trigger='change consume'
-					hx-swap='innerHTML'
-					hx-target='#tasks-container'
-				>
-					<option value='todo' selected={task.status === 'todo'}>
-						todo
-					</option>
-					<option value='doing' selected={task.status === 'doing'}>
-						doing
-					</option>
-					<option value='review' selected={task.status === 'review'}>
-						review
-					</option>
-					<option value='done' selected={task.status === 'done'}>
-						done
-					</option>
-				</select>
-			) : (
-				<p>Status: {task.status}</p>
-			)}
-			{canManage ? (
-				<button
-					hx-delete={`/task/${task.id}`}
-					hx-target='closest li'
-					hx-swap='delete'
-					hx-trigger='click'
-				>
-					Delete
-				</button>
-			) : null}
+        <div class='flex flex-wrap items-center gap-3'>
+          {canUpdateStatus ? (
+            <select
+              class='select select-bordered w-full max-w-xs'
+              name='status'
+              id={`task-${task.id}`}
+              hx-patch={`/task/${task.id}/status`}
+              hx-trigger='change consume'
+              hx-swap='innerHTML'
+              hx-target='#tasks-container'
+            >
+              {statusOptions.map((status) => (
+                <option value={status} selected={task.status === status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span class='badge badge-outline capitalize'>Status: {task.status}</span>
+          )}
+          {canManage ? (
+            <button
+              class='btn btn-ghost btn-sm text-error'
+              hx-delete={`/task/${task.id}`}
+              hx-target='closest li'
+              hx-swap='delete'
+              hx-trigger='click'
+            >
+              Delete
+            </button>
+          ) : null}
+        </div>
+      </div>
 		</li>
 	)
 }

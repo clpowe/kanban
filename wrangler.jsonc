@@ -3,6 +3,9 @@
   "name": "kanban",
   "compatibility_date": "2024-03-11",
   "main": "./src/index.tsx",
+  "assets": {
+    "directory": "./public"
+  },
   "d1_databases": [
     {
       "binding": "family_kanban",

@@ -2,11 +2,9 @@ import { Hono } from 'hono'
 import { users } from './db/schema.ts'
 import { type Env, getDB } from './db/client.ts'
 import { Layout } from './components/Layout.tsx'
-import { TaskInputForm } from './components/TaskInputForm.tsx'
 import { taskRoutes } from './routes/tasks.tsx'
 import { userRoutes } from './routes/users.tsx'
 import { sessionRoutes } from './routes/session.tsx'
-import { canManageTask } from './auth/authorization.ts'
 import { authMiddleware, requireAuthenticatedUser } from './auth/middleware.ts'
 import { resetDailyTasks } from './cron.ts'
 
@@ -21,15 +19,16 @@ app.get('/', async (c) => {
 
   return c.html(
     <Layout activeUser={authUser} users={usersRes}>
-      {canManageTask(authUser) ? <TaskInputForm users={usersRes} /> : null}
-      <main>
+      <main class='grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]'>
         <section
+          class='min-w-0'
           id='tasks-container'
           hx-get='/tasks'
           hx-trigger='load, refreshTasks from:body, every 30s'
           hx-swap='innerHTML'
         ></section>
         <aside
+          class='min-w-0'
           id='users-container'
           hx-get='/users'
           hx-trigger='load, refreshUsers from:body, every 60s'
