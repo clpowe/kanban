@@ -9,6 +9,7 @@ export const UsersList: FC<{ users: User[] }> = ({ users }) => {
   return (
     <section class='card bg-base-100 shadow-sm border border-base-300'>
       <div class='card-body p-4'>
+
         <div class='flex items-center justify-between gap-3'>
           <div>
             <h2 class='card-title text-base'>Family Score</h2>
@@ -16,6 +17,9 @@ export const UsersList: FC<{ users: User[] }> = ({ users }) => {
               Track who can cash in rewards next. Top balance: {topBalance} pts
             </p>
           </div>
+          <label for='score-drawer' class='btn btn-ghost btn-sm btn-circle'>
+            ✕
+          </label>
         </div>
         <ul class='divide-y divide-base-300'>
           {users.filter(u => u.type === 'child').map((user) => (

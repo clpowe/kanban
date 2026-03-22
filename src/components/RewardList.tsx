@@ -29,9 +29,14 @@ export const RewardList: FC<{
       {isParent && showCreateForm ? <RewardInputForm /> : null}
       <section class='card border border-base-300 bg-base-100 shadow-sm'>
         <div class='card-body gap-4 p-4'>
-          <div>
-            <h2 class='card-title text-base'>Rewards</h2>
-            <p class='text-sm text-base-content/60'>Cash in points for family rewards.</p>
+          <div class="flex justify-between">
+            <div>
+              <h2 class='card-title text-base'>Rewards</h2>
+              <p class='text-sm text-base-content/60'>Cash in points for family rewards.</p>
+            </div>
+            <label for='score-drawer' class='btn btn-ghost btn-sm btn-circle'>
+              ✕
+            </label>
           </div>
           <ul class='space-y-3'>
             {items.map((reward) => {
@@ -41,7 +46,7 @@ export const RewardList: FC<{
               return (
                 <li
                   key={reward.id}
-                  class='flex items-center justify-between gap-3 rounded-box border border-base-300 px-3 py-3'
+                  class='flex items-center justify-between gap-3 p-3 rounded-box border border-base-300 '
                 >
                   <div>
                     <p class='font-medium'>{reward.title}</p>

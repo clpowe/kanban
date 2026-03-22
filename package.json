@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "dev:css": "tailwindcss -i ./src/styles/app.css -o ./public/app.css --watch",
-    "build:css": "tailwindcss -i ./src/styles/app.css -o ./public/app.css --minify",
+    "dev:css": "npx @tailwindcss/cli -i ./src/styles/app.css -o ./public/app.css --watch",
+    "build:css": "npx @tailwindcss/cli -i ./src/styles/app.css -o ./public/app.css --minify",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {

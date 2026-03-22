@@ -20,7 +20,7 @@ app.get('/', async (c) => {
 
   return c.html(
     <Layout activeUser={authUser} users={usersRes}>
-      <main class='grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]'>
+      <main class='grid items-start gap-6 grid-cols-1 '>
         <section
           class='min-w-0'
           id='tasks-container'
@@ -28,20 +28,6 @@ app.get('/', async (c) => {
           hx-trigger='load, refreshTasks from:body, every 30s'
           hx-swap='innerHTML'
         ></section>
-        <aside class='min-w-0 space-y-6'>
-          <section
-            id='users-container'
-            hx-get='/users'
-            hx-trigger='load, refreshUsers from:body, every 60s'
-            hx-swap='innerHTML'
-          ></section>
-          <section
-            id='rewards-container'
-            hx-get='/rewards'
-            hx-trigger='load, refreshRewards from:body'
-            hx-swap='innerHTML'
-          ></section>
-        </aside>
       </main>
     </Layout>
   )
