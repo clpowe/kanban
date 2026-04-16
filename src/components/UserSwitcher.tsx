@@ -5,10 +5,12 @@ export const UserSwitcher: FC<{
   activeUser: User
   users: User[]
   canCreateTask?: boolean
+  currentPage?: 'board' | 'archived'
 }> = ({
   activeUser,
   users,
   canCreateTask,
+  currentPage = 'board'
 }) => {
     return (
       <header class='navbar rounded-box border border-base-300 bg-base-100 px-4 shadow-sm md:px-6'>
@@ -25,14 +27,28 @@ export const UserSwitcher: FC<{
           </div>
         </div>
         <div class='flex w-full max-w-md flex-col gap-3 md:items-end'>
-          <label for='score-drawer' class='btn btn-primary btn-sm self-start md:self-end'>
-            see score
-          </label>
-          {canCreateTask ? (
-            <label for='task-drawer' class='btn btn-primary btn-sm self-start md:self-end'>
-              Add Task
+          <div class="flex flex-wrap gap-2">
+            <a
+              href='/'
+              class={currentPage === 'board' ? 'btn btn-neutral btn-sm' : 'btn btn-ghost btn-sm'}
+            >
+              Board
+            </a>
+            <a
+              href='/archived'
+              class={currentPage === 'archived' ? 'btn btn-neutral btn-sm' : 'btn btn-ghost btn-sm'}
+            >
+              Archive
+            </a>
+            <label for='score-drawer' class='btn btn-primary btn-sm self-start md:self-end'>
+              see score
             </label>
-          ) : null}
+            {canCreateTask ? (
+              <label for='task-drawer' class='btn btn-accent btn-sm self-start md:self-end'>
+                Add Task
+              </label>
+            ) : null}
+          </div>
           <form
             hx-patch='/session/active-user'
             hx-trigger='change'

@@ -1,6 +1,7 @@
 import type { FC } from 'hono/jsx'
 import type { Task, User } from '../types'
 import { canManageTask, canUpdateTaskStatus } from '../auth/authorization'
+import { activeTaskStatuses, allTaskStatuses } from '../utils/task-status'
 
 const priorityBadgeClass: Record<Task['priority'], string> = {
   low: 'badge badge-success badge-soft',
@@ -8,16 +9,23 @@ const priorityBadgeClass: Record<Task['priority'], string> = {
   high: 'badge badge-error badge-soft',
 }
 
-const statusOptions = ['todo', 'doing', 'review', 'done'] as const
-
-export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
+export const TaskItem: FC<{
+  task: Task
+  users?: User[]
+  authUser: User
+  context?: 'board' | 'archive'
+  archiveFilterAssigneeId?: number | null
+}> = ({
   task,
   users = [],
-  authUser
+  authUser,
+  context = 'board',
+  archiveFilterAssigneeId = null
 }) => {
   const assignee = users.find((user) => user.id === task.assigneeId)
   const canManage = canManageTask(authUser)
-  const canUpdateStatus = canUpdateTaskStatus(authUser, task.assigneeId)
+  const canUpdateStatus =
+    context === 'board' && canUpdateTaskStatus(authUser, task.assigneeId)
 
   return (
     <li
@@ -31,10 +39,20 @@ export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
             class='grid gap-3'
             hx-patch={`/task/${task.id}`}
             hx-trigger='change'
-            hx-target='closest li'
-            hx-swap='outerHTML'
+            hx-target={context === 'archive' ? '#archived-tasks-container' : 'closest li'}
+            hx-swap={context === 'archive' ? 'innerHTML' : 'outerHTML'}
             hx-sync='this:replace'
           >
+            {context === 'archive' ? (
+              <>
+                <input type='hidden' name='view' value='archive' />
+                <input
+                  type='hidden'
+                  name='assigneeIdFilter'
+                  value={archiveFilterAssigneeId ?? 'all'}
+                />
+              </>
+            ) : null}
             <h4>
               <input class='input input-bordered w-full input-ghost input-sm' type='text' name='title' value={task.title} />
             </h4>
@@ -58,6 +76,15 @@ export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
                 </option>
               ))}
             </select>
+            {context === 'archive' ? (
+              <select class='select select-bordered w-full select-xs' name='status'>
+                {allTaskStatuses.map((status) => (
+                  <option value={status} selected={task.status === status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </form>
         ) : (
           <div class='space-y-1 text-sm text-base-content/70'>
@@ -68,7 +95,6 @@ export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
             <p>Repeats: {task.repeat ?? 'none'}</p>
           </div>
         )}
-
         <div class='flex flex-wrap items-center gap-3'>
           <div class='flex flex-wrap items-start justify-between gap-2'>
             <div class='flex flex-wrap gap-2'>
@@ -88,7 +114,7 @@ export const TaskItem: FC<{ task: Task; users?: User[]; authUser: User }> = ({
               hx-swap='innerHTML'
               hx-target='#tasks-container'
             >
-              {statusOptions.map((status) => (
+              {activeTaskStatuses.map((status) => (
                 <option value={status} selected={task.status === status}>
                   {status}
                 </option>

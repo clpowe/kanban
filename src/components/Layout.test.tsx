@@ -57,6 +57,7 @@ describe('Layout', () => {
     expect(html).toContain(
       'class="navbar rounded-box border border-base-300 bg-base-100 px-4 shadow-sm md:px-6"'
     )
+    expect(html).toContain('href="/archived"')
   })
 
   test('renders a right-side task drawer with a header trigger', async () => {
@@ -99,5 +100,15 @@ describe('Layout', () => {
     expect(html).toContain('hx-post="/rewards"')
     expect(html).toContain('name="title"')
     expect(html).toContain('name="cost"')
+  })
+
+  test('highlights the active archive navigation tab', async () => {
+    const html = await renderToString(
+      <Layout activeUser={parentUser} users={[parentUser, childUser]} currentPage='archived'>
+        <main>content</main>
+      </Layout>
+    )
+
+    expect(html).toContain('href="/archived" class="btn btn-neutral btn-sm"')
   })
 })

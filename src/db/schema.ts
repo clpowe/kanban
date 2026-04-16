@@ -1,6 +1,7 @@
 // drizzle/schema.ts
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
+import { allTaskStatuses } from '../utils/task-status'
 
 // USERS
 export const users = sqliteTable('users', {
@@ -24,7 +25,7 @@ export const tasks = sqliteTable('tasks', {
   value: integer('value').notNull(),
 
   status: text('status', {
-    enum: ['todo', 'doing', 'review', 'done']
+    enum: allTaskStatuses
   })
     .notNull()
     .default('todo'),

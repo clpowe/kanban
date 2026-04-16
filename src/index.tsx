@@ -3,11 +3,12 @@ import { users } from './db/schema.ts'
 import { type Env, getDB } from './db/client.ts'
 import { Layout } from './components/Layout.tsx'
 import { taskRoutes } from './routes/tasks.tsx'
+import { archivedRoutes } from './routes/archived.tsx'
 import { rewardRoutes } from './routes/rewards.tsx'
 import { userRoutes } from './routes/users.tsx'
 import { sessionRoutes } from './routes/session.tsx'
 import { authMiddleware, requireAuthenticatedUser } from './auth/middleware.ts'
-import { resetDailyTasks } from './cron.ts'
+import { archiveCompletedTasks, resetDailyTasks } from './cron.ts'
 
 const app = new Hono<Env>()
 
@@ -19,7 +20,7 @@ app.get('/', async (c) => {
   const usersRes = await db.select().from(users)
 
   return c.html(
-    <Layout activeUser={authUser} users={usersRes}>
+    <Layout activeUser={authUser} users={usersRes} currentPage='board'>
       <main class='grid items-start gap-6 grid-cols-1 '>
         <section
           class='min-w-0'
@@ -34,27 +35,43 @@ app.get('/', async (c) => {
 })
 
 taskRoutes(app)
+archivedRoutes(app)
 rewardRoutes(app)
 userRoutes(app)
 sessionRoutes(app)
+
+type ScheduledDeps = {
+  resetDailyTasks: typeof resetDailyTasks
+  archiveCompletedTasks: typeof archiveCompletedTasks
+}
+
+const scheduledDeps: ScheduledDeps = {
+  resetDailyTasks,
+  archiveCompletedTasks
+}
+
+export const handleScheduled = async (
+  controller: ScheduledController,
+  env: Env['Bindings'],
+  deps: ScheduledDeps = scheduledDeps
+) => {
+  console.log('[CRON] triggered', controller.cron)
+
+  if (controller.cron === '0 0 * * *') {
+    await deps.resetDailyTasks({ Bindings: env } as Env)
+  }
+
+  if (controller.cron === '59 23 * * 6') {
+    await deps.archiveCompletedTasks({ Bindings: env } as Env)
+  }
+}
 
 export default {
   fetch: app.fetch,
 
   async scheduled(controller: ScheduledController, env: Env) {
     try {
-      console.log('[CRON] triggered')
-
-      const now = new Date()
-      const tampaHour = new Date(
-        now.toLocaleString('en-US', { timeZone: 'America/New_York' })
-      ).getHours()
-
-      console.log('[CRON] tampaHour:', tampaHour)
-
-      if (tampaHour === 0) {
-        await resetDailyTasks(env)
-      }
+      await handleScheduled(controller, env.Bindings)
     } catch (err) {
       console.error('[CRON ERROR]', err)
       throw err

@@ -44,14 +44,6 @@ export const TaskInputForm: FC<{ users: User[]; inDrawer?: boolean }> = ({
 						<option value='high'>High</option>
 					</select>
 
-					<input
-						class='input input-bordered w-full'
-						type='number'
-						name='value'
-						placeholder='Points'
-						min='1'
-					/>
-
 					<select class='select select-bordered w-full' name='repeat'>
 						<option value='none'>No Repeat</option>
 						<option value='daily'>Daily</option>

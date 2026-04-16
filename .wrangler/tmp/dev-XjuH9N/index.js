@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// .wrangler/tmp/bundle-dwSTaQ/checked-fetch.js
+// .wrangler/tmp/bundle-5lWhDD/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -7811,6 +7811,12 @@ var NoopLogger = class {
   }
 };
 
+// src/utils/task-status.ts
+var activeTaskStatuses = ["todo", "doing", "review", "done"];
+var allTaskStatuses = [...activeTaskStatuses, "archived"];
+var isTaskStatus = /* @__PURE__ */ __name((value) => allTaskStatuses.includes(value), "isTaskStatus");
+var isActiveTaskStatus = /* @__PURE__ */ __name((value) => activeTaskStatuses.includes(value), "isActiveTaskStatus");
+
 // src/db/schema.ts
 var users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -7828,7 +7834,7 @@ var tasks = sqliteTable("tasks", {
   }).notNull(),
   value: integer("value").notNull(),
   status: text("status", {
-    enum: ["todo", "doing", "review", "done"]
+    enum: allTaskStatuses
   }).notNull().default("todo"),
   repeat: text("repeat", {
     enum: ["daily", "weekly", "none"]
@@ -8617,6 +8623,17 @@ var jsxFn = /* @__PURE__ */ __name((tag, props, children) => {
     return new JSXNode(tag, props, children);
   }
 }, "jsxFn");
+var Fragment = /* @__PURE__ */ __name(({
+  children
+}) => {
+  return new JSXFragmentNode(
+    "",
+    {
+      children
+    },
+    Array.isArray(children) ? children : children ? [children] : []
+  );
+}, "Fragment");
 
 // node_modules/hono/dist/jsx/jsx-dev-runtime.js
 function jsxDEV(tag, props, key) {
@@ -8636,7 +8653,8 @@ __name(jsxDEV, "jsxDEV");
 var UserSwitcher = /* @__PURE__ */ __name(({
   activeUser,
   users: users2,
-  canCreateTask
+  canCreateTask,
+  currentPage = "board"
 }) => {
   return /* @__PURE__ */ jsxDEV("header", { class: "navbar rounded-box border border-base-300 bg-base-100 px-4 shadow-sm md:px-6", children: [
     /* @__PURE__ */ jsxDEV("div", { class: "flex-1", children: /* @__PURE__ */ jsxDEV("div", { children: [
@@ -8651,8 +8669,26 @@ var UserSwitcher = /* @__PURE__ */ __name(({
       ] })
     ] }) }),
     /* @__PURE__ */ jsxDEV("div", { class: "flex w-full max-w-md flex-col gap-3 md:items-end", children: [
-      /* @__PURE__ */ jsxDEV("label", { for: "score-drawer", class: "btn btn-primary btn-sm self-start md:self-end", children: "see score" }),
-      canCreateTask ? /* @__PURE__ */ jsxDEV("label", { for: "task-drawer", class: "btn btn-primary btn-sm self-start md:self-end", children: "Add Task" }) : null,
+      /* @__PURE__ */ jsxDEV("div", { class: "flex flex-wrap gap-2", children: [
+        /* @__PURE__ */ jsxDEV(
+          "a",
+          {
+            href: "/",
+            class: currentPage === "board" ? "btn btn-neutral btn-sm" : "btn btn-ghost btn-sm",
+            children: "Board"
+          }
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "a",
+          {
+            href: "/archived",
+            class: currentPage === "archived" ? "btn btn-neutral btn-sm" : "btn btn-ghost btn-sm",
+            children: "Archive"
+          }
+        ),
+        /* @__PURE__ */ jsxDEV("label", { for: "score-drawer", class: "btn btn-primary btn-sm self-start md:self-end", children: "see score" }),
+        canCreateTask ? /* @__PURE__ */ jsxDEV("label", { for: "task-drawer", class: "btn btn-accent btn-sm self-start md:self-end", children: "Add Task" }) : null
+      ] }),
       /* @__PURE__ */ jsxDEV(
         "form",
         {
@@ -8756,16 +8792,6 @@ var TaskInputForm = /* @__PURE__ */ __name(({
             /* @__PURE__ */ jsxDEV("option", { value: "medium", selected: true, children: "Medium" }),
             /* @__PURE__ */ jsxDEV("option", { value: "high", children: "High" })
           ] }),
-          /* @__PURE__ */ jsxDEV(
-            "input",
-            {
-              class: "input input-bordered w-full",
-              type: "number",
-              name: "value",
-              placeholder: "Points",
-              min: "1"
-            }
-          ),
           /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full", name: "repeat", children: [
             /* @__PURE__ */ jsxDEV("option", { value: "none", children: "No Repeat" }),
             /* @__PURE__ */ jsxDEV("option", { value: "daily", children: "Daily" }),
@@ -8809,7 +8835,8 @@ var Layout = /* @__PURE__ */ __name((props) => {
             {
               activeUser: props.activeUser,
               users: props.users,
-              canCreateTask
+              canCreateTask,
+              currentPage: props.currentPage
             }
           ),
           /* @__PURE__ */ jsxDEV("div", { class: "card bg-base-100 shadow-sm border border-base-300 p-4", children: [
@@ -8866,12 +8893,9 @@ var groupTasksByStatus = /* @__PURE__ */ __name((taskList) => taskList.reduce(
     bucket.push(task);
     return grouped;
   },
-  {
-    todo: [],
-    doing: [],
-    review: [],
-    done: []
-  }
+  Object.fromEntries(
+    activeTaskStatuses.map((status) => [status, []])
+  )
 ), "groupTasksByStatus");
 var sortTasksByPriority = /* @__PURE__ */ __name((taskList) => [...taskList].sort((left, right) => {
   const leftRank = PRIORITY_RANK[left.priority] ?? Number.MAX_SAFE_INTEGER;
@@ -8902,15 +8926,16 @@ var priorityBadgeClass = {
   medium: "badge badge-warning badge-soft",
   high: "badge badge-error badge-soft"
 };
-var statusOptions = ["todo", "doing", "review", "done"];
 var TaskItem = /* @__PURE__ */ __name(({
   task,
   users: users2 = [],
-  authUser
+  authUser,
+  context = "board",
+  archiveFilterAssigneeId = null
 }) => {
   const assignee = users2.find((user) => user.id === task.assigneeId);
   const canManage = canManageTask(authUser);
-  const canUpdateStatus = canUpdateTaskStatus(authUser, task.assigneeId);
+  const canUpdateStatus = context === "board" && canUpdateTaskStatus(authUser, task.assigneeId);
   return /* @__PURE__ */ jsxDEV(
     "li",
     {
@@ -8923,10 +8948,21 @@ var TaskItem = /* @__PURE__ */ __name(({
             class: "grid gap-3",
             "hx-patch": `/task/${task.id}`,
             "hx-trigger": "change",
-            "hx-target": "closest li",
-            "hx-swap": "outerHTML",
+            "hx-target": context === "archive" ? "#archived-tasks-container" : "closest li",
+            "hx-swap": context === "archive" ? "innerHTML" : "outerHTML",
             "hx-sync": "this:replace",
             children: [
+              context === "archive" ? /* @__PURE__ */ jsxDEV(Fragment, { children: [
+                /* @__PURE__ */ jsxDEV("input", { type: "hidden", name: "view", value: "archive" }),
+                /* @__PURE__ */ jsxDEV(
+                  "input",
+                  {
+                    type: "hidden",
+                    name: "assigneeIdFilter",
+                    value: archiveFilterAssigneeId ?? "all"
+                  }
+                )
+              ] }) : null,
               /* @__PURE__ */ jsxDEV("h4", { children: /* @__PURE__ */ jsxDEV("input", { class: "input input-bordered w-full input-ghost input-sm", type: "text", name: "title", value: task.title }) }),
               /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full select-xs", name: "priority", children: [
                 /* @__PURE__ */ jsxDEV("option", { value: "low", selected: task.priority === "low", children: "Low" }),
@@ -8936,7 +8972,8 @@ var TaskItem = /* @__PURE__ */ __name(({
               /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full select-xs", name: "assigneeId", children: [
                 /* @__PURE__ */ jsxDEV("option", { value: "", children: "Unassigned" }),
                 users2.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, selected: task.assigneeId === user.id, children: user.name }))
-              ] })
+              ] }),
+              context === "archive" ? /* @__PURE__ */ jsxDEV("select", { class: "select select-bordered w-full select-xs", name: "status", children: allTaskStatuses.map((status) => /* @__PURE__ */ jsxDEV("option", { value: status, selected: task.status === status, children: status })) }) : null
             ]
           }
         ) : /* @__PURE__ */ jsxDEV("div", { class: "space-y-1 text-sm text-base-content/70", children: [
@@ -8965,7 +9002,7 @@ var TaskItem = /* @__PURE__ */ __name(({
               "hx-trigger": "change consume",
               "hx-swap": "innerHTML",
               "hx-target": "#tasks-container",
-              children: statusOptions.map((status) => /* @__PURE__ */ jsxDEV("option", { value: status, selected: task.status === status, children: status }))
+              children: activeTaskStatuses.map((status) => /* @__PURE__ */ jsxDEV("option", { value: status, selected: task.status === status, children: status }))
             }
           ) : /* @__PURE__ */ jsxDEV("span", { class: "badge badge-outline capitalize", children: [
             "Status: ",
@@ -8989,6 +9026,67 @@ var TaskItem = /* @__PURE__ */ __name(({
   );
 }, "TaskItem");
 
+// src/components/ArchivedTaskList.tsx
+var ArchivedTaskList = /* @__PURE__ */ __name(({ tasks: tasks2, users: users2, authUser, selectedAssigneeId = null }) => {
+  return /* @__PURE__ */ jsxDEV(
+    "section",
+    {
+      id: "archived-tasks-container",
+      class: "card border border-base-300 bg-base-100 shadow-sm",
+      children: /* @__PURE__ */ jsxDEV("div", { class: "card-body gap-4 p-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { class: "flex flex-col gap-3 md:flex-row md:items-end md:justify-between", children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("h2", { class: "card-title", children: "Archived Tasks" }),
+            /* @__PURE__ */ jsxDEV("p", { class: "text-sm text-base-content/70", children: "Weekly completed tasks live here until a parent restores them." })
+          ] }),
+          /* @__PURE__ */ jsxDEV(
+            "form",
+            {
+              "hx-get": "/archived/tasks",
+              "hx-target": "#archived-tasks-container",
+              "hx-swap": "innerHTML",
+              "hx-trigger": "change",
+              class: "flex w-full max-w-sm flex-col gap-2",
+              children: [
+                /* @__PURE__ */ jsxDEV("label", { for: "archived-assignee-filter", class: "label px-1 pb-0", children: /* @__PURE__ */ jsxDEV("span", { class: "label-text text-xs uppercase tracking-wide text-base-content/60", children: "Filter by family member" }) }),
+                /* @__PURE__ */ jsxDEV(
+                  "select",
+                  {
+                    id: "archived-assignee-filter",
+                    name: "assigneeId",
+                    class: "select select-bordered w-full bg-base-100",
+                    children: [
+                      /* @__PURE__ */ jsxDEV("option", { value: "all", selected: selectedAssigneeId === null, children: "All family members" }),
+                      users2.map((user) => /* @__PURE__ */ jsxDEV(
+                        "option",
+                        {
+                          value: user.id,
+                          selected: selectedAssigneeId === user.id,
+                          children: user.name
+                        }
+                      ))
+                    ]
+                  }
+                )
+              ]
+            }
+          )
+        ] }),
+        tasks2.length === 0 ? /* @__PURE__ */ jsxDEV("div", { class: "rounded-box border border-dashed border-base-300 bg-base-200/60 px-4 py-8 text-center text-sm text-base-content/60", children: "No archived tasks match this filter." }) : /* @__PURE__ */ jsxDEV("ul", { class: "space-y-3", children: sortTasksByPriority(tasks2).map((task) => /* @__PURE__ */ jsxDEV(
+          TaskItem,
+          {
+            task,
+            users: users2,
+            authUser,
+            context: "archive",
+            archiveFilterAssigneeId: selectedAssigneeId
+          }
+        )) })
+      ] })
+    }
+  );
+}, "ArchivedTaskList");
+
 // src/components/TaskList.tsx
 var TaskList = /* @__PURE__ */ __name(({
   tasks: tasks2,
@@ -9002,7 +9100,7 @@ var TaskList = /* @__PURE__ */ __name(({
     review: "badge badge-secondary badge-soft",
     done: "badge badge-success badge-soft"
   };
-  return /* @__PURE__ */ jsxDEV("div", { class: "grid gap-4 md:grid-cols-2 xl:grid-cols-4", children: ["todo", "doing", "review", "done"].map((status) => /* @__PURE__ */ jsxDEV(
+  return /* @__PURE__ */ jsxDEV("div", { class: "grid gap-4 md:grid-cols-2 xl:grid-cols-4", children: activeTaskStatuses.map((status) => /* @__PURE__ */ jsxDEV(
     "section",
     {
       class: "card bg-base-100 shadow-sm border border-base-300",
@@ -9526,17 +9624,29 @@ async function requireChildOwnTaskAccess(c, taskId) {
 __name(requireChildOwnTaskAccess, "requireChildOwnTaskAccess");
 
 // src/services/task.service.ts
-var getAllTasks = /* @__PURE__ */ __name(async (db) => {
-  return db.select().from(tasks);
-}, "getAllTasks");
+var priorityPoints = {
+  high: 10,
+  medium: 5,
+  low: 1
+};
+var getActiveTasks = /* @__PURE__ */ __name(async (db) => {
+  return db.select().from(tasks).where(ne(tasks.status, "archived"));
+}, "getActiveTasks");
+var getArchivedTasks = /* @__PURE__ */ __name(async (db, assigneeId) => {
+  if (assigneeId) {
+    return db.select().from(tasks).where(and(eq(tasks.status, "archived"), eq(tasks.assigneeId, assigneeId)));
+  }
+  return db.select().from(tasks).where(eq(tasks.status, "archived"));
+}, "getArchivedTasks");
 var getTaskById = /* @__PURE__ */ __name(async (db, id) => {
   return db.select().from(tasks).where(eq(tasks.id, id)).get();
 }, "getTaskById");
 var createTask = /* @__PURE__ */ __name(async (db, data) => {
+  const priority = data.priority;
   return await db.insert(tasks).values({
     title: data.title,
-    priority: data.priority,
-    value: Number(data.value),
+    priority,
+    value: priorityPoints[priority],
     repeat: data.repeat,
     status: "todo",
     assigneeId: data.assigneeId ? Number(data.assigneeId) : null
@@ -9559,7 +9669,7 @@ var updateTaskStatus = /* @__PURE__ */ __name(async (db, id, status) => {
       points: sql`${users.points} + ${value}`
     }).where(eq(users.id, assigneeId));
   }
-  if (prevStatus === "done" && nextStatus !== "done") {
+  if (prevStatus === "done" && nextStatus !== "done" && nextStatus !== "archived") {
     await db.update(users).set({
       points: sql`${users.points} - ${value}`
     }).where(eq(users.id, assigneeId));
@@ -9575,7 +9685,7 @@ function taskRoutes(app2) {
     try {
       const authUser = requireAuthenticatedUser(c);
       const db = getDB(c.env);
-      const result = await getAllTasks(db);
+      const result = await getActiveTasks(db);
       const users2 = await getAllUsers(db);
       return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: users2, authUser }));
     } catch (err) {
@@ -9589,7 +9699,7 @@ function taskRoutes(app2) {
     const body = await c.req.parseBody();
     await createTask(db, body);
     const users2 = await getAllUsers(db);
-    const result = await getAllTasks(db);
+    const result = await getActiveTasks(db);
     const authUser = requireAuthenticatedUser(c);
     return c.html(/* @__PURE__ */ jsxDEV(TaskList, { tasks: result, users: users2, authUser }));
   });
@@ -9598,8 +9708,12 @@ function taskRoutes(app2) {
     await requireChildOwnTaskAccess(c, id);
     const db = getDB(c.env);
     const body = await c.req.parseBody();
-    await updateTaskStatus(db, id, body.status);
-    const result = await getAllTasks(db);
+    const status = body.status;
+    if (!isActiveTaskStatus(status)) {
+      return c.text("Invalid status", 400);
+    }
+    await updateTaskStatus(db, id, status);
+    const result = await getActiveTasks(db);
     const users2 = await getAllUsers(db);
     const authUser = requireAuthenticatedUser(c);
     c.header(
@@ -9623,14 +9737,37 @@ function taskRoutes(app2) {
     if ("assigneeId" in body) {
       updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null;
     }
-    if (body.status) updates.status = body.status;
+    if (body.status) {
+      const status = body.status;
+      if (!isTaskStatus(status)) {
+        return c.text("Invalid status", 400);
+      }
+      updates.status = status;
+    }
     await updateTask(db, id, updates);
+    const authUser = requireAuthenticatedUser(c);
+    const users2 = await getAllUsers(db);
+    if (body.view === "archive") {
+      const rawAssigneeId = body.assigneeIdFilter;
+      const assigneeId = rawAssigneeId && rawAssigneeId !== "all" ? Number(rawAssigneeId) : null;
+      const selectedAssigneeId = assigneeId && users2.some((user) => user.id === assigneeId) ? assigneeId : null;
+      const tasks2 = await getArchivedTasks(db, selectedAssigneeId);
+      return c.html(
+        /* @__PURE__ */ jsxDEV(
+          ArchivedTaskList,
+          {
+            tasks: tasks2,
+            users: users2,
+            authUser,
+            selectedAssigneeId
+          }
+        )
+      );
+    }
     if (updates.status) {
       return htmxRefreshTasksResponse(c);
     }
-    const users2 = await getAllUsers(db);
     const task = await getTaskById(db, id);
-    const authUser = requireAuthenticatedUser(c);
     return c.html(/* @__PURE__ */ jsxDEV(TaskItem, { task, users: users2, authUser }));
   });
   app2.delete("/task/:id", async (c) => {
@@ -9642,6 +9779,61 @@ function taskRoutes(app2) {
   });
 }
 __name(taskRoutes, "taskRoutes");
+
+// src/routes/archived.tsx
+var parseSelectedAssigneeId = /* @__PURE__ */ __name((rawValue, users2) => {
+  if (!rawValue || rawValue === "all") {
+    return null;
+  }
+  const assigneeId = Number(rawValue);
+  if (Number.isNaN(assigneeId) || !users2.some((user) => user.id === assigneeId)) {
+    return null;
+  }
+  return assigneeId;
+}, "parseSelectedAssigneeId");
+function archivedRoutes(app2) {
+  app2.get("/archived", async (c) => {
+    const authUser = requireAuthenticatedUser(c);
+    const db = getDB(c.env);
+    const users2 = await getAllUsers(db);
+    const assigneeId = c.req.query("assigneeId");
+    const search = new URLSearchParams();
+    if (assigneeId) {
+      search.set("assigneeId", assigneeId);
+    }
+    return c.html(
+      /* @__PURE__ */ jsxDEV(Layout, { activeUser: authUser, users: users2, currentPage: "archived", children: /* @__PURE__ */ jsxDEV("main", { class: "grid grid-cols-1 items-start gap-6", children: /* @__PURE__ */ jsxDEV(
+        "section",
+        {
+          class: "min-w-0",
+          id: "archived-tasks-container",
+          "hx-get": `/archived/tasks${search.size > 0 ? `?${search.toString()}` : ""}`,
+          "hx-trigger": "load",
+          "hx-swap": "innerHTML"
+        }
+      ) }) })
+    );
+  });
+  app2.get("/archived/tasks", async (c) => {
+    const authUser = requireAuthenticatedUser(c);
+    const db = getDB(c.env);
+    const users2 = await getAllUsers(db);
+    const selectedAssigneeId = parseSelectedAssigneeId(c.req.query("assigneeId"), users2);
+    const tasks2 = await getArchivedTasks(db, selectedAssigneeId);
+    return c.html(
+      /* @__PURE__ */ jsxDEV(
+        ArchivedTaskList,
+        {
+          tasks: tasks2,
+          users: users2,
+          authUser,
+          selectedAssigneeId
+        }
+      )
+    );
+  });
+}
+__name(archivedRoutes, "archivedRoutes");
 
 // src/services/reward.service.ts
 function toRewardView(reward) {
@@ -9895,6 +10087,11 @@ var resetDailyTasks = /* @__PURE__ */ __name(async (env) => {
   await db.update(tasks).set({ status: "todo" }).where(eq(tasks.repeat, "daily"));
   console.log("[CRON] Daily tasks reset \u2192 todo");
 }, "resetDailyTasks");
+var archiveCompletedTasks = /* @__PURE__ */ __name(async (env) => {
+  const db = getDB(env.Bindings);
+  await db.update(tasks).set({ status: "archived" }).where(eq(tasks.status, "done"));
+  console.log("[CRON] Weekly completed tasks archived");
+}, "archiveCompletedTasks");
 
 // src/index.tsx
 var app = new Hono2();
@@ -9904,7 +10101,7 @@ app.get("/", async (c) => {
   const db = getDB(c.env);
   const usersRes = await db.select().from(users);
   return c.html(
-    /* @__PURE__ */ jsxDEV(Layout, { activeUser: authUser, users: usersRes, children: /* @__PURE__ */ jsxDEV("main", { class: "grid items-start gap-6 grid-cols-1 ", children: /* @__PURE__ */ jsxDEV(
+    /* @__PURE__ */ jsxDEV(Layout, { activeUser: authUser, users: usersRes, currentPage: "board", children: /* @__PURE__ */ jsxDEV("main", { class: "grid items-start gap-6 grid-cols-1 ", children: /* @__PURE__ */ jsxDEV(
       "section",
       {
         class: "min-w-0",
@@ -9917,6 +10114,7 @@ app.get("/", async (c) => {
   );
 });
 taskRoutes(app);
+archivedRoutes(app);
 rewardRoutes(app);
 userRoutes(app);
 sessionRoutes(app);
@@ -9924,14 +10122,12 @@ var src_default = {
   fetch: app.fetch,
   async scheduled(controller, env) {
     try {
-      console.log("[CRON] triggered");
-      const now = /* @__PURE__ */ new Date();
-      const tampaHour = new Date(
-        now.toLocaleString("en-US", { timeZone: "America/New_York" })
-      ).getHours();
-      console.log("[CRON] tampaHour:", tampaHour);
-      if (tampaHour === 0) {
+      console.log("[CRON] triggered", controller.cron);
+      if (controller.cron === "0 0 * * *") {
         await resetDailyTasks(env);
+      }
+      if (controller.cron === "59 23 * * 6") {
+        await archiveCompletedTasks(env);
       }
     } catch (err) {
       console.error("[CRON ERROR]", err);
@@ -9981,7 +10177,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-dwSTaQ/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-5lWhDD/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -10013,7 +10209,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-dwSTaQ/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-5lWhDD/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { renderToString } from 'hono/jsx/dom/server'
 import type { Task, User } from '../types'
+import { ArchivedTaskList } from './ArchivedTaskList'
 import { TaskInputForm } from './TaskInputForm'
 import { TaskList } from './TaskList'
 import { UsersList } from './UserList'
@@ -43,7 +44,7 @@ describe('calm board styling', () => {
     const html = await renderToString(form)
 
     expect(html).toContain('class="card bg-base-100 shadow-sm"')
-    expect(html).toContain('class="input input-bordered w-full"')
+    expect(html).toContain('class="input input-bordered w-full md:col-span-2 xl:col-span-2"')
     expect(html).toContain('class="select select-bordered w-full"')
     expect(html).toContain('class="btn btn-primary"')
   })
@@ -57,6 +58,7 @@ describe('calm board styling', () => {
     expect(html).toContain('class="card bg-base-100 shadow-sm border border-base-300"')
     expect(html).toContain('class="badge badge-outline"')
     expect(html).toContain('class="card bg-base-100 border border-base-300 shadow-sm"')
+    expect(html).not.toContain('>archived<')
   })
 
   test('renders the user summary as a companion card', async () => {
@@ -65,5 +67,15 @@ describe('calm board styling', () => {
     expect(html).toContain('class="card bg-base-100 shadow-sm border border-base-300"')
     expect(html).toContain('class="badge badge-primary badge-soft"')
     expect(html).toContain('Family Score')
+  })
+
+  test('renders archived tasks in a dedicated filtered panel', async () => {
+    const html = await renderToString(
+      <ArchivedTaskList tasks={tasks as Task[]} users={[parentUser, childUser]} authUser={parentUser} />
+    )
+
+    expect(html).toContain('Archived Tasks')
+    expect(html).toContain('All family members')
+    expect(html).toContain('hx-get="/archived/tasks"')
   })
 })

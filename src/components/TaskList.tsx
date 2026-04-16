@@ -2,6 +2,7 @@ import type { FC } from 'hono/jsx'
 import type { Task, User } from '../types'
 import { groupTasksByStatus, sortTasksByPriority } from '../utils/tasks'
 import { TaskItem } from './TaskItem'
+import { activeTaskStatuses } from '../utils/task-status'
 
 export const TaskList: FC<{ tasks: Task[]; users: User[]; authUser: User }> = ({
 	tasks,
@@ -18,7 +19,7 @@ export const TaskList: FC<{ tasks: Task[]; users: User[]; authUser: User }> = ({
 
 	return (
 		<div class='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
-			{(['todo', 'doing', 'review', 'done'] as const).map((status) => (
+			{activeTaskStatuses.map((status) => (
 				<section
           key={status}
           class='card bg-base-100 shadow-sm border border-base-300'

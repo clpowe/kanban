@@ -1,3 +1,4 @@
+import { ArchivedTaskList } from '../components/ArchivedTaskList'
 import { TaskList } from '../components/TaskList'
 import type { Hono } from 'hono'
 import { getDB, type Env } from '../db/client'
@@ -15,19 +16,21 @@ import {
 import {
   createTask,
   deleteTask,
-  getAllTasks,
+  getActiveTasks,
+  getArchivedTasks,
   getTaskById,
   updateTask,
   updateTaskStatus
 } from '../services/task.service'
 import { getAllUsers } from '../services/user.service'
+import { isActiveTaskStatus, isTaskStatus } from '../utils/task-status'
 
 export function taskRoutes(app: Hono<Env>) {
   app.get('/tasks', async (c) => {
     try {
       const authUser = requireAuthenticatedUser(c)
       const db = getDB(c.env)
-      const result = await getAllTasks(db)
+      const result = await getActiveTasks(db)
       const users = await getAllUsers(db)
 
       return c.html(<TaskList tasks={result} users={users} authUser={authUser} />)
@@ -46,7 +49,7 @@ export function taskRoutes(app: Hono<Env>) {
     await createTask(db, body)
 
     const users = await getAllUsers(db)
-    const result = await getAllTasks(db)
+    const result = await getActiveTasks(db)
     const authUser = requireAuthenticatedUser(c)
 
     return c.html(<TaskList tasks={result} users={users} authUser={authUser} />)
@@ -57,10 +60,15 @@ export function taskRoutes(app: Hono<Env>) {
     await requireChildOwnTaskAccess(c, id)
     const db = getDB(c.env)
     const body = await c.req.parseBody()
+    const status = body.status as string
 
-    await updateTaskStatus(db, id, body.status as string)
+    if (!isActiveTaskStatus(status)) {
+      return c.text('Invalid status', 400)
+    }
 
-    const result = await getAllTasks(db)
+    await updateTaskStatus(db, id, status)
+
+    const result = await getActiveTasks(db)
     const users = await getAllUsers(db)
     const authUser = requireAuthenticatedUser(c)
 
@@ -88,17 +96,47 @@ export function taskRoutes(app: Hono<Env>) {
     if ('assigneeId' in body) {
       updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null
     }
-    if (body.status) updates.status = body.status as any
+    if (body.status) {
+      const status = body.status as string
+      if (!isTaskStatus(status)) {
+        return c.text('Invalid status', 400)
+      }
+      if (status === 'archived' && body.view !== 'archive') {
+        return c.text('Invalid status', 400)
+      }
+      updates.status = status
+    }
 
     await updateTask(db, id, updates)
+
+    const authUser = requireAuthenticatedUser(c)
+    const users = await getAllUsers(db)
+
+    if (body.view === 'archive') {
+      const rawAssigneeId = body.assigneeIdFilter as string | undefined
+      const assigneeId =
+        rawAssigneeId && rawAssigneeId !== 'all' ? Number(rawAssigneeId) : null
+      const selectedAssigneeId =
+        assigneeId && users.some((user) => user.id === assigneeId)
+          ? assigneeId
+          : null
+      const tasks = await getArchivedTasks(db, selectedAssigneeId)
+
+      return c.html(
+        <ArchivedTaskList
+          tasks={tasks}
+          users={users}
+          authUser={authUser}
+          selectedAssigneeId={selectedAssigneeId}
+        />
+      )
+    }
 
     if (updates.status) {
       return htmxRefreshTasksResponse(c)
     }
 
-    const users = await getAllUsers(db)
     const task = await getTaskById(db, id)
-    const authUser = requireAuthenticatedUser(c)
 
     return c.html(<TaskItem task={task} users={users} authUser={authUser} />)
   })

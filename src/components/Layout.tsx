@@ -4,7 +4,11 @@ import { UserSwitcher } from './UserSwitcher'
 import { RewardInputForm } from './RewardInputForm'
 import { TaskInputForm } from './TaskInputForm'
 
-export const Layout: FC<{ activeUser: User; users: User[] }> = (props) => {
+export const Layout: FC<{
+  activeUser: User
+  users: User[]
+  currentPage?: 'board' | 'archived'
+}> = (props) => {
   const canCreateTask = props.activeUser.type === 'parent'
 
   return (
@@ -33,6 +37,7 @@ export const Layout: FC<{ activeUser: User; users: User[] }> = (props) => {
                     activeUser={props.activeUser}
                     users={props.users}
                     canCreateTask={canCreateTask}
+                    currentPage={props.currentPage}
                   />
                   <div class="card bg-base-100 shadow-sm border border-base-300 p-4">
                     <h2 class="text-2xl">
