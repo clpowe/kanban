@@ -15,23 +15,23 @@ const app = new Hono<Env>()
 app.use('/*', authMiddleware)
 
 app.get('/', async (c) => {
-  const authUser = requireAuthenticatedUser(c)
-  const db = getDB(c.env)
-  const usersRes = await db.select().from(users)
+  try {
+    const response = await c.env.ASSETS.fetch(new URL('/index.html', c.req.url))
+    return new Response(response.body, response)
+  } catch (err) {
+    console.error('Failed to load asset index.html:', err)
+    return c.text('Not Found', 404)
+  }
+})
 
-  return c.html(
-    <Layout activeUser={authUser} users={usersRes} currentPage='board'>
-      <main class='grid items-start gap-6 grid-cols-1 '>
-        <section
-          class='min-w-0'
-          id='tasks-container'
-          hx-get='/tasks'
-          hx-trigger='load, refreshTasks from:body, every 30s'
-          hx-swap='innerHTML'
-        ></section>
-      </main>
-    </Layout>
-  )
+app.get('/archived', async (c) => {
+  try {
+    const response = await c.env.ASSETS.fetch(new URL('/index.html', c.req.url))
+    return new Response(response.body, response)
+  } catch (err) {
+    console.error('Failed to load asset index.html:', err)
+    return c.text('Not Found', 404)
+  }
 })
 
 taskRoutes(app)

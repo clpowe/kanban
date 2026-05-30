@@ -58,7 +58,9 @@ describe('calm board styling', () => {
     expect(html).toContain('class="card bg-base-100 shadow-sm border border-base-300"')
     expect(html).toContain('class="badge badge-outline"')
     expect(html).toContain('class="card bg-base-100 border border-base-300 shadow-sm"')
-    expect(html).not.toContain('>archived<')
+    expect(html).not.toContain(
+      '<h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/70">archived</h3>'
+    )
   })
 
   test('renders the user summary as a companion card', async () => {

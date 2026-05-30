@@ -4,6 +4,7 @@ import type { User } from '../types'
 export type Env = {
   Bindings: {
     family_kanban: D1Database
+    ASSETS: Fetcher
   }
   Variables: {
     authUser: User

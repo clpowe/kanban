@@ -114,7 +114,7 @@ export const TaskItem: FC<{
               hx-swap='innerHTML'
               hx-target='#tasks-container'
             >
-              {activeTaskStatuses.map((status) => (
+              {allTaskStatuses.map((status) => (
                 <option value={status} selected={task.status === status}>
                   {status}
                 </option>
