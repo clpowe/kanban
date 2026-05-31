@@ -9,16 +9,28 @@ import {
 } from '../auth/middleware'
 
 export function sessionRoutes(app: Hono<Env>) {
-  app.patch('/session/active-user', async (c) => {
-    const body = await c.req.parseBody()
-    const requestedUserId = Number(body.userId)
-    const session = parseFamilySession(getCookie(c, FAMILY_SESSION_COOKIE))
-
-    if (!session || Number.isNaN(requestedUserId)) {
-      return c.text('Invalid session', 400)
+  // 1. GET current authenticated session & active user (Crucial for client boot!)
+  app.get('/session/active-user', async (c) => {
+    const activeUser = c.get('activeUser')
+    if (!activeUser) {
+      return c.text('Not authenticated', 401)
     }
+    return c.json({
+      user: activeUser
+    })
+  })
 
+  // 2. PATCH switch current active family member
+  app.patch('/session/active-user', async (c) => {
     try {
+      const body = await c.req.json()
+      const requestedUserId = Number(body.userId)
+      const session = parseFamilySession(getCookie(c, FAMILY_SESSION_COOKIE))
+
+      if (!session || Number.isNaN(requestedUserId)) {
+        return c.json({ error: 'Invalid session' }, 400)
+      }
+
       const activeUserId = validateActiveUserSelection(session, requestedUserId)
 
       setCookie(
@@ -34,11 +46,11 @@ export function sessionRoutes(app: Hono<Env>) {
           path: '/',
         }
       )
-    } catch {
-      return c.text('Invalid active user selection', 400)
+      return c.json({ success: true, activeUserId })
     }
-
-    c.header('HX-Refresh', 'true')
-    return c.body(null, 204)
+    catch (err) {
+      console.error('PATCH active-user session error:', err)
+      return c.json({ error: 'Invalid active user selection' }, 400)
+    }
   })
 }
