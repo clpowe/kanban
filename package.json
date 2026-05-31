@@ -16,6 +16,7 @@
     "@tailwindcss/cli": "^4.2.2",
     "@types/bun": "latest",
     "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
     "daisyui": "^5.5.19",
     "tailwindcss": "^4.2.2",
     "typed-htmx": "^0.3.1",

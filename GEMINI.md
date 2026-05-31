@@ -19,13 +19,13 @@ This document serves as the official project board and TODO list for migrating t
 ### 🔌 Epic 2: Backend REST JSON API Migration
 - [x] **Task 2.1**: Refactor `/tasks` endpoint to `/api/tasks` returning JSON arrays instead of rendered TSX.
 - [x] **Task 2.2**: Refactor `/rewards` endpoint to `/api/rewards` returning JSON arrays.
-- [ ] **Task 2.3**: Refactor `/users` endpoint to `/api/users` returning sorted user arrays in JSON.
-- [ ] **Task 2.4**: Migrate active user switching endpoint `/session/active-user` to return JSON status instead of issuing a full browser refresh headers.
+- [x] **Task 2.3**: Refactor `/users` endpoint to `/api/users` returning sorted user arrays in JSON.
+- [x] **Task 2.4**: Migrate active user switching endpoint `/session/active-user` to return JSON status instead of issuing a full browser refresh headers.
 - [x] **Task 2.5**: Update Task mutation endpoints (Create, Status Update, edit, delete) to receive JSON payloads and return JSON.
 - [x] **Task 2.6**: Update Reward redemption endpoint to return JSON status.
 
 ### 🧠 Epic 3: Client State Management & Client Router
-- [ ] **Task 3.1**: Create `src/client/index.tsx` entry point to mount SolidJS to `#root`.
+- [x] **Task 3.1**: Create `src/client/index.tsx` entry point to mount SolidJS to `#root`.
 - [ ] **Task 3.2**: Create reactive store (`src/client/store/app-store.ts`) using Solid's `createSignal`/`createStore` to manage all tasks, rewards, users, and the active session.
 - [ ] **Task 3.3**: Create fetch client hooks/functions to handle authenticated REST calls and update global store.
 - [ ] **Task 3.4**: Configure SolidJS router to manage paths (`/` for board, `/archived` for archived lists).
@@ -42,6 +42,6 @@ This document serves as the official project board and TODO list for migrating t
 - [ ] **Task 5.2**: Add basic HTML5 drag-and-drop column transitions.
 - [ ] **Task 5.3**: Style clean form input focus states and slide-out drawer animations.
 
-## 🛠️ Current Focus: Epic 2 - Task 2.3 & 2.4
+## 🛠️ Current Focus: Epic 3 - Tasks 3.2 & 3.3
 
-Let's refactor the `/users` and `/session/active-user` routes to `/api/users` and `/api/session/active-user` returning JSON payloads.
+Let's create the SolidJS client state store and fetch client hooks.

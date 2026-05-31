@@ -46,7 +46,7 @@ export function rewardRoutes(app: Hono<Env>,
     try {
       const parentUser = deps.requireParent(c)
       const db = deps.getDB(c.env)
-      const body = await c.req.parseBody()
+      const body = await c.req.json()
 
       const createdRewards = await deps.createReward(db, parentUser, body)
       const createdReward = createdRewards[0]

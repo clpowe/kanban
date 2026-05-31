@@ -18,7 +18,7 @@ import { isTaskStatus } from '../utils/task-status'
 import type { TaskUpdate } from '../types'
 
 export function taskRoutes(app: Hono<Env>) {
-  app.get('/tasks', async (c) => {
+  app.get('/api/tasks', async (c) => {
     try {
       requireAuthenticatedUser(c)
       const db = getDB(c.env)
@@ -30,7 +30,7 @@ export function taskRoutes(app: Hono<Env>) {
     }
   })
 
-  app.post('/tasks', async (c) => {
+  app.post('/api/tasks', async (c) => {
     try {
       requireParent(c)
       const db = getDB(c.env)
