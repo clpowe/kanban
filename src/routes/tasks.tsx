@@ -1,6 +1,5 @@
 import type { Hono } from 'hono'
 import { getDB, type Env } from '../db/client'
-import type { TaskUpdate } from '../types'
 import {
   requireAuthenticatedUser,
   requireChildOwnTaskAccess,
@@ -16,6 +15,7 @@ import {
   updateTaskStatus
 } from '../services/task.service'
 import { isTaskStatus } from '../utils/task-status'
+import type { TaskUpdate } from '../types'
 
 export function taskRoutes(app: Hono<Env>) {
   app.get('/tasks', async (c) => {

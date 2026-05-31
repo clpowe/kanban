@@ -18,11 +18,11 @@ This document serves as the official project board and TODO list for migrating t
 
 ### 🔌 Epic 2: Backend REST JSON API Migration
 - [x] **Task 2.1**: Refactor `/tasks` endpoint to `/api/tasks` returning JSON arrays instead of rendered TSX.
-- [ ] **Task 2.2**: Refactor `/rewards` endpoint to `/api/rewards` returning JSON arrays.
+- [x] **Task 2.2**: Refactor `/rewards` endpoint to `/api/rewards` returning JSON arrays.
 - [ ] **Task 2.3**: Refactor `/users` endpoint to `/api/users` returning sorted user arrays in JSON.
 - [ ] **Task 2.4**: Migrate active user switching endpoint `/session/active-user` to return JSON status instead of issuing a full browser refresh headers.
 - [x] **Task 2.5**: Update Task mutation endpoints (Create, Status Update, edit, delete) to receive JSON payloads and return JSON.
-- [ ] **Task 2.6**: Update Reward redemption endpoint to return JSON status.
+- [x] **Task 2.6**: Update Reward redemption endpoint to return JSON status.
 
 ### 🧠 Epic 3: Client State Management & Client Router
 - [ ] **Task 3.1**: Create `src/client/index.tsx` entry point to mount SolidJS to `#root`.
@@ -42,6 +42,6 @@ This document serves as the official project board and TODO list for migrating t
 - [ ] **Task 5.2**: Add basic HTML5 drag-and-drop column transitions.
 - [ ] **Task 5.3**: Style clean form input focus states and slide-out drawer animations.
 
-## 🛠️ Current Focus: Epic 2 - Task 2.2 & 2.6
+## 🛠️ Current Focus: Epic 2 - Task 2.3 & 2.4
 
-Let's refactor the `/rewards` and `/rewards/:id/redeem` routes in `src/routes/rewards.tsx` to `/api/rewards` returning JSON payloads.
+Let's refactor the `/users` and `/session/active-user` routes to `/api/users` and `/api/session/active-user` returning JSON payloads.

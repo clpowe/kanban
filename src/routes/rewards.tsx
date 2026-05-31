@@ -1,5 +1,4 @@
 import type { Hono } from 'hono'
-import type { Context } from 'hono'
 import type { Env } from '../db/client'
 import { getDB } from '../db/client'
 import { requireAuthenticatedUser, requireParent } from '../auth/middleware'
@@ -8,8 +7,6 @@ import {
   getAllRewards,
   redeemReward,
 } from '../services/reward.service'
-import { RewardList } from '../components/RewardList'
-import { htmxRefreshResponse } from '../utils/htmx'
 
 type RewardRoutesDeps = {
   getDB: typeof getDB
@@ -18,7 +15,6 @@ type RewardRoutesDeps = {
   createReward: typeof createReward
   getAllRewards: typeof getAllRewards
   redeemReward: typeof redeemReward
-  htmxRefreshResponse: typeof htmxRefreshResponse
 }
 
 const defaultDeps: RewardRoutesDeps = {
@@ -28,58 +24,59 @@ const defaultDeps: RewardRoutesDeps = {
   createReward,
   getAllRewards,
   redeemReward,
-  htmxRefreshResponse,
 }
 
-export function rewardRoutes(app: Hono<Env>, deps: RewardRoutesDeps = defaultDeps) {
-  app.get('/rewards', async (c) => {
-    const authUser = deps.requireAuthenticatedUser(c)
-    const db = deps.getDB(c.env)
-    const rewards = await deps.getAllRewards(db)
-
-    return c.html(
-      <RewardList rewards={rewards} authUser={authUser} showCreateForm={false} />
-    )
+export function rewardRoutes(app: Hono<Env>,
+  deps: RewardRoutesDeps = defaultDeps) {
+  // 1. GET all rewards
+  app.get('/api/rewards', async (c) => {
+    try {
+      deps.requireAuthenticatedUser(c)
+      const db = deps.getDB(c.env)
+      const rewards = await deps.getAllRewards(db)
+      return c.json(rewards)
+    } catch (error) {
+      console.error("GET /api/rewards error:", error)
+      return c.json({ error: 'Failed to load rewards' }, 500)
+    }
   })
 
-  app.post('/rewards', async (c) => {
+  // 2. POST create a new reward (Parents only)
+  app.post('/api/rewards', async (c) => {
     try {
       const parentUser = deps.requireParent(c)
       const db = deps.getDB(c.env)
       const body = await c.req.parseBody()
 
-      await deps.createReward(db, parentUser, body as Record<string, FormDataEntryValue>)
+      const createdRewards = await deps.createReward(db, parentUser, body)
+      const createdReward = createdRewards[0]
 
-      return deps.htmxRefreshResponse(c as Context, ['refreshRewards', 'refreshUsers'])
-    } catch (error) {
-      if (error instanceof Response) {
-        return error
+      if (!createdReward) {
+        return c.json({ error: 'Failed to create reward' }, 500)
       }
 
-      throw error
+      return c.json(createdReward, 201)
+    } catch (error) {
+      console.error('POST /api/rewards error:', error)
+      return c.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, 500)
     }
   })
 
-  app.post('/rewards/:id/redeem', async (c) => {
-    const authUser = deps.requireAuthenticatedUser(c)
-
-    if (authUser.type !== 'child') {
-      return c.text('Forbidden', 403)
-    }
-
-    const db = deps.getDB(c.env)
-    const rewardId = Number(c.req.param('id'))
-
+  // 3. POST redeem a reward (Children only)
+  app.post('/api/rewards/:id/redeem', async (c) => {
     try {
-      await deps.redeemReward(db, authUser, rewardId)
-    } catch (error) {
-      if (error instanceof Error) {
-        return c.text(error.message, 400)
+      const authUser = deps.requireAuthenticatedUser(c)
+      if (authUser.type !== 'child') {
+        return c.json({ error: 'Silly parent, gifts are for kids' }, 403)
       }
+      const db = deps.getDB(c.env)
+      const rewardId = Number(c.req.param('id'))
+      await deps.redeemReward(db, authUser, rewardId)
 
-      throw error
+      return c.json({ success: true })
+    } catch (error) {
+      console.error('POST /api/rewards/:id/redeem error:', error)
+      return c.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, 400)
     }
-
-    return deps.htmxRefreshResponse(c as Context, ['refreshRewards', 'refreshUsers'])
   })
 }
