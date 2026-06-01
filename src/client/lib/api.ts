@@ -1,6 +1,5 @@
-import type { Task, User, RewardView, TaskUpdate } from '../../types'
+import type { Task, User, RewardView, TaskUpdate, CreateTask } from '../../types'
 
-type CreateTask = Omit<Task, 'id' | 'value' | 'status'>
 
 // Centralized fetch wrapper with robust error parsing
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {

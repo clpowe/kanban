@@ -3,6 +3,7 @@ import { tasks, rewards, users } from '../db/schema.ts'
 
 export type User = InferSelectModel<typeof users>
 export type Task = InferSelectModel<typeof tasks>
+export type CreateTask = Omit<Task, 'id' | 'value' | 'status'>
 export type Reward = InferSelectModel<typeof rewards>
 export type RewardView = {
   id: number
