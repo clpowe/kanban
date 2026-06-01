@@ -26,9 +26,9 @@ This document serves as the official project board and TODO list for migrating t
 
 ### 🧠 Epic 3: Client State Management & Client Router
 - [x] **Task 3.1**: Create `src/client/index.tsx` entry point to mount SolidJS to `#root`.
-- [ ] **Task 3.2**: Create reactive store (`src/client/store/app-store.ts`) using Solid's `createSignal`/`createStore` to manage all tasks, rewards, users, and the active session.
-- [ ] **Task 3.3**: Create fetch client hooks/functions to handle authenticated REST calls and update global store.
-- [ ] **Task 3.4**: Configure SolidJS router to manage paths (`/` for board, `/archived` for archived lists).
+- [x] **Task 3.2**: Create reactive store (`src/client/store/app-store.ts`) using Solid's `createSignal`/`createStore` to manage all tasks, rewards, users, and the active session.
+- [x] **Task 3.3**: Create fetch client hooks/functions to handle authenticated REST calls and update global store.
+- [x] **Task 3.4**: Configure SolidJS router to manage paths (`/` for board, `/archived` for archived lists).
 
 ### 🎨 Epic 4: SolidJS Core Frontend Views
 - [ ] **Task 4.1**: Build `src/client/components/Layout.tsx` including active user points card, switcher, and drawer triggers.
@@ -42,6 +42,6 @@ This document serves as the official project board and TODO list for migrating t
 - [ ] **Task 5.2**: Add basic HTML5 drag-and-drop column transitions.
 - [ ] **Task 5.3**: Style clean form input focus states and slide-out drawer animations.
 
-## 🛠️ Current Focus: Epic 3 - Tasks 3.2 & 3.3
+## 🛠️ Current Focus: Epic 4 - Task 4.1
 
-Let's create the SolidJS client state store and fetch client hooks.
+Let's build the `Layout.tsx` shell, which includes the active user points card, the family member switcher, and drawer links.
