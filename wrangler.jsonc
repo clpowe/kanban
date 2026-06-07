@@ -6,6 +6,7 @@
   "main": "./src/index.tsx",
   "assets": {
     "directory": "./public",
+    "binding": "ASSETS",
   },
   "vars": {
     "BETTER_AUTH_URL": "http://localhost:8787",
