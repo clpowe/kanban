@@ -32,16 +32,16 @@ This document serves as the official project board and TODO list for migrating t
 
 ### 🎨 Epic 4: SolidJS Core Frontend Views
 - [x] **Task 4.1**: Build `src/client/components/Layout.tsx` including active user points card, switcher, and drawer triggers.
-- [ ] **Task 4.2**: Build `src/client/components/Board.tsx` showing To Do, In Progress, and Done columns.
-- [ ] **Task 4.3**: Build `src/client/components/Archive.tsx` with filter dropdowns.
-- [ ] **Task 4.4**: Build `src/client/components/Drawers.tsx` for creation forms.
-- [ ] **Task 4.5**: Build `src/client/components/RewardList.tsx` supporting redeem triggers and disabled states.
+- [x] **Task 4.2**: Build `src/client/components/Board.tsx` showing To Do, In Progress, and Done columns.
+- [x] **Task 4.3**: Build `src/client/components/Archive.tsx` with filter dropdowns.
+- [x] **Task 4.4**: Build `src/client/components/Drawers.tsx` for creation forms.
+- [x] **Task 4.5**: Build `src/client/components/RewardList.tsx` supporting redeem triggers and disabled states.
 
 ### ✨ Epic 5: Polish & Interactions (Lovable Slice)
-- [ ] **Task 5.1**: Add smooth visual ticking transition/animations for points score changes.
-- [ ] **Task 5.2**: Add basic HTML5 drag-and-drop column transitions.
+- [x] **Task 5.1**: Add smooth visual ticking transition/animations for points score changes.
+- [x] **Task 5.2**: Add basic HTML5 drag-and-drop column transitions.
 - [ ] **Task 5.3**: Style clean form input focus states and slide-out drawer animations.
 
-## 🛠️ Current Focus: Epic 4 - Task 4.2
+## 🛠️ Current Focus: Epic 5 - Task 5.3
 
-Build `Board.tsx` showing To Do, In Progress, and Done columns with task cards.
+Style clean form input focus states and slide-out drawer animations.

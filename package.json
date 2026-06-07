@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "vp dev",
+    "dev": "bun dev:client dev:css dev:server",
+    "dev:client": "vp dev",
     "dev:css": "npx @tailwindcss/cli -i ./src/styles/app.css -o ./public/app.css --watch",
     "build:css": "npx @tailwindcss/cli -i ./src/styles/app.css -o ./public/app.css --minify",
     "build:client": "vp build",
