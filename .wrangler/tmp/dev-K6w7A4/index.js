@@ -60508,7 +60508,11 @@ function createAuth(env2) {
         generateId: false
       }
     },
-    trustedOrigins: ["http://localhost:3000", "http://localhost:8787"]
+    trustedOrigins: [
+      "http://localhost:3000",
+      "http://localhost:8787",
+      "https://kanban.clpowe.workers.dev"
+    ]
   });
 }
 __name(createAuth, "createAuth");
