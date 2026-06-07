@@ -1,80 +1,86 @@
-import { Hono } from 'hono'
-import { users } from './db/schema.ts'
-import { type Env, getDB } from './db/client.ts'
-import { Layout } from './components/Layout.tsx'
-import { taskRoutes } from './routes/tasks.tsx'
-import { archivedRoutes } from './routes/archived.tsx'
-import { rewardRoutes } from './routes/rewards.tsx'
-import { userRoutes } from './routes/users.tsx'
-import { sessionRoutes } from './routes/session.tsx'
-import { authMiddleware, requireAuthenticatedUser } from './auth/middleware.ts'
-import { archiveCompletedTasks, resetDailyTasks } from './cron.ts'
+import { Hono } from "hono";
+import type { Env } from "./db/client.ts";
+import { createAuth } from "./auth/auth.ts";
+import { sessionMiddleware } from "./auth/middleware.ts";
+import { taskRoutes } from "./routes/tasks.tsx";
+import { archivedRoutes } from "./routes/archived.tsx";
+import { rewardRoutes } from "./routes/rewards.tsx";
+import { userRoutes } from "./routes/users.tsx";
+import { sessionRoutes } from "./routes/session.tsx";
+import { archiveCompletedTasks, resetDailyTasks } from "./cron.ts";
 
-const app = new Hono<Env>()
+const app = new Hono<Env>();
 
-app.use('/*', authMiddleware)
+// ── Better Auth handler (must be before session middleware) ──
+app.all("/api/auth/*", async (c) => {
+  const auth = createAuth(c.env);
+  return auth.handler(c.req.raw);
+});
 
-app.get('/', async (c) => {
+// ── Session middleware for protected API routes ─────────
+app.use("/api/*", sessionMiddleware);
+app.use("/session/*", sessionMiddleware);
+
+// ── Session middleware for protected API routes ─────────
+app.use("/api/*", sessionMiddleware);
+app.use("/session/*", sessionMiddleware);
+
+// ── API routes ──────────────────────────────────────────
+taskRoutes(app);
+archivedRoutes(app);
+rewardRoutes(app);
+userRoutes(app);
+sessionRoutes(app);
+
+// ── SPA catch-all (serves index.html for all page routes) ──
+app.get("*", async (c) => {
   try {
-    const response = await c.env.ASSETS.fetch(new URL('/index.html', c.req.url))
-    return new Response(response.body, response)
+    const response = await c.env.ASSETS.fetch(
+      new URL("/index.html", c.req.url),
+    );
+    return new Response(response.body, response);
   } catch (err) {
-    console.error('Failed to load asset index.html:', err)
-    return c.text('Not Found', 404)
+    console.error("Failed to load asset index.html:", err);
+    return c.text("Not Found", 404);
   }
-})
+});
 
-app.get('/archived', async (c) => {
-  try {
-    const response = await c.env.ASSETS.fetch(new URL('/index.html', c.req.url))
-    return new Response(response.body, response)
-  } catch (err) {
-    console.error('Failed to load asset index.html:', err)
-    return c.text('Not Found', 404)
-  }
-})
-
-taskRoutes(app)
-archivedRoutes(app)
-rewardRoutes(app)
-userRoutes(app)
-sessionRoutes(app)
-
+// ── Scheduled handlers ──────────────────────────────────
 type ScheduledDeps = {
-  resetDailyTasks: typeof resetDailyTasks
-  archiveCompletedTasks: typeof archiveCompletedTasks
-}
+  resetDailyTasks: typeof resetDailyTasks;
+  archiveCompletedTasks: typeof archiveCompletedTasks;
+};
 
 const scheduledDeps: ScheduledDeps = {
   resetDailyTasks,
-  archiveCompletedTasks
-}
+  archiveCompletedTasks,
+};
 
 export const handleScheduled = async (
   controller: ScheduledController,
-  env: Env['Bindings'],
-  deps: ScheduledDeps = scheduledDeps
+  env: Env["Bindings"],
+  deps: ScheduledDeps = scheduledDeps,
 ) => {
-  console.log('[CRON] triggered', controller.cron)
+  console.log("[CRON] triggered", controller.cron);
 
-  if (controller.cron === '0 0 * * *') {
-    await deps.resetDailyTasks({ Bindings: env } as Env)
+  if (controller.cron === "0 0 * * *") {
+    await deps.resetDailyTasks({ Bindings: env } as Env);
   }
 
-  if (controller.cron === '59 23 * * 6') {
-    await deps.archiveCompletedTasks({ Bindings: env } as Env)
+  if (controller.cron === "59 23 * * 6") {
+    await deps.archiveCompletedTasks({ Bindings: env } as Env);
   }
-}
+};
 
 export default {
   fetch: app.fetch,
 
   async scheduled(controller: ScheduledController, env: Env) {
     try {
-      await handleScheduled(controller, env.Bindings)
+      await handleScheduled(controller, env.Bindings);
     } catch (err) {
-      console.error('[CRON ERROR]', err)
-      throw err
+      console.error("[CRON ERROR]", err);
+      throw err;
     }
-  }
-}
+  },
+};

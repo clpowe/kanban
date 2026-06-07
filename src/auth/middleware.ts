@@ -1,175 +1,169 @@
-import { basicAuth } from 'hono/basic-auth'
-import { getCookie, setCookie } from 'hono/cookie'
-import type { Context } from 'hono'
-import { HTTPException } from 'hono/http-exception'
-import type { Env } from '../db/client'
-import { getDB } from '../db/client'
-import type { User } from '../types'
-import { canManageTask, canUpdateTaskStatus } from './authorization'
-import { verifyPassword } from './password'
+import { getCookie, setCookie } from "hono/cookie";
+import type { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
+import type { Env } from "../db/client";
+import { getDB } from "../db/client";
+import type { User } from "../types";
+import { canManageTask, canUpdateTaskStatus } from "./authorization";
+import { createAuth } from "./auth";
 import {
   getAllUsers,
   getTaskAssigneeId,
-  getUserByUsername,
-} from '../services/user.service'
+  getUserById,
+} from "../services/user.service";
 
-export const FAMILY_SESSION_COOKIE = 'family_session'
+export const FAMILY_SESSION_COOKIE = "family_session";
 
 export type FamilySession = {
-  activeUserId: number
-  familyUserIds: number[]
-}
+  activeUserId: number;
+  familyUserIds: number[];
+};
 
 export function serializeFamilySession(session: FamilySession): string {
-  return JSON.stringify(session)
+  return JSON.stringify(session);
 }
 
 export function parseFamilySession(
-  value: string | undefined | null
+  value: string | undefined | null,
 ): FamilySession | null {
   if (!value) {
-    return null
+    return null;
   }
 
   try {
-    const parsed = JSON.parse(value) as Partial<FamilySession>
+    const parsed = JSON.parse(value) as Partial<FamilySession>;
 
     if (
-      typeof parsed.activeUserId !== 'number' ||
+      typeof parsed.activeUserId !== "number" ||
       !Array.isArray(parsed.familyUserIds) ||
-      parsed.familyUserIds.some((id) => typeof id !== 'number')
+      parsed.familyUserIds.some((id) => typeof id !== "number")
     ) {
-      return null
+      return null;
     }
 
     return {
       activeUserId: parsed.activeUserId,
       familyUserIds: parsed.familyUserIds,
-    }
+    };
   } catch {
-    return null
+    return null;
   }
 }
 
 export function resolveActiveUser(
   users: User[],
   loginUser: User,
-  sessionValue: string | undefined | null
+  sessionValue: string | undefined | null,
 ): User {
-  const session = parseFamilySession(sessionValue)
+  const session = parseFamilySession(sessionValue);
 
   if (!session) {
-    return loginUser
+    return loginUser;
   }
 
   if (!session.familyUserIds.includes(session.activeUserId)) {
-    return loginUser
+    return loginUser;
   }
 
-  const activeUser = users.find((user) => user.id === session.activeUserId)
+  const activeUser = users.find((user) => user.id === session.activeUserId);
 
-  return activeUser ?? loginUser
+  return activeUser ?? loginUser;
 }
 
 export function validateActiveUserSelection(
   session: FamilySession,
-  requestedUserId: number
+  requestedUserId: number,
 ): number {
   if (!session.familyUserIds.includes(requestedUserId)) {
-    throw new Error('Invalid active user selection')
+    throw new Error("Invalid active user selection");
   }
 
-  return requestedUserId
+  return requestedUserId;
 }
 
-const basicAuthMiddleware = basicAuth({
-  realm: 'Family Kanban',
-  invalidUserMessage: 'Invalid username or password',
-  verifyUser: async (username, password, c) => {
-    const db = getDB(c.env)
-    const user = await getUserByUsername(db, username)
-
-    if (!user?.passwordHash) {
-      return false
-    }
-
-    const isValid = await verifyPassword(password, user.passwordHash)
-
-    if (isValid) {
-      c.set('authUser', user)
-    }
-
-    return isValid
-  },
-})
-
-export const authMiddleware = async (c: Context<Env>, next: () => Promise<void>) => {
-  await basicAuthMiddleware(c, async () => {})
-
-  const loginUser = c.get('authUser')
-
-  if (!loginUser) {
-    throw new Error('Authenticated user missing from context')
+// ── Session Middleware ────────────
+export const sessionMiddleware = async (
+  c: Context<Env>,
+  next: () => Promise<void>,
+) => {
+  // Skip Better Auth routes — they handle their own auth
+  if (c.req.path.startsWith("/api/auth")) {
+    return next();
   }
 
-  const db = getDB(c.env)
-  const users = await getAllUsers(db)
-  const sessionValue = getCookie(c, FAMILY_SESSION_COOKIE)
-  const activeUser = resolveActiveUser(users, loginUser, sessionValue)
+  // Validate the Better Auth session cookie
+  const auth = createAuth(c.env);
+  const result = await auth.api.getSession({ headers: c.req.raw.headers });
+
+  if (!result?.session || !result?.user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const db = getDB(c.env);
+  const loginUser = await getUserById(db, Number(result.user.id));
+
+  if (!loginUser) {
+    return c.json({ error: "User not found" }, 401);
+  }
+
+  // Resolve active family member via the switcher cookie
+  const users: User[] = await getAllUsers(db);
+  const sessionValue = getCookie(c, FAMILY_SESSION_COOKIE);
+  const activeUser = resolveActiveUser(users, loginUser, sessionValue);
   const nextSession = serializeFamilySession({
     activeUserId: activeUser.id,
-    familyUserIds: users.map((user) => user.id),
-  })
+    familyUserIds: users.map((user: User) => user.id),
+  });
 
   setCookie(c, FAMILY_SESSION_COOKIE, nextSession, {
     httpOnly: true,
-    sameSite: 'Lax',
-    path: '/',
-  })
+    sameSite: "Lax",
+    path: "/",
+  });
 
-  c.set('loginUser', loginUser)
-  c.set('activeUser', activeUser)
-  c.set('authUser', activeUser)
+  c.set("loginUser", loginUser);
+  c.set("activeUser", activeUser);
+  c.set("authUser", activeUser);
+  await next();
+};
 
-  await next()
-}
-
+// ── Guard Helpers (unchanged) ──────────────────────────
 export function requireAuthenticatedUser(c: Context<Env>): User {
-  const authUser = c.get('activeUser')
+  const authUser = c.get("activeUser");
 
   if (!authUser) {
-    throw new Error('Authenticated user missing from context')
+    throw new Error("Authenticated user missing from context");
   }
 
-  return authUser
+  return authUser;
 }
 
 export function requireParent(c: Context<Env>): User {
-  const authUser = requireAuthenticatedUser(c)
+  const authUser = requireAuthenticatedUser(c);
 
   if (!canManageTask(authUser)) {
-    throw new HTTPException(403, { message: 'Forbidden' })
+    throw new HTTPException(403, { message: "Forbidden" });
   }
 
-  return authUser
+  return authUser;
 }
 
 export async function requireChildOwnTaskAccess(
   c: Context<Env>,
-  taskId: number
+  taskId: number,
 ): Promise<User> {
-  const authUser = requireAuthenticatedUser(c)
+  const authUser = requireAuthenticatedUser(c);
 
-  if (authUser.type === 'parent') {
-    return authUser
+  if (authUser.type === "parent") {
+    return authUser;
   }
 
-  const db = getDB(c.env)
-  const assigneeId = await getTaskAssigneeId(db, taskId)
+  const db = getDB(c.env);
+  const assigneeId = await getTaskAssigneeId(db, taskId);
 
   if (!canUpdateTaskStatus(authUser, assigneeId)) {
-    throw new HTTPException(403, { message: 'Forbidden' })
+    throw new HTTPException(403, { message: "Forbidden" });
   }
 
-  return authUser
+  return authUser;
 }
