@@ -8,6 +8,7 @@ import Drawers from "./components/Drawers";
 import Navbar from "./components/Layout";
 import PointCards from "./components/PointsCards";
 import Login from "./components/Login";
+import Register from "./components/Register";
 import type { JSX } from "solid-js";
 
 // ── AppLayout (Route Wrapper) ───────────────────────────
@@ -65,8 +66,10 @@ function AppLayout(props: { children?: JSX.Element }) {
 export default function App() {
   return (
     <Router>
-      {/* Login route — outside the authenticated layout */}
+      {/* Login & Register routes — outside the authenticated layout */}
       <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+
       {/* Protected routes — wrapped in AppLayout */}
       <Route path="/" component={AppLayout}>
         <Route path="/" component={Board} />

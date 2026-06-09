@@ -1,5 +1,5 @@
 import { createSignal, Show } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { useNavigate, A } from "@solidjs/router";
 import { authClient } from "../lib/auth-client";
 
 export default function Login() {
@@ -110,9 +110,21 @@ export default function Login() {
             </button>
           </form>
         </div>
-        <p class="text-center text-[10px] text-slate-600 mt-6">
-          Family accounts are managed by parents.
-        </p>
+
+        <div class="text-center mt-6 flex flex-col gap-2">
+          <span class="text-xs text-slate-400">
+            Don't have an account?{" "}
+            <A
+              href="/register"
+              class="text-indigo-400 hover:text-indigo-300 font-bold transition-colors"
+            >
+              Create one
+            </A>
+          </span>
+          <p class="text-[10px] text-slate-600">
+            Family accounts are managed by parents.
+          </p>
+        </div>
       </div>
     </div>
   );
