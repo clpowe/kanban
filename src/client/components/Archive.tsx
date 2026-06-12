@@ -1,6 +1,5 @@
 import { For, Show, createSignal, createMemo } from "solid-js";
 import { store, storeActions } from "../store/app-store";
-import type { task } from "../../types";
 import { priorityStyles } from "./Board";
 
 export default function Archive() {
@@ -62,7 +61,7 @@ export default function Archive() {
       {/* Header Area */}
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 class="text-3xl font-black text-white bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h2 class="text-3xl font-black text-white bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text ">
             Historical Archives
           </h2>
           <p class="text-slate-400 text-sm mt-1">
@@ -109,7 +108,7 @@ export default function Archive() {
           >
             <option value="all">All Members</option>
             <option value="unassigned">Unassigned</option>
-            <For each={store.users}>
+            <For each={store.users.filter((u) => u.type === "child")}>
               {(user) => <option value={user.id}>{user.name}</option>}
             </For>
           </select>
@@ -168,7 +167,7 @@ export default function Archive() {
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <For each={filteredTasks()}>
               {(task) => (
-                <div class="group relative rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/40 p-4 shadow-lg hover:border-slate-700/60 transition-all duration-200 flex flex-col justify-between min-h-[140px]">
+                <div class="group relative rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/40 p-4 shadow-lg hover:border-slate-700/60 transition-all duration-200 flex flex-col justify-between min-h-35">
                   <div>
                     {/* Priority & Points Row */}
                     <div class="flex items-center justify-between gap-2 mb-2">
@@ -188,7 +187,7 @@ export default function Archive() {
                   </div>
                   {/* Card Footer (Assignee + Buttons) */}
                   <div class="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between gap-4">
-                    <span class="text-[10px] text-slate-500 truncate max-w-[120px]">
+                    <span class="text-[10px] text-slate-500 truncate max-w-30">
                       👤 {getAssigneeName(task.assigneeId)}
                     </span>
                     <div class="flex items-center gap-1.5 shrink-0">

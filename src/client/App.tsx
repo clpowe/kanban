@@ -1,6 +1,6 @@
 import { createEffect, Show } from "solid-js";
 import { Router, Route, useNavigate } from "@solidjs/router";
-import { store, isLoading, storeActions } from "./store/app-store";
+import { store, storeActions } from "./store/app-store";
 import { authClient } from "./lib/auth-client";
 import Board from "./components/Board";
 import Archive from "./components/Archive";
@@ -40,7 +40,7 @@ function AppLayout(props: { children?: JSX.Element }) {
           <div class="relative flex items-center justify-center">
             <div class="absolute h-24 w-24 rounded-full border border-indigo-500/30 animate-ping opacity-75" />
             <div class="absolute h-16 w-16 rounded-full border border-violet-500/30 animate-pulse" />
-            <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center">
+            <div class="h-10 w-10 rounded-full bg-linear-to-tr from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center">
               <span class="text-xs font-bold tracking-widest text-white/90">
                 K
               </span>

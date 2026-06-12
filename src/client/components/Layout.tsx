@@ -1,7 +1,6 @@
 import { Show, For } from "solid-js";
 import { A, useLocation } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
-import { authClient } from "../lib/auth-client";
 
 export default function Navbar() {
   const location = useLocation();
@@ -25,7 +24,7 @@ export default function Navbar() {
         <span class="text-xs font-bold uppercase tracking-widest text-indigo-400">
           Household Board
         </span>
-        <h1 class="text-2xl font-black bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+        <h1 class="text-2xl font-black bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
           Family Task
         </h1>
         <Show when={store.activeUser}>

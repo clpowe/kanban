@@ -4,7 +4,7 @@ import AnimatedPoints from "./AnimatedPoints";
 
 export default function PointCards() {
   return (
-    <Show when={store.activeUser}>
+    <Show when={store.activeUser && store.activeUser.type !== "parent"}>
       <div class="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md shadow-xl flex items-center justify-between gap-6 group">
         {/* Background ambient highlights */}
         <div class="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-indigo-500/10 blur-3xl transition-all group-hover:bg-indigo-500/20" />

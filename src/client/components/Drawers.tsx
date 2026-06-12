@@ -1,9 +1,10 @@
 import { Show, For, createSignal } from "solid-js";
-import { store, storeActions, isLoading } from "../store/app-store";
+import type { ParentProps } from "solid-js";
+import { store, storeActions } from "../store/app-store";
 import type { CreateTask } from "../../types";
 import AnimatedPoints from "./AnimatedPoints";
 
-export default function Drawers(props: { children }) {
+export default function Drawers(props: ParentProps) {
   const isParent = () => store.activeUser?.type === "parent";
 
   // ── Form States for Adding a Task ─────────────────────
@@ -77,7 +78,9 @@ export default function Drawers(props: { children }) {
   };
   // Sort users for the leaderboard (highest points first)
   const sortedUsers = () => {
-    return [...store.users].sort((a, b) => b.points - a.points);
+    return [...store.users]
+      .filter((u) => u.type === "child")
+      .sort((a, b) => b.points - a.points);
   };
 
   return (
@@ -298,7 +301,7 @@ export default function Drawers(props: { children }) {
                     onChange={(e) => setTaskAssigneeId(e.currentTarget.value)}
                   >
                     <option value="">Unassigned</option>
-                    <For each={store.users}>
+                    <For each={store.users.filter((u) => u.type === "child")}>
                       {(user) => <option value={user.id}>{user.name}</option>}
                     </For>
                   </select>

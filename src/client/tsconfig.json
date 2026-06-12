@@ -1,18 +1,11 @@
 {
-    "extends": "../../tsconfig.json",
-    "compilerOptions": {
-        "lib": [
-            "ESNext",
-            "DOM",
-            "DOM.Iterable"
-        ],
-        "types": [],
-        "jsx": "preserve",
-        "jsxImportSource": "solid-js"
-    },
-    "include": [
-        "./**/*.ts",
-        "./**/*.tsx"
-    ],
-    "exclude": []
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": ["@cloudflare/workers-types"],
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+  },
+  "include": ["./**/*.ts", "./**/*.tsx"],
+  "exclude": [],
 }

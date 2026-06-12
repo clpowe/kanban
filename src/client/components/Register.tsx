@@ -36,6 +36,7 @@ export default function Register() {
         navigate("/", { replace: true });
       }
     } catch (error) {
+      console.log(error);
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);

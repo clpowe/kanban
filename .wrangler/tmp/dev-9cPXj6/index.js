@@ -32,7 +32,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// .wrangler/tmp/bundle-njJx20/checked-fetch.js
+// .wrangler/tmp/bundle-AgfzkI/checked-fetch.js
 function checkURL(request, init2) {
   const url2 = request instanceof URL ? request : new URL(
     (typeof request === "string" ? new Request(request, init2) : request).url
@@ -50,7 +50,7 @@ function checkURL(request, init2) {
 }
 var urls;
 var init_checked_fetch = __esm({
-  ".wrangler/tmp/bundle-njJx20/checked-fetch.js"() {
+  ".wrangler/tmp/bundle-AgfzkI/checked-fetch.js"() {
     "use strict";
     urls = /* @__PURE__ */ new Set();
     __name(checkURL, "checkURL");
@@ -21675,11 +21675,11 @@ var init_kysely_adapter = __esm({
   }
 });
 
-// .wrangler/tmp/bundle-njJx20/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-AgfzkI/middleware-loader.entry.ts
 init_checked_fetch();
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-njJx20/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-AgfzkI/middleware-insertion-facade.js
 init_checked_fetch();
 init_modules_watch_stub();
 
@@ -60858,7 +60858,9 @@ var getActiveTasks = /* @__PURE__ */ __name(async (db) => {
 }, "getActiveTasks");
 var getArchivedTasks = /* @__PURE__ */ __name(async (db, assigneeId) => {
   if (assigneeId) {
-    return db.select().from(tasks).where(and(eq(tasks.status, "archived"), eq(tasks.assigneeId, assigneeId)));
+    return db.select().from(tasks).where(
+      and(eq(tasks.status, "archived"), eq(tasks.assigneeId, assigneeId))
+    );
   }
   return db.select().from(tasks).where(eq(tasks.status, "archived"));
 }, "getArchivedTasks");
@@ -60867,6 +60869,12 @@ var getTaskById = /* @__PURE__ */ __name(async (db, id) => {
 }, "getTaskById");
 var createTask = /* @__PURE__ */ __name(async (db, data) => {
   const priority = data.priority;
+  if (data.assigneeId) {
+    const assignee = await db.select().from(users).where(eq(users.id, Number(data.assigneeId))).get();
+    if (assignee && assignee.type === "parent") {
+      throw new Error("Tasks cannot be assigned to parents");
+    }
+  }
   return await db.insert(tasks).values({
     title: data.title,
     priority,
@@ -60877,6 +60885,12 @@ var createTask = /* @__PURE__ */ __name(async (db, data) => {
   }).returning();
 }, "createTask");
 var updateTask = /* @__PURE__ */ __name(async (db, id, updates) => {
+  if (updates.assigneeId) {
+    const assignee = await db.select().from(users).where(eq(users.id, updates.assigneeId)).get();
+    if (assignee && assignee.type === "parent") {
+      throw new Error("Tasks cannot be assigned to parents");
+    }
+  }
   await db.update(tasks).set(updates).where(eq(tasks.id, id));
 }, "updateTask");
 var updateTaskStatus = /* @__PURE__ */ __name(async (db, id, status) => {
@@ -61642,7 +61656,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-njJx20/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-AgfzkI/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -61676,7 +61690,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-njJx20/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-AgfzkI/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

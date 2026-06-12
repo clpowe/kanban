@@ -42,6 +42,11 @@ This document serves as the official project board and TODO list for migrating t
 - [x] **Task 5.2**: Add basic HTML5 drag-and-drop column transitions.
 - [x] **Task 5.3**: Style clean form input focus states and slide-out drawer animations.
 
-## 🛠️ Current Focus: Epic 5 Complete
+### 🚀 Epic 6: Authentication & Dashboard Enhancements
+- [x] **Task 6.1**: Create glassmorphic login screen and configure Better Auth sessions.
+- [x] **Task 6.2**: Add a dedicated Create Account (Register) screen with parent/child role selection.
+- [x] **Task 6.3**: Implement a central Navigation Card dashboard component and simplify the header bar.
 
-All migration tasks for Hono to SolidJS + Better Auth are completed. Waiting for next instructions.
+## 🛠️ Current Focus: All Completed
+
+All migration and dashboard enhancement tasks are completed. Waiting for next instructions.
