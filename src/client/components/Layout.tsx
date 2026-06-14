@@ -7,6 +7,7 @@ export default function Navbar() {
 
   const isBoard = () => location.pathname === "/";
   const isArchive = () => location.pathname === "/archived";
+  const isSettings = () => location.pathname === "/settings";
   const isParent = () => store.activeUser?.type === "parent";
 
   const handleUserSwitch = (e: Event) => {
@@ -72,6 +73,16 @@ export default function Navbar() {
           </label>
 
           <Show when={isParent()}>
+            <A
+              href="/settings"
+              class={`btn btn-sm rounded-xl font-semibold border-0 transition-all duration-200 ${
+                isSettings()
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-500"
+                  : "bg-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+              }`}
+            >
+              Settings
+            </A>
             <label
               for="task-drawer"
               class="btn btn-accent btn-sm rounded-xl text-slate-950 font-bold border-0 bg-teal-400 hover:bg-teal-300 cursor-pointer"

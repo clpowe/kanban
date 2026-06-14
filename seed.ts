@@ -7,6 +7,8 @@ interface Env {
   BETTER_AUTH_SECRET: string;
   BETTER_AUTH_URL: string;
   ASSETS: Fetcher;
+  POSTHOG_API_KEY: string;
+  POSTHOG_HOST: string;
 }
 
 export default {

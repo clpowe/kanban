@@ -48,6 +48,13 @@ export const api = {
         return apiFetch<User[]>('/api/users')
     },
 
+    async createChild(data: { name: string; username: string; email: string; password: string }): Promise<User> {
+        return apiFetch<User>('/api/users/children', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        })
+    },
+
     // --- Task Endpoints ---
     async getTasks(): Promise<Task[]> {
         return apiFetch<Task[]>('/api/tasks')

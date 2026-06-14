@@ -17,9 +17,7 @@ export default function Drawers(props: ParentProps) {
   );
   const [taskAssigneeId, setTaskAssigneeId] = createSignal<string>("");
 
-  // ── Form States for Adding a Reward ───────────────────
-  const [rewardTitle, setRewardTitle] = createSignal("");
-  const [rewardCost, setRewardCost] = createSignal<number>(10);
+
 
   // ── Action Handlers ──────────────────────────────────
   const handleAddTask = async (e: Event) => {
@@ -52,26 +50,7 @@ export default function Drawers(props: ParentProps) {
     }
   };
 
-  const handleAddReward = async (e: Event) => {
-    e.preventDefault();
-    if (!rewardTitle().trim() || rewardCost() <= 0) return;
 
-    const result = await storeActions.createReward({
-      title: rewardTitle().trim(),
-      cost: rewardCost(),
-    });
-
-    if (result) {
-      setRewardTitle("");
-      setRewardCost(10);
-
-      // Programmatically close drawer
-      const toggle = document.getElementById(
-        "task-drawer",
-      ) as HTMLInputElement | null;
-      if (toggle) toggle.checked = false;
-    }
-  };
 
   const handleRedeem = async (id: number) => {
     await storeActions.redeemReward(id);
@@ -232,7 +211,7 @@ export default function Drawers(props: ParentProps) {
                 <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400">
                   Manager Dashboard
                 </span>
-                <h2 class="text-xl font-black text-white">Create New Items</h2>
+                <h2 class="text-xl font-black text-white">Create New Task</h2>
               </div>
               <label
                 for="task-drawer"
@@ -314,49 +293,10 @@ export default function Drawers(props: ParentProps) {
                 </button>
               </form>
             </section>
-            {/* Reward Form */}
-            <section class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-              <h3 class="text-xs font-black uppercase tracking-wider text-slate-400 mb-3">
-                🎁 Add Reward Item
-              </h3>
-              <form onSubmit={handleAddReward} class="flex flex-col gap-3">
-                <div class="flex flex-col gap-1">
-                  <input
-                    type="text"
-                    placeholder="Reward name (e.g. Extra screen time)..."
-                    class="input input-sm bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-                    value={rewardTitle()}
-                    onInput={(e) => setRewardTitle(e.currentTarget.value)}
-                    required
-                  />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">
-                    Point Cost
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Point cost..."
-                    class="input input-sm bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-                    value={rewardCost()}
-                    onInput={(e) =>
-                      setRewardCost(Number(e.currentTarget.value))
-                    }
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  class="btn btn-sm rounded-xl font-bold border-0 bg-teal-400 hover:bg-teal-300 text-slate-950 mt-2"
-                >
-                  Add Reward
-                </button>
-              </form>
-            </section>
           </div>
         </div>
       </Show>
     </div>
   );
 }
+

@@ -150,6 +150,16 @@ export const storeActions = {
             }
         })
     },
+
+    // Child Account Actions
+    async createChild(data: { name: string; username: string; email: string; password: string }) {
+        return await runStoreAction(async () => {
+            const newUser = await api.createChild(data)
+            // Refresh user list so the new child appears in switcher and assignee dropdowns
+            await reloadUsers()
+            return newUser
+        })
+    },
 }
 
 export { store, isLoading, error }

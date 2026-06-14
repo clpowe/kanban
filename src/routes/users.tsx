@@ -2,6 +2,7 @@ import type { Hono } from 'hono'
 import { getDB, type Env } from '../db/client'
 import { requireParent } from '../auth/middleware'
 import { getAllUsers } from '../services/user.service'
+import { createAuth } from '../auth/auth'
 
 export function userRoutes(app: Hono<Env>) {
   // GET list of all users (sorted)
@@ -28,7 +29,54 @@ export function userRoutes(app: Hono<Env>) {
     }
   })
 
-  // 2. PATCH user details (Parents only - Stub)
+  // POST create a child user (Parents only)
+  app.post('/api/users/children', async (c) => {
+    try {
+      requireParent(c)
+
+      const body = await c.req.json<{
+        name?: string
+        username?: string
+        email?: string
+        password?: string
+      }>()
+
+      const { name, username, email, password } = body
+
+      if (!name?.trim() || !username?.trim() || !email?.trim() || !password) {
+        return c.json({ error: 'Name, username, email, and password are required' }, 400)
+      }
+
+      if (password.length < 6) {
+        return c.json({ error: 'Password must be at least 6 characters' }, 400)
+      }
+
+      const auth = createAuth(c.env)
+
+      const result = await auth.api.signUpEmail({
+        body: {
+          email: email.trim(),
+          password,
+          name: name.trim(),
+          username: username.trim(),
+          type: 'child',
+        },
+      })
+
+      if (!result?.user) {
+        return c.json({ error: 'Failed to create child account' }, 500)
+      }
+
+      return c.json(result.user, 201)
+    } catch (err: any) {
+      console.error('POST /api/users/children error:', err)
+      const message = err?.message || err?.body?.message || 'Failed to create child account'
+      const status = err?.status || 500
+      return c.json({ error: message }, status)
+    }
+  })
+
+  // PATCH user details (Parents only - Stub)
   app.patch('/api/users/:id', async (c) => {
     try {
       requireParent(c)

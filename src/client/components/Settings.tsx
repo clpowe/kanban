@@ -1,0 +1,276 @@
+import { Show, createSignal, createEffect } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import { store, storeActions } from "../store/app-store";
+
+export default function Settings() {
+  const navigate = useNavigate();
+
+  // Guard: Redirect non-parent users back to the board
+  createEffect(() => {
+    if (store.activeUser && store.activeUser.type !== "parent") {
+      navigate("/", { replace: true });
+    }
+  });
+
+  // ── Form States for Adding a Reward ───────────────────
+  const [rewardTitle, setRewardTitle] = createSignal("");
+  const [rewardCost, setRewardCost] = createSignal<number>(10);
+  const [rewardSuccess, setRewardSuccess] = createSignal(false);
+  const [rewardError, setRewardError] = createSignal<string | null>(null);
+
+  // ── Form States for Adding a Child ────────────────────
+  const [childName, setChildName] = createSignal("");
+  const [childUsername, setChildUsername] = createSignal("");
+  const [childEmail, setChildEmail] = createSignal("");
+  const [childPassword, setChildPassword] = createSignal("");
+  const [childError, setChildError] = createSignal<string | null>(null);
+  const [childSuccess, setChildSuccess] = createSignal(false);
+  const [childLoading, setChildLoading] = createSignal(false);
+
+  // ── Action Handlers ──────────────────────────────────
+  const handleAddReward = async (e: Event) => {
+    e.preventDefault();
+    setRewardError(null);
+    setRewardSuccess(false);
+
+    if (!rewardTitle().trim() || rewardCost() <= 0) {
+      setRewardError("Valid reward title and point cost are required");
+      return;
+    }
+
+    try {
+      const result = await storeActions.createReward({
+        title: rewardTitle().trim(),
+        cost: rewardCost(),
+      });
+
+      if (result) {
+        setRewardTitle("");
+        setRewardCost(10);
+        setRewardSuccess(true);
+        setTimeout(() => setRewardSuccess(false), 3000);
+      }
+    } catch (err: any) {
+      setRewardError(err?.message || "Failed to add reward");
+    }
+  };
+
+  const handleAddChild = async (e: Event) => {
+    e.preventDefault();
+    setChildError(null);
+    setChildSuccess(false);
+
+    if (
+      !childName().trim() ||
+      !childUsername().trim() ||
+      !childEmail().trim() ||
+      !childPassword()
+    ) {
+      setChildError("All fields are required");
+      return;
+    }
+
+    if (childPassword().length < 6) {
+      setChildError("Password must be at least 6 characters");
+      return;
+    }
+
+    setChildLoading(true);
+    try {
+      const result = await storeActions.createChild({
+        name: childName().trim(),
+        username: childUsername().trim(),
+        email: childEmail().trim(),
+        password: childPassword(),
+      });
+
+      if (result) {
+        setChildName("");
+        setChildUsername("");
+        setChildEmail("");
+        setChildPassword("");
+        setChildSuccess(true);
+        setTimeout(() => setChildSuccess(false), 3000);
+      }
+    } catch (err: any) {
+      setChildError(err?.message || "Failed to create child account");
+    } finally {
+      setChildLoading(false);
+    }
+  };
+
+  return (
+    <div class="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+      {/* Page Header */}
+      <div class="flex flex-col gap-1.5 p-1">
+        <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-400">
+          Administration Portal
+        </span>
+        <h2 class="text-3xl font-black text-white tracking-tight">
+          Parent Settings
+        </h2>
+        <p class="text-sm text-slate-400 max-w-xl">
+          Manage your household by configuring store reward items and creating child member accounts.
+        </p>
+      </div>
+
+      {/* Settings Grid */}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        {/* Section 1: Reward Form */}
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              🎁 Add Reward Item
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              Create a new reward child accounts can redeem using their hard-earned points.
+            </p>
+          </div>
+
+          <Show when={rewardSuccess()}>
+            <div class="rounded-xl bg-teal-500/10 border border-teal-500/20 px-4 py-2.5">
+              <p class="text-xs font-semibold text-teal-400">
+                ✓ Reward item added successfully!
+              </p>
+            </div>
+          </Show>
+          <Show when={rewardError()}>
+            <div class="rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5">
+              <p class="text-xs font-semibold text-rose-400">
+                {rewardError()}
+              </p>
+            </div>
+          </Show>
+
+          <form onSubmit={handleAddReward} class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                Reward Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Extra 30 mins screen time"
+                class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
+                value={rewardTitle()}
+                onInput={(e) => setRewardTitle(e.currentTarget.value)}
+                required
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                Point Cost
+              </label>
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 50"
+                class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
+                value={rewardCost()}
+                onInput={(e) => setRewardCost(Number(e.currentTarget.value))}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              class="btn rounded-xl font-bold border-0 bg-teal-400 hover:bg-teal-300 text-slate-950 mt-2 w-full transition-all duration-200"
+            >
+              Create Reward
+            </button>
+          </form>
+        </section>
+
+        {/* Section 2: Add Family Member Form */}
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              👶 Add Family Member
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              Add a child account to your household board so they can claim tasks and earn points.
+            </p>
+          </div>
+
+          <Show when={childSuccess()}>
+            <div class="rounded-xl bg-teal-500/10 border border-teal-500/20 px-4 py-2.5">
+              <p class="text-xs font-semibold text-teal-400">
+                ✓ Child account created successfully!
+              </p>
+            </div>
+          </Show>
+          <Show when={childError()}>
+            <div class="rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5">
+              <p class="text-xs font-semibold text-rose-400">
+                {childError()}
+              </p>
+            </div>
+          </Show>
+
+          <form onSubmit={handleAddChild} class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                Full Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Emma"
+                class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
+                value={childName()}
+                onInput={(e) => setChildName(e.currentTarget.value)}
+                required
+              />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. emma"
+                  class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
+                  value={childUsername()}
+                  onInput={(e) => setChildUsername(e.currentTarget.value)}
+                  required
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="emma@family.local"
+                  class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
+                  value={childEmail()}
+                  onInput={(e) => setChildEmail(e.currentTarget.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="Min 6 characters"
+                class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
+                value={childPassword()}
+                onInput={(e) => setChildPassword(e.currentTarget.value)}
+                required
+                minlength="6"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={childLoading()}
+              class="btn rounded-xl font-bold border-0 bg-purple-600 hover:bg-purple-500 text-white mt-2 w-full disabled:opacity-50 transition-all duration-200"
+            >
+              {childLoading() ? "Creating..." : "Add Child Member"}
+            </button>
+          </form>
+        </section>
+      </div>
+    </div>
+  );
+}

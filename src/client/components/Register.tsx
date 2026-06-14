@@ -9,7 +9,7 @@ export default function Register() {
   const [username, setUsername] = createSignal("");
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
-  const [type, setType] = createSignal<"parent" | "child">("child");
+
   const [error, setError] = createSignal<string | null>(null);
   const [loading, setLoading] = createSignal(false);
 
@@ -24,7 +24,7 @@ export default function Register() {
         password: password(),
         name: name(),
         username: username(),
-        type: type(),
+        type: "parent",
       });
 
       if (signUpError) {
@@ -67,7 +67,7 @@ export default function Register() {
         <div class="rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-2xl">
           <h2 class="text-lg font-bold text-white mb-1">Join the family</h2>
           <p class="text-xs text-slate-400 mb-6 font-medium">
-            Register your account to start managing tasks.
+            Create a parent account to manage your family's tasks.
           </p>
           <Show when={error()}>
             <div class="rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5 mb-4">
@@ -92,43 +92,22 @@ export default function Register() {
                 required
               />
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="flex flex-col gap-1.5">
-                <label
-                  for="register-username"
-                  class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
-                >
-                  Username
-                </label>
-                <input
-                  id="register-username"
-                  type="text"
-                  placeholder="e.g. emma"
-                  class="input input-sm w-full bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-                  value={username()}
-                  onInput={(e) => setUsername(e.currentTarget.value)}
-                  required
-                />
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label
-                  for="register-role"
-                  class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
-                >
-                  Role
-                </label>
-                <select
-                  id="register-role"
-                  class="select select-sm w-full bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-                  value={type()}
-                  onChange={(e) =>
-                    setType(e.currentTarget.value as "parent" | "child")
-                  }
-                >
-                  <option value="child">Child</option>
-                  <option value="parent">Parent</option>
-                </select>
-              </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                for="register-username"
+                class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
+              >
+                Username
+              </label>
+              <input
+                id="register-username"
+                type="text"
+                placeholder="e.g. emma"
+                class="input input-sm w-full bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
+                value={username()}
+                onInput={(e) => setUsername(e.currentTarget.value)}
+                required
+              />
             </div>
             <div class="flex flex-col gap-1.5">
               <label

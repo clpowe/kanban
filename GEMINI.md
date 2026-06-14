@@ -47,6 +47,19 @@ This document serves as the official project board and TODO list for migrating t
 - [x] **Task 6.2**: Add a dedicated Create Account (Register) screen with parent/child role selection.
 - [x] **Task 6.3**: Implement a central Navigation Card dashboard component and simplify the header bar.
 
+### 👨‍👩‍👧‍👦 Epic 7: Parent-Managed Child Accounts
+- [x] **Task 7.1**: Add `POST /api/users/children` parent-only backend endpoint.
+- [x] **Task 7.2**: Remove role selector from public Register page (default to "parent").
+- [x] **Task 7.3**: Add "Add Family Member" form to the parent Manager Dashboard drawer.
+- [x] **Task 7.4**: Add `createChild` API client function and store action.
+
+### ⚙️ Epic 8: Navigation & Creator Refactoring
+- [x] **Task 8.1**: Create parent-only Settings page (`src/client/components/Settings.tsx`) with Add Reward and Add Child forms.
+- [x] **Task 8.2**: Integrate `/settings` route in client router (`src/client/App.tsx`).
+- [x] **Task 8.3**: Add settings link to navbar layout (`src/client/components/Layout.tsx`) and rename "Menu" drawer button to "Add Task".
+- [x] **Task 8.4**: Simplify sidebar drawers (`src/client/components/Drawers.tsx`) to only contain the task form.
+
 ## 🛠️ Current Focus: All Completed
 
-All migration and dashboard enhancement tasks are completed. Waiting for next instructions.
+All refactoring tasks are completed. Waiting for next instructions.
+

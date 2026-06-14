@@ -10,6 +10,7 @@
   },
   "vars": {
     "BETTER_AUTH_URL": "http://localhost:8787",
+    "POSTHOG_HOST": "https://us.i.posthog.com",
   },
   "d1_databases": [
     {

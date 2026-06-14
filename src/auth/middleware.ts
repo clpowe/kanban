@@ -11,6 +11,7 @@ import {
   getTaskAssigneeId,
   getUserById,
 } from "../services/user.service";
+import { createPostHogClient } from "../lib/posthog";
 
 export const FAMILY_SESSION_COOKIE = "family_session";
 
@@ -124,6 +125,20 @@ export const sessionMiddleware = async (
   c.set("loginUser", loginUser);
   c.set("activeUser", activeUser);
   c.set("authUser", activeUser);
+
+  const posthog = createPostHogClient(c.env);
+  posthog.identify({
+    distinctId: String(loginUser.id),
+    properties: {
+      $set: {
+        name: loginUser.name,
+        email: loginUser.email,
+        user_type: loginUser.type,
+      },
+    },
+  });
+  await posthog.shutdown();
+
   await next();
 };
 

@@ -7,6 +7,8 @@ export type Env = {
     ASSETS: Fetcher;
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
+    POSTHOG_API_KEY: string;
+    POSTHOG_HOST: string;
   };
   Variables: {
     authUser: User;

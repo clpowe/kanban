@@ -7,6 +7,7 @@ import {
   serializeFamilySession,
   validateActiveUserSelection,
 } from '../auth/middleware'
+import { createPostHogClient } from '../lib/posthog'
 
 export function sessionRoutes(app: Hono<Env>) {
   // 1. GET current authenticated session & active user (Crucial for client boot!)
@@ -46,6 +47,17 @@ export function sessionRoutes(app: Hono<Env>) {
           path: '/',
         }
       )
+
+      const loginUser = c.get('loginUser')
+      if (loginUser) {
+        const posthog = createPostHogClient(c.env)
+        await posthog.captureImmediate({
+          distinctId: String(loginUser.id),
+          event: 'active user switched',
+          properties: { new_active_user_id: activeUserId },
+        })
+      }
+
       return c.json({ success: true, activeUserId })
     }
     catch (err) {

@@ -6,7 +6,9 @@ import {
   createReward,
   getAllRewards,
   redeemReward,
+  getRewardById,
 } from '../services/reward.service'
+import { createPostHogClient } from '../lib/posthog'
 
 type RewardRoutesDeps = {
   getDB: typeof getDB
@@ -55,6 +57,17 @@ export function rewardRoutes(app: Hono<Env>,
         return c.json({ error: 'Failed to create reward' }, 500)
       }
 
+      const posthog = createPostHogClient(c.env)
+      await posthog.captureImmediate({
+        distinctId: String(parentUser.id),
+        event: 'reward created',
+        properties: {
+          reward_id: createdReward.id,
+          reward_title: createdReward.title,
+          cost: createdReward.cost,
+        },
+      })
+
       return c.json(createdReward, 201)
     } catch (error) {
       console.error('POST /api/rewards error:', error)
@@ -71,7 +84,20 @@ export function rewardRoutes(app: Hono<Env>,
       }
       const db = deps.getDB(c.env)
       const rewardId = Number(c.req.param('id'))
+      const reward = await getRewardById(db, rewardId)
       await deps.redeemReward(db, authUser, rewardId)
+
+      const posthog = createPostHogClient(c.env)
+      await posthog.captureImmediate({
+        distinctId: String(authUser.id),
+        event: 'reward redeemed',
+        properties: {
+          reward_id: rewardId,
+          reward_title: reward?.title ?? null,
+          cost: reward?.cost ?? null,
+          points_before: authUser.points,
+        },
+      })
 
       return c.json({ success: true })
     } catch (error) {

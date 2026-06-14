@@ -9,6 +9,7 @@ import Navbar from "./components/Layout";
 import PointCards from "./components/PointsCards";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import Settings from "./components/Settings";
 import type { JSX } from "solid-js";
 
 // ── AppLayout (Route Wrapper) ───────────────────────────
@@ -74,6 +75,7 @@ export default function App() {
       <Route path="/" component={AppLayout}>
         <Route path="/" component={Board} />
         <Route path="/archived" component={Archive} />
+        <Route path="/settings" component={Settings} />
       </Route>
     </Router>
   );
