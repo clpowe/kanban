@@ -45,27 +45,22 @@ export default function Register() {
 
   return (
     <div class="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-8">
-      {/* Ambient background glow */}
-      <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-1/4 left-1/3 h-96 w-96 rounded-full bg-indigo-500/5 blur-3xl" />
-        <div class="absolute bottom-1/3 right-1/4 h-80 w-80 rounded-full bg-purple-500/5 blur-3xl" />
-      </div>
       <div class="relative w-full max-w-md animate-fade-in">
         {/* Branding */}
         <div class="text-center mb-6">
-          <div class="mx-auto h-14 w-14 rounded-2xl bg-linear-to-tr from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center mb-4">
+          <div class="mx-auto h-14 w-14 rounded-2xl bg-primary shadow-lg shadow-primary/20 flex items-center justify-center mb-4">
             <span class="text-lg font-black tracking-widest text-white">K</span>
           </div>
-          <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400">
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-primary">
             Household Board
           </span>
-          <h1 class="text-2xl font-black bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mt-1">
+          <h1 class="text-2xl font-black text-primary mt-1">
             Create Account
           </h1>
         </div>
         {/* Sign Up Card */}
         <div class="rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-2xl">
-          <h2 class="text-lg font-bold text-white mb-1">Join the family</h2>
+          <h2 class="text-lg font-bold text-slate-100 mb-1">Join the family</h2>
           <p class="text-xs text-slate-400 mb-6 font-medium">
             Create a parent account to manage your family's tasks.
           </p>

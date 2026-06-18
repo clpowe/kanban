@@ -61,7 +61,7 @@ export default function Archive() {
       {/* Header Area */}
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 class="text-3xl font-black text-white bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text ">
+          <h2 class="text-3xl font-black text-slate-100">
             Historical Archives
           </h2>
           <p class="text-slate-400 text-sm mt-1">

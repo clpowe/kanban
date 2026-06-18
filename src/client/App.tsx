@@ -10,6 +10,8 @@ import PointCards from "./components/PointsCards";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Settings from "./components/Settings";
+import Rewards from "./components/Rewards";
+import Analytics from "./components/Analytics";
 import type { JSX } from "solid-js";
 
 // ── AppLayout (Route Wrapper) ───────────────────────────
@@ -37,12 +39,12 @@ function AppLayout(props: { children?: JSX.Element }) {
     <Show
       when={session().data}
       fallback={
-        <div class="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white font-sans">
+        <div class="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans">
           <div class="relative flex items-center justify-center">
-            <div class="absolute h-24 w-24 rounded-full border border-indigo-500/30 animate-ping opacity-75" />
-            <div class="absolute h-16 w-16 rounded-full border border-violet-500/30 animate-pulse" />
-            <div class="h-10 w-10 rounded-full bg-linear-to-tr from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center">
-              <span class="text-xs font-bold tracking-widest text-white/90">
+            <div class="absolute h-24 w-24 rounded-full border border-primary/30 animate-ping opacity-75" />
+            <div class="absolute h-16 w-16 rounded-full border border-primary/20 animate-pulse" />
+            <div class="h-10 w-10 rounded-full bg-primary shadow-lg shadow-primary/20 flex items-center justify-center">
+              <span class="text-xs font-bold tracking-widest text-white">
                 K
               </span>
             </div>
@@ -76,6 +78,8 @@ export default function App() {
         <Route path="/" component={Board} />
         <Route path="/archived" component={Archive} />
         <Route path="/settings" component={Settings} />
+        <Route path="/rewards" component={Rewards} />
+        <Route path="/analytics" component={Analytics} />
       </Route>
     </Router>
   );

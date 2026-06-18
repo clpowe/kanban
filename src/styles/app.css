@@ -1,2 +1,58 @@
 @import "tailwindcss";
-@plugin "daisyui";
+
+@plugin "daisyui" {
+  themes: corporate --default, business;
+}
+
+/* Map Tailwind utility classes to CSS variables that adapt dynamically based on data-theme */
+@theme {
+  --color-slate-950: var(--slate-950);
+  --color-slate-900: var(--slate-900);
+  --color-slate-800: var(--slate-800);
+  --color-slate-700: var(--slate-700);
+  --color-slate-600: var(--slate-600);
+  --color-slate-500: var(--slate-500);
+  --color-slate-400: var(--slate-400);
+  --color-slate-300: var(--slate-300);
+  --color-slate-200: var(--slate-200);
+  --color-slate-100: var(--slate-100);
+
+  --color-indigo-600: var(--indigo-600);
+  --color-indigo-500: var(--indigo-500);
+  --color-indigo-400: var(--indigo-400);
+
+  --color-purple-400: var(--purple-400);
+  --color-pink-400: var(--pink-400);
+  --color-teal-400: var(--teal-400);
+
+  /* Map Tailwind radius utilities directly to DaisyUI's native theme radius variables */
+  --radius-3xl: var(--radius-box);
+  --radius-2xl: var(--radius-box);
+  --radius-xl: var(--radius-field);
+}
+
+/* Base definitions for corporate & dark themes (uses DaisyUI CSS variables directly) */
+:root {
+  --slate-950: var(--color-base-200);   /* Main page background */
+  --slate-900: var(--color-base-100);   /* Cards background */
+  --slate-800: var(--color-base-300);   /* Borders */
+  --slate-700: var(--color-base-300);   /* Hover borders */
+  
+  /* Derive slate text colors dynamically from base-content */
+  --slate-600: color-mix(in oklch, var(--color-base-content) 50%, transparent);
+  --slate-500: color-mix(in oklch, var(--color-base-content) 60%, transparent);
+  --slate-400: color-mix(in oklch, var(--color-base-content) 75%, transparent);
+  --slate-300: color-mix(in oklch, var(--color-base-content) 85%, transparent);
+  --slate-200: var(--color-base-content);
+  --slate-100: var(--color-base-content);
+
+  --indigo-600: var(--color-primary);
+  --indigo-500: color-mix(in oklch, var(--color-primary) 85%, white);
+  --indigo-400: var(--color-primary);
+  
+  /* Map purple, pink, and teal to primary to completely remove them from the theme */
+  --purple-400: var(--color-primary);
+  --pink-400: var(--color-primary);
+  --teal-400: var(--color-primary);
+}
+

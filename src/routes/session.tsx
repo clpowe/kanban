@@ -1,6 +1,8 @@
 import { getCookie, setCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
-import type { Env } from '../db/client'
+import { getDB, type Env } from '../db/client'
+import { eq } from 'drizzle-orm'
+import { users } from '../db/schema'
 import {
   FAMILY_SESSION_COOKIE,
   parseFamilySession,
@@ -32,12 +34,29 @@ export function sessionRoutes(app: Hono<Env>) {
         return c.json({ error: 'Invalid session' }, 400)
       }
 
+      const loginUser = c.get('loginUser')
+
+      // Enforce: Children cannot switch to parent accounts
+      if (loginUser && loginUser.type === 'child') {
+        const db = getDB(c.env)
+        const targetUser = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, requestedUserId))
+          .get()
+
+        if (targetUser && targetUser.type === 'parent') {
+          return c.json({ error: 'Forbidden: Children cannot switch to parent accounts' }, 403)
+        }
+      }
+
       const activeUserId = validateActiveUserSelection(session, requestedUserId)
 
       setCookie(
         c,
         FAMILY_SESSION_COOKIE,
         serializeFamilySession({
+          loginUserId: loginUser ? loginUser.id : session.loginUserId,
           activeUserId,
           familyUserIds: session.familyUserIds,
         }),
@@ -48,7 +67,6 @@ export function sessionRoutes(app: Hono<Env>) {
         }
       )
 
-      const loginUser = c.get('loginUser')
       if (loginUser) {
         const posthog = createPostHogClient(c.env)
         await posthog.captureImmediate({

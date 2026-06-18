@@ -17,7 +17,7 @@ const columns: ColumnDef[] = [
   {
     key: "todo",
     label: "To Do",
-    accent: "indigo",
+    accent: "primary",
     emptyText: "Nothing to do — nice!",
     nextStatus: "doing",
     nextLabel: "Start",
@@ -50,23 +50,23 @@ const accentMap: Record<
   string,
   { border: string; bg: string; text: string; glow: string }
 > = {
-  indigo: {
-    border: "border-indigo-500/40",
-    bg: "bg-indigo-500/10",
-    text: "text-indigo-400",
-    glow: "bg-indigo-500/10",
+  primary: {
+    border: "border-primary/45",
+    bg: "bg-primary/10",
+    text: "text-primary",
+    glow: "bg-primary/5",
   },
   amber: {
-    border: "border-amber-500/40",
+    border: "border-amber-500/45",
     bg: "bg-amber-500/10",
-    text: "text-amber-400",
-    glow: "bg-amber-500/10",
+    text: "text-amber-500",
+    glow: "bg-amber-500/5",
   },
   emerald: {
-    border: "border-emerald-500/40",
+    border: "border-emerald-500/45",
     bg: "bg-emerald-500/10",
-    text: "text-emerald-400",
-    glow: "bg-emerald-500/10",
+    text: "text-emerald-500",
+    glow: "bg-emerald-500/5",
   },
 };
 
@@ -113,7 +113,7 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
           ⭐ {props.task.value} pts
         </span>
         <Show when={props.task.repeat && props.task.repeat !== "none"}>
-          <span class="text-[10px] font-semibold text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-lg px-2 py-0.5 capitalize">
+          <span class="text-[10px] font-semibold text-slate-400 bg-slate-800/30 border border-slate-700/40 rounded-lg px-2 py-0.5 capitalize">
             🔁 {props.task.repeat}
           </span>
         </Show>
@@ -128,7 +128,7 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
       <Show when={props.col.nextStatus}>
         <button
           onClick={handleAdvance}
-          class="btn btn-sm w-full rounded-xl font-semibold border-0 transition-all duration-200 bg-slate-800 text-slate-300 hover:bg-indigo-600 hover:text-white hover:shadow-md hover:shadow-indigo-600/20"
+          class="btn btn-sm w-full rounded-xl font-semibold border-0 transition-all duration-200 bg-slate-800 text-slate-300 hover:bg-primary hover:text-white"
         >
           {props.col.nextLabel}
         </button>
@@ -179,7 +179,7 @@ export default function Board() {
                 <div
                   class={`flex flex-col gap-3 min-h-125 rounded-2xl p-2 transition-all duration-200 ${
                     isOver()
-                      ? "bg-slate-900/40 ring-2 ring-indigo-500/20 border border-slate-800/80"
+                      ? "bg-slate-900/40 ring-2 ring-primary/20 border border-slate-800/80"
                       : "bg-transparent border border-transparent"
                   }`}
                   onDragOver={(e) => {

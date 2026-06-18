@@ -15,6 +15,7 @@ describe('sessionRoutes', () => {
         'content-type': 'application/x-www-form-urlencoded',
         cookie: `${FAMILY_SESSION_COOKIE}=${encodeURIComponent(
           serializeFamilySession({
+            loginUserId: 1,
             activeUserId: 1,
             familyUserIds: [1, 2],
           })
@@ -40,6 +41,7 @@ describe('sessionRoutes', () => {
         'content-type': 'application/x-www-form-urlencoded',
         cookie: `${FAMILY_SESSION_COOKIE}=${encodeURIComponent(
           serializeFamilySession({
+            loginUserId: 1,
             activeUserId: 1,
             familyUserIds: [1],
           })

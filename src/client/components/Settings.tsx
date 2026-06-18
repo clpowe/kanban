@@ -1,4 +1,4 @@
-import { Show, createSignal, createEffect } from "solid-js";
+import { Show, createSignal, createEffect, For } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
 
@@ -26,6 +26,13 @@ export default function Settings() {
   const [childError, setChildError] = createSignal<string | null>(null);
   const [childSuccess, setChildSuccess] = createSignal(false);
   const [childLoading, setChildLoading] = createSignal(false);
+
+  // ── Form States for Changing a Child's Password ───────
+  const [targetChildId, setTargetChildId] = createSignal<number | "">("");
+  const [newPassword, setNewPassword] = createSignal("");
+  const [passwordSuccess, setPasswordSuccess] = createSignal(false);
+  const [passwordError, setPasswordError] = createSignal<string | null>(null);
+  const [passwordLoading, setPasswordLoading] = createSignal(false);
 
   // ── Action Handlers ──────────────────────────────────
   const handleAddReward = async (e: Event) => {
@@ -99,6 +106,38 @@ export default function Settings() {
     }
   };
 
+  const handleChangePassword = async (e: Event) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+    const childId = targetChildId();
+    if (childId === "") {
+      setPasswordError("Please select a child member");
+      return;
+    }
+    if (!newPassword() || newPassword().length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const result = await storeActions.changeChildPassword(
+        childId,
+        newPassword(),
+      );
+      if (result?.success) {
+        setTargetChildId("");
+        setNewPassword("");
+        setPasswordSuccess(true);
+        setTimeout(() => setPasswordSuccess(false), 3000);
+      }
+    } catch (err: any) {
+      setPasswordError(err?.message || "Failed to update child password");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   return (
     <div class="flex flex-col gap-6 w-full max-w-5xl mx-auto">
       {/* Page Header */}
@@ -106,11 +145,12 @@ export default function Settings() {
         <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-400">
           Administration Portal
         </span>
-        <h2 class="text-3xl font-black text-white tracking-tight">
+        <h2 class="text-3xl font-black text-slate-100 tracking-tight">
           Parent Settings
         </h2>
         <p class="text-sm text-slate-400 max-w-xl">
-          Manage your household by configuring store reward items and creating child member accounts.
+          Manage your household by configuring store reward items and creating
+          child member accounts.
         </p>
       </div>
 
@@ -119,11 +159,12 @@ export default function Settings() {
         {/* Section 1: Reward Form */}
         <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
           <div>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
               🎁 Add Reward Item
             </h3>
             <p class="text-xs text-slate-400 mt-1">
-              Create a new reward child accounts can redeem using their hard-earned points.
+              Create a new reward child accounts can redeem using their
+              hard-earned points.
             </p>
           </div>
 
@@ -136,9 +177,7 @@ export default function Settings() {
           </Show>
           <Show when={rewardError()}>
             <div class="rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5">
-              <p class="text-xs font-semibold text-rose-400">
-                {rewardError()}
-              </p>
+              <p class="text-xs font-semibold text-rose-400">{rewardError()}</p>
             </div>
           </Show>
 
@@ -182,11 +221,12 @@ export default function Settings() {
         {/* Section 2: Add Family Member Form */}
         <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
           <div>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
               👶 Add Family Member
             </h3>
             <p class="text-xs text-slate-400 mt-1">
-              Add a child account to your household board so they can claim tasks and earn points.
+              Add a child account to your household board so they can claim
+              tasks and earn points.
             </p>
           </div>
 
@@ -199,9 +239,7 @@ export default function Settings() {
           </Show>
           <Show when={childError()}>
             <div class="rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5">
-              <p class="text-xs font-semibold text-rose-400">
-                {childError()}
-              </p>
+              <p class="text-xs font-semibold text-rose-400">{childError()}</p>
             </div>
           </Show>
 
@@ -267,6 +305,79 @@ export default function Settings() {
               class="btn rounded-xl font-bold border-0 bg-purple-600 hover:bg-purple-500 text-white mt-2 w-full disabled:opacity-50 transition-all duration-200"
             >
               {childLoading() ? "Creating..." : "Add Child Member"}
+            </button>
+          </form>
+        </section>
+
+        {/* Section 3: Change Child Password Form */}
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4 md:col-span-2 max-w-2xl mx-auto w-full mt-2">
+          <div>
+            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+              🔑 Change Child Password
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              Reset the password for any child account in your household.
+            </p>
+          </div>
+          <Show when={passwordSuccess()}>
+            <div class="rounded-xl bg-teal-500/10 border border-teal-500/20 px-4 py-2.5">
+              <p class="text-xs font-semibold text-teal-400">
+                ✓ Password changed successfully!
+              </p>
+            </div>
+          </Show>
+          <Show when={passwordError()}>
+            <div class="rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5">
+              <p class="text-xs font-semibold text-rose-400">
+                {passwordError()}
+              </p>
+            </div>
+          </Show>
+          <form onSubmit={handleChangePassword} class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                  Select Child
+                </label>
+                <select
+                  class="select bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
+                  value={targetChildId()}
+                  onChange={(e) =>
+                    setTargetChildId(Number(e.currentTarget.value))
+                  }
+                  required
+                >
+                  <option value="">Choose a child...</option>
+                  <For each={store.users.filter((u) => u.type === "child")}>
+                    {(user) => (
+                      <option value={user.id}>
+                        {user.name} (@{user.username})
+                      </option>
+                    )}
+                  </For>
+                </select>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Min 6 characters"
+                  class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
+                  value={newPassword()}
+                  onInput={(e) => setNewPassword(e.currentTarget.value)}
+                  required
+                  minlength="6"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={passwordLoading()}
+              class="btn rounded-xl font-bold border-0 bg-indigo-600 hover:bg-indigo-500 text-white mt-2 w-full disabled:opacity-50 transition-all duration-200 cursor-pointer"
+            >
+              {passwordLoading() ? "Updating..." : "Update Password"}
             </button>
           </form>
         </section>

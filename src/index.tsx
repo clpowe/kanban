@@ -3,10 +3,10 @@ import type { Env } from "./db/client.ts";
 import { createAuth } from "./auth/auth.ts";
 import { sessionMiddleware } from "./auth/middleware.ts";
 import { taskRoutes } from "./routes/tasks.tsx";
-import { archivedRoutes } from "./routes/archived.tsx";
 import { rewardRoutes } from "./routes/rewards.tsx";
 import { userRoutes } from "./routes/users.tsx";
 import { sessionRoutes } from "./routes/session.tsx";
+import { analyticsRoutes } from "./routes/analytics.tsx";
 import { archiveCompletedTasks, resetDailyTasks } from "./cron.ts";
 
 const app = new Hono<Env>();
@@ -27,10 +27,10 @@ app.use("/session/*", sessionMiddleware);
 
 // ── API routes ──────────────────────────────────────────
 taskRoutes(app);
-archivedRoutes(app);
 rewardRoutes(app);
 userRoutes(app);
 sessionRoutes(app);
+analyticsRoutes(app);
 
 // ── SPA catch-all (serves index.html for all page routes) ──
 app.get("*", async (c) => {

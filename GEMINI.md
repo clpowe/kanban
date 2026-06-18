@@ -2,6 +2,9 @@
 
 This document serves as the official project board and TODO list for migrating the Family Kanban board from Hono JSX/HTMX to a client-side SolidJS SPA using Vite+ (`vp`).
 
+> [!IMPORTANT]
+> **AI Developer Rule**: Do NOT directly write, modify, or delete files in the codebase workspace. Instead, research the task, create plans/walkthroughs, and output the exact code changes and instructions in the chat, allowing the user to implement them manually.
+
 ---
 
 ## 📋 Project Status Checklist

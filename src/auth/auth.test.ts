@@ -63,11 +63,13 @@ describe('family session helpers', () => {
 
   test('serializes and parses the family session cookie payload', () => {
     const serialized = serializeFamilySession({
+      loginUserId: parentUser.id,
       activeUserId: childUser.id,
       familyUserIds: users.map((user) => user.id),
     })
 
     expect(parseFamilySession(serialized)).toEqual({
+      loginUserId: parentUser.id,
       activeUserId: childUser.id,
       familyUserIds: [parentUser.id, childUser.id],
     })
@@ -78,6 +80,7 @@ describe('family session helpers', () => {
       users,
       parentUser,
       serializeFamilySession({
+        loginUserId: parentUser.id,
         activeUserId: childUser.id,
         familyUserIds: users.map((user) => user.id),
       })

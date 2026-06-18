@@ -16,6 +16,7 @@ import { createPostHogClient } from "../lib/posthog";
 export const FAMILY_SESSION_COOKIE = "family_session";
 
 export type FamilySession = {
+  loginUserId: number;
   activeUserId: number;
   familyUserIds: number[];
 };
@@ -35,6 +36,7 @@ export function parseFamilySession(
     const parsed = JSON.parse(value) as Partial<FamilySession>;
 
     if (
+      typeof parsed.loginUserId !== "number" ||
       typeof parsed.activeUserId !== "number" ||
       !Array.isArray(parsed.familyUserIds) ||
       parsed.familyUserIds.some((id) => typeof id !== "number")
@@ -43,6 +45,7 @@ export function parseFamilySession(
     }
 
     return {
+      loginUserId: parsed.loginUserId,
       activeUserId: parsed.activeUserId,
       familyUserIds: parsed.familyUserIds,
     };
@@ -59,6 +62,11 @@ export function resolveActiveUser(
   const session = parseFamilySession(sessionValue);
 
   if (!session) {
+    return loginUser;
+  }
+
+  // If the logged-in user has changed, default back to their own account
+  if (session.loginUserId !== loginUser.id) {
     return loginUser;
   }
 
@@ -112,6 +120,7 @@ export const sessionMiddleware = async (
   const sessionValue = getCookie(c, FAMILY_SESSION_COOKIE);
   const activeUser = resolveActiveUser(users, loginUser, sessionValue);
   const nextSession = serializeFamilySession({
+    loginUserId: loginUser.id,
     activeUserId: activeUser.id,
     familyUserIds: users.map((user: User) => user.id),
   });
