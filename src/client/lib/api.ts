@@ -78,7 +78,7 @@ export const api = {
     id: number,
     password: string,
   ): Promise<{ success: boolean }> {
-    return apiFetch<{ success: boolean }>(``, {
+    return apiFetch<{ success: boolean }>(`/api/users/${id}/password`, {
       method: "POST",
       body: JSON.stringify({ password }),
     });

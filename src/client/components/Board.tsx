@@ -140,17 +140,63 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
 // ── Board (exported default) ───────────────────────────
 export default function Board() {
   const [dragOverCol, setDragOverCol] = createSignal<string | null>(null);
+  const [selectedChildId, setSelectedChildId] = createSignal<string>("all");
+
+  const filteredTasks = createMemo(() => {
+    const filterVal = selectedChildId();
+    if (filterVal === "all") {
+      return store.tasks;
+    }
+    if (filterVal === "unassigned") {
+      return store.tasks.filter(
+        (t) => t.assigneeId === null || t.assigneeId === undefined,
+      );
+    }
+
+    const targetId = Number(filterVal);
+    return store.tasks.filter((t) => t.assigneeId === targetId);
+  });
+
   // Derive column task lists reactively
   const tasksByStatus = createMemo(() => {
     const map: Record<string, Task[]> = {};
     for (const col of columns) {
-      map[col.key] = store.tasks.filter((t) => t.status === col.key);
+      map[col.key] = filteredTasks().filter((t) => t.status === col.key);
     }
     return map;
   });
 
   return (
     <section class="px-4 py-6 md:px-6 lg:px-8">
+      {/* Board Header & Filter */}
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-800 p-4 shadow-lg">
+        <div>
+          <h2 class="text-lg font-bold text-slate-100">Tasks Board</h2>
+          <p class="text-xs text-slate-400">
+            Track and update household chore progress
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <label
+            for="board-child-filter"
+            class="text-xs font-bold uppercase tracking-wider text-slate-400"
+          >
+            Assignee:
+          </label>
+          <select
+            id="board-child-filter"
+            class="select select-sm select-bordered bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 text-xs py-1"
+            value={selectedChildId()}
+            onChange={(e) => setSelectedChildId(e.currentTarget.value)}
+          >
+            <option value="all">All Members</option>
+            <option value="unassigned">Unassigned</option>
+            <For each={store.users.filter((u) => u.type === "child")}>
+              {(user) => <option value={user.id}>{user.name}</option>}
+            </For>
+          </select>
+        </div>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <For each={columns}>
           {(col) => {
