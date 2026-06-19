@@ -10,7 +10,12 @@ export default function PointCards() {
           <p class="text-xs font-bold uppercase tracking-widest text-slate-400">
             Active Member
           </p>
-          <h2 class="text-4xl font-black mt-1 text-slate-100">
+          <h2 class="text-4xl font-black mt-1 text-slate-100 flex items-center gap-2.5">
+            <Show when={store.activeUser!.image}>
+              <span class="text-3xl select-none animate-bounce">
+                {store.activeUser!.image}
+              </span>
+            </Show>
             {store.activeUser!.name}
           </h2>
         </div>

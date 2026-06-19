@@ -16,8 +16,9 @@ export default function Drawers(props: ParentProps) {
     "none",
   );
   const [taskAssigneeId, setTaskAssigneeId] = createSignal<string>("");
-
-
+  const [attachAchievement, setAttachAchievement] = createSignal(false);
+  const [achievementName, setAchievementName] = createSignal("");
+  const [targetStreak, setTargetStreak] = createSignal(20);
 
   // ── Action Handlers ──────────────────────────────────
   const handleAddTask = async (e: Event) => {
@@ -34,6 +35,15 @@ export default function Drawers(props: ParentProps) {
       assigneeId,
     };
 
+    if (
+      attachAchievement() &&
+      achievementName().trim() &&
+      (taskRepeat() === "daily" || taskRepeat() === "weekly")
+    ) {
+      newTask.achievementName = achievementName().trim();
+      newTask.targetStreak = Number(targetStreak());
+    }
+
     const result = await storeActions.addTask(newTask);
     if (result) {
       // Reset form
@@ -41,6 +51,9 @@ export default function Drawers(props: ParentProps) {
       setTaskPriority("medium");
       setTaskRepeat("none");
       setTaskAssigneeId("");
+      setAttachAchievement(false);
+      setAchievementName("");
+      setTargetStreak(20);
 
       // Programmatically close task drawer
       const toggle = document.getElementById(
@@ -49,8 +62,6 @@ export default function Drawers(props: ParentProps) {
       if (toggle) toggle.checked = false;
     }
   };
-
-
 
   const handleRedeem = async (id: number) => {
     await storeActions.redeemReward(id);
@@ -65,7 +76,7 @@ export default function Drawers(props: ParentProps) {
   return (
     <div class="drawer drawer-end">
       <input id="task-drawer" type="checkbox" class="drawer-toggle" />
-      
+
       {/* Inner page content (Header + Main App Pages) */}
       <div class="drawer-content min-h-screen bg-slate-950 text-slate-100 flex flex-col">
         <main class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -88,7 +99,9 @@ export default function Drawers(props: ParentProps) {
                 <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400">
                   Manager Dashboard
                 </span>
-                <h2 class="text-xl font-black text-slate-100">Create New Task</h2>
+                <h2 class="text-xl font-black text-slate-100">
+                  Create New Task
+                </h2>
               </div>
               <label
                 for="task-drawer"
@@ -162,6 +175,61 @@ export default function Drawers(props: ParentProps) {
                     </For>
                   </select>
                 </div>
+                {/* Custom Streak Achievement Option (For Repeatable tasks only) */}
+                <Show
+                  when={taskRepeat() === "daily" || taskRepeat() === "weekly"}
+                >
+                  <div class="flex flex-col gap-2 bg-slate-950/40 border border-slate-800 rounded-xl p-3 mt-1.5">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        class="checkbox checkbox-xs checkbox-primary border-slate-700 bg-slate-900"
+                        checked={attachAchievement()}
+                        onChange={(e) =>
+                          setAttachAchievement(e.currentTarget.checked)
+                        }
+                      />
+                      <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 select-none">
+                        Attach Custom Achievement
+                      </span>
+                    </label>
+                    <Show when={attachAchievement()}>
+                      <div class="flex flex-col gap-2 mt-1.5 animate-fade-in">
+                        <div class="flex flex-col gap-1">
+                          <label class="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                            Achievement Name
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Room Cleaning Legend"
+                            class="input input-xs bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-lg text-slate-200"
+                            value={achievementName()}
+                            onInput={(e) =>
+                              setAchievementName(e.currentTarget.value)
+                            }
+                            required={attachAchievement()}
+                          />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          <label class="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                            Target Streak (
+                            {taskRepeat() === "daily" ? "days" : "weeks"})
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            class="input input-xs bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-lg text-slate-200"
+                            value={targetStreak()}
+                            onInput={(e) =>
+                              setTargetStreak(Number(e.currentTarget.value))
+                            }
+                            required={attachAchievement()}
+                          />
+                        </div>
+                      </div>
+                    </Show>
+                  </div>
+                </Show>
                 <button
                   type="submit"
                   class="btn btn-sm rounded-xl font-bold border-0 bg-indigo-600 hover:bg-indigo-500 text-white mt-2"
@@ -176,4 +244,3 @@ export default function Drawers(props: ParentProps) {
     </div>
   );
 }
-

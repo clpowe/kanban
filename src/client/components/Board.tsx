@@ -2,6 +2,47 @@ import { For, Show, createMemo, createSignal } from "solid-js";
 import { store, storeActions } from "../store/app-store";
 import type { Task } from "../../types";
 
+export function getStreakLevel(
+  current: number,
+  target: number,
+  prestige: number,
+) {
+  if (prestige > 0) {
+    return {
+      name: "Legend",
+      color: "text-amber-400 border-amber-500/35 bg-amber-500/10",
+      icon: "👑",
+    };
+  }
+  const ratio = current / target;
+  if (ratio >= 0.75) {
+    return {
+      name: "Gold",
+      color: "text-yellow-500 border-yellow-500/35 bg-yellow-500/10",
+      icon: "🥇",
+    };
+  }
+  if (ratio >= 0.5) {
+    return {
+      name: "Silver",
+      color: "text-slate-350 border-slate-300/35 bg-slate-300/10",
+      icon: "🥈",
+    };
+  }
+  if (ratio >= 0.25) {
+    return {
+      name: "Bronze",
+      color: "text-amber-700 border-amber-700/35 bg-amber-700/10",
+      icon: "🥉",
+    };
+  }
+  return {
+    name: "None",
+    color: "text-slate-500 border-slate-800 bg-slate-900/40",
+    icon: "🌱",
+  };
+}
+
 // ── Column config ──────────────────────────────────────
 
 type ColumnDef = {
@@ -124,6 +165,62 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
           Assigned to <strong class="text-slate-300">{name()}</strong>
         </p>
       </Show>
+
+      {/* Streak Achievement Progress */}
+      <Show when={props.task.achievement}>
+        {(() => {
+          const ach = props.task.achievement!;
+          const lvl = () =>
+            getStreakLevel(
+              ach.currentStreak,
+              ach.targetStreak,
+              ach.prestigeCount,
+            );
+          const pct = () =>
+            Math.min(
+              100,
+              Math.round((ach.currentStreak / ach.targetStreak) * 100),
+            );
+
+          return (
+            <div class="mt-2.5 mb-2.5 p-2 rounded-xl bg-slate-950/30 border border-slate-800/80 flex flex-col gap-1.5 animate-fade-in text-xs">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <span class="text-[10px] font-bold text-slate-300 flex items-center gap-1">
+                  🏆 {ach.name}
+                </span>
+                <div class="flex items-center gap-1.5">
+                  <span
+                    class={`text-[8px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-lg border ${lvl().color}`}
+                  >
+                    {lvl().icon} {lvl().name}
+                  </span>
+                  <Show when={ach.prestigeCount > 0}>
+                    <span
+                      class="text-[9px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1 rounded-md"
+                      title={`Prestiged ${ach.prestigeCount} times`}
+                    >
+                      ⭐ {ach.prestigeCount}x
+                    </span>
+                  </Show>
+                </div>
+              </div>
+              {/* Progress bar */}
+              <div class="flex items-center gap-2">
+                <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    class="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                    style={{ width: `${pct()}%` }}
+                  />
+                </div>
+                <span class="text-[9px] font-bold text-slate-500 select-none whitespace-nowrap">
+                  {ach.currentStreak}/{ach.targetStreak}
+                </span>
+              </div>
+            </div>
+          );
+        })()}
+      </Show>
+
       {/* Advance button */}
       <Show when={props.col.nextStatus}>
         <button

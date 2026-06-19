@@ -14,6 +14,7 @@ export default function Navbar() {
   const isRewards = () => location.pathname === "/rewards";
   const isAnalytics = () => location.pathname === "/analytics";
   const isParent = () => store.activeUser?.type === "parent";
+  const isProfile = () => location.pathname === "/profile";
 
   const switchableUsers = () => {
     const isParentSession = session().data?.user?.type === "parent";
@@ -59,7 +60,14 @@ export default function Navbar() {
           <div class="mt-1 flex items-center gap-2">
             <span class="text-xs text-slate-400">
               Active:{" "}
-              <strong class="text-slate-200">{store.activeUser!.name}</strong>
+              <strong class="text-slate-200 inline-flex items-center gap-1.5">
+                <Show when={store.activeUser!.image}>
+                  <span class="text-sm select-none">
+                    {store.activeUser!.image}
+                  </span>
+                </Show>
+                {store.activeUser!.name}
+              </strong>
             </span>
             <span class="badge badge-primary badge-outline badge-xs capitalize py-1.5 px-2 font-semibold">
               {store.activeUser!.type}
@@ -113,6 +121,18 @@ export default function Navbar() {
           >
             Scores & Rewards
           </A>
+          <Show when={store.activeUser && store.activeUser.type === "child"}>
+            <A
+              href="/profile"
+              class={`btn btn-sm rounded-xl font-semibold border-0 transition-all duration-200 ${
+                isProfile()
+                  ? "btn-primary text-white shadow-md shadow-primary/20 hover:opacity-90"
+                  : "bg-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+              }`}
+            >
+              Profile & Badges
+            </A>
+          </Show>
 
           {/* Theme Toggle */}
           <button

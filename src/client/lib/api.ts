@@ -62,6 +62,39 @@ export const api = {
     return apiFetch<User[]>("/api/users");
   },
 
+  async getUserAchievements(id: number): Promise<{
+    achievements: {
+      id: number;
+      taskId: number;
+      name: string;
+      targetStreak: number;
+      currentStreak: number;
+      prestigeCount: number;
+      lastCompletedAt: string | null;
+      taskTitle: string;
+      taskRepeat: string;
+    }[];
+    stats: {
+      totalCompleted: number;
+      highPriorityCompleted: number;
+      repeatingCompleted: number;
+      cleanCompleted: number;
+      currentPoints: number;
+    };
+  }> {
+    return apiFetch(`/api/users/${id}/achievements`);
+  },
+
+  async updateUserAvatar(
+    id: number,
+    avatar: string,
+  ): Promise<{ success: boolean; avatar: string }> {
+    return apiFetch(`/api/users/${id}/avatar`, {
+      method: "PATCH",
+      body: JSON.stringify({ avatar }),
+    });
+  },
+
   async createChild(data: {
     name: string;
     username: string;

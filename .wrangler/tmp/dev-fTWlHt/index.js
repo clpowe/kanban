@@ -32,7 +32,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// .wrangler/tmp/bundle-0Cnu99/checked-fetch.js
+// .wrangler/tmp/bundle-xn0r4T/checked-fetch.js
 function checkURL(request, init2) {
   const url2 = request instanceof URL ? request : new URL(
     (typeof request === "string" ? new Request(request, init2) : request).url
@@ -50,7 +50,7 @@ function checkURL(request, init2) {
 }
 var urls;
 var init_checked_fetch = __esm({
-  ".wrangler/tmp/bundle-0Cnu99/checked-fetch.js"() {
+  ".wrangler/tmp/bundle-xn0r4T/checked-fetch.js"() {
     "use strict";
     urls = /* @__PURE__ */ new Set();
     __name(checkURL, "checkURL");
@@ -21675,11 +21675,11 @@ var init_kysely_adapter = __esm({
   }
 });
 
-// .wrangler/tmp/bundle-0Cnu99/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-xn0r4T/middleware-loader.entry.ts
 init_checked_fetch();
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-0Cnu99/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-xn0r4T/middleware-insertion-facade.js
 init_checked_fetch();
 init_modules_watch_stub();
 
@@ -60408,6 +60408,19 @@ var rewards = sqliteTable("rewards", {
   name: text("name").notNull(),
   value: integer2("value").notNull()
 });
+var taskAchievements = sqliteTable("task_achievements", {
+  id: integer2("id").primaryKey({ autoIncrement: true }),
+  taskId: integer2("task_id").notNull().unique().references(() => tasks.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  // Achievement name, e.g. "Clean Room Legend"
+  targetStreak: integer2("target_streak").notNull(),
+  // e.g. 20
+  currentStreak: integer2("current_streak").notNull().default(0),
+  prestigeCount: integer2("prestige_count").notNull().default(0),
+  lastCompletedAt: integer2("last_completed_at", { mode: "timestamp" }),
+  createdAt: integer2("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer2("updated_at", { mode: "timestamp" }).notNull()
+});
 var sessions = sqliteTable("session", {
   id: integer2("id").primaryKey({ autoIncrement: true }),
   expiresAt: integer2("expires_at", { mode: "timestamp" }).notNull(),
@@ -60454,6 +60467,10 @@ var tasksRelations = relations(tasks, ({ one }) => ({
   assignee: one(users, {
     fields: [tasks.assigneeId],
     references: [users.id]
+  }),
+  achievement: one(taskAchievements, {
+    fields: [tasks.id],
+    references: [taskAchievements.taskId]
   })
 }));
 var sessionsRelations = relations(sessions, ({ one }) => ({
@@ -60468,6 +60485,15 @@ var accountsRelations = relations(accounts, ({ one }) => ({
     references: [users.id]
   })
 }));
+var taskAchievementsRelations = relations(
+  taskAchievements,
+  ({ one }) => ({
+    task: one(tasks, {
+      fields: [taskAchievements.taskId],
+      references: [tasks.id]
+    })
+  })
+);
 
 // src/auth/auth.ts
 function createAuth(env2) {
@@ -65731,10 +65757,25 @@ var priorityPoints = {
   low: 1
 };
 var getActiveTasks = /* @__PURE__ */ __name(async (db) => {
-  return db.select().from(tasks).where(ne(tasks.status, "archived"));
+  const result = await db.select({
+    task: tasks,
+    achievement: taskAchievements
+  }).from(tasks).leftJoin(taskAchievements, eq(tasks.id, taskAchievements.taskId)).where(ne(tasks.status, "archived"));
+  return result.map((r) => ({
+    ...r.task,
+    achievement: r.achievement
+  }));
 }, "getActiveTasks");
 var getTaskById = /* @__PURE__ */ __name(async (db, id) => {
-  return db.select().from(tasks).where(eq(tasks.id, id)).get();
+  const r = await db.select({
+    task: tasks,
+    achievement: taskAchievements
+  }).from(tasks).leftJoin(taskAchievements, eq(tasks.id, taskAchievements.taskId)).where(eq(tasks.id, id)).get();
+  if (!r) return null;
+  return {
+    ...r.task,
+    achievement: r.achievement
+  };
 }, "getTaskById");
 var createTask = /* @__PURE__ */ __name(async (db, data) => {
   const priority = data.priority;
@@ -65744,7 +65785,7 @@ var createTask = /* @__PURE__ */ __name(async (db, data) => {
       throw new Error("Tasks cannot be assigned to parents");
     }
   }
-  return await db.insert(tasks).values({
+  const [insertedTask] = await db.insert(tasks).values({
     title: data.title,
     priority,
     value: priorityPoints[priority],
@@ -65752,6 +65793,18 @@ var createTask = /* @__PURE__ */ __name(async (db, data) => {
     status: "todo",
     assigneeId: data.assigneeId ? Number(data.assigneeId) : null
   }).returning();
+  if (data.achievementName?.trim() && data.targetStreak && (data.repeat === "daily" || data.repeat === "weekly")) {
+    await db.insert(taskAchievements).values({
+      taskId: insertedTask.id,
+      name: data.achievementName.trim(),
+      targetStreak: Number(data.targetStreak),
+      currentStreak: 0,
+      prestigeCount: 0,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    });
+  }
+  return [await getTaskById(db, insertedTask.id)];
 }, "createTask");
 var updateTask = /* @__PURE__ */ __name(async (db, id, updates) => {
   if (updates.assigneeId) {
@@ -65767,21 +65820,63 @@ var updateTaskStatus = /* @__PURE__ */ __name(async (db, id, status) => {
   if (!existing) return;
   const prevStatus = existing.status;
   const nextStatus = status ?? prevStatus;
-  const assigneeId = existing.assigneeId;
+  const { assigneeId, repeat } = existing;
   const value = existing.value ?? 0;
   await db.update(tasks).set({ status }).where(eq(tasks.id, id));
   if (!assigneeId) return;
-  if (prevStatus !== "done" && nextStatus === "done") {
-    await db.update(users).set({
-      points: sql3`${users.points} + ${value}`
-    }).where(eq(users.id, assigneeId));
+  const becameDone = prevStatus !== "done" && nextStatus === "done";
+  const undoneDone = prevStatus === "done" && nextStatus !== "done" && nextStatus !== "archived";
+  if (!becameDone && !undoneDone) return;
+  if (becameDone) {
+    await addPoints(db, assigneeId, value);
+    await advanceAchievement(db, id, repeat);
+    return;
   }
-  if (prevStatus === "done" && nextStatus !== "done" && nextStatus !== "archived") {
-    await db.update(users).set({
-      points: sql3`${users.points} - ${value}`
-    }).where(eq(users.id, assigneeId));
-  }
+  await subtractPoints(db, assigneeId, value);
+  await revertAchievement(db, id);
 }, "updateTaskStatus");
+var addPoints = /* @__PURE__ */ __name((db, userId, value) => db.update(users).set({ points: sql3`${users.points} + ${value}` }).where(eq(users.id, userId)), "addPoints");
+var subtractPoints = /* @__PURE__ */ __name((db, userId, value) => db.update(users).set({ points: sql3`${users.points} - ${value}` }).where(eq(users.id, userId)), "subtractPoints");
+var advanceAchievement = /* @__PURE__ */ __name(async (db, taskId, repeat) => {
+  const achievement = await db.select().from(taskAchievements).where(eq(taskAchievements.taskId, taskId)).get();
+  if (!achievement) return;
+  const now2 = /* @__PURE__ */ new Date();
+  let currentStreak = nextStreak(achievement, repeat, now2);
+  let { prestigeCount } = achievement;
+  if (currentStreak >= achievement.targetStreak) {
+    prestigeCount += 1;
+    currentStreak = 0;
+  }
+  await db.update(taskAchievements).set({ currentStreak, prestigeCount, lastCompletedAt: now2, updatedAt: now2 }).where(eq(taskAchievements.id, achievement.id));
+}, "advanceAchievement");
+var nextStreak = /* @__PURE__ */ __name((achievement, repeat, now2) => {
+  const { currentStreak, lastCompletedAt } = achievement;
+  if (!lastCompletedAt) return 1;
+  const diffHours = (now2.getTime() - new Date(lastCompletedAt).getTime()) / (1e3 * 60 * 60);
+  if (repeat === "daily") {
+    if (diffHours < 12) return currentStreak;
+    if (diffHours <= 36) return currentStreak + 1;
+    return 1;
+  }
+  if (repeat === "weekly") {
+    if (diffHours < 72) return currentStreak;
+    if (diffHours <= 240) return currentStreak + 1;
+    return 1;
+  }
+  return currentStreak;
+}, "nextStreak");
+var revertAchievement = /* @__PURE__ */ __name(async (db, taskId) => {
+  const achievement = await db.select().from(taskAchievements).where(eq(taskAchievements.taskId, taskId)).get();
+  if (!achievement) return;
+  let { currentStreak, prestigeCount } = achievement;
+  if (currentStreak > 0) {
+    currentStreak -= 1;
+  } else if (prestigeCount > 0) {
+    prestigeCount -= 1;
+    currentStreak = achievement.targetStreak - 1;
+  }
+  await db.update(taskAchievements).set({ currentStreak, prestigeCount, updatedAt: /* @__PURE__ */ new Date() }).where(eq(taskAchievements.id, achievement.id));
+}, "revertAchievement");
 var archiveDoneTasks = /* @__PURE__ */ __name(async (db) => {
   await db.update(tasks).set({ status: "archived" }).where(eq(tasks.status, "done"));
 }, "archiveDoneTasks");
@@ -66145,6 +66240,105 @@ function userRoutes(app2) {
       );
     }
   });
+  app2.get("/api/users/:id/achievements", async (c) => {
+    try {
+      requireAuthenticatedUser(c);
+      const userId = Number(c.req.param("id"));
+      const db = getDB(c.env);
+      const targetUser = await db.select().from(users).where(eq(users.id, userId)).get();
+      if (!targetUser) {
+        return c.json({ error: "User not found" }, 404);
+      }
+      const achievementsList = await db.select({
+        achievement: taskAchievements,
+        taskTitle: tasks.title,
+        taskRepeat: tasks.repeat
+      }).from(taskAchievements).innerJoin(tasks, eq(taskAchievements.taskId, tasks.id)).where(eq(tasks.assigneeId, userId));
+      const userTasks = await db.select().from(tasks).where(eq(tasks.assigneeId, userId));
+      const totalCompleted = userTasks.filter(
+        (t) => t.status === "done" || t.status === "archived"
+      ).length;
+      const highPriorityCompleted = userTasks.filter(
+        (t) => (t.status === "done" || t.status === "archived") && t.priority === "high"
+      ).length;
+      const repeatingCompleted = userTasks.filter(
+        (t) => (t.status === "done" || t.status === "archived") && t.repeat && t.repeat !== "none"
+      ).length;
+      const cleanCompleted = userTasks.filter(
+        (t) => (t.status === "done" || t.status === "archived") && (t.title.toLowerCase().includes("clean") || t.title.toLowerCase().includes("room"))
+      ).length;
+      return c.json({
+        achievements: achievementsList.map((a) => ({
+          ...a.achievement,
+          taskTitle: a.taskTitle,
+          taskRepeat: a.taskRepeat
+        })),
+        stats: {
+          totalCompleted,
+          highPriorityCompleted,
+          repeatingCompleted,
+          cleanCompleted,
+          currentPoints: targetUser.points
+        }
+      });
+    } catch (err) {
+      console.error("GET /api/users/:id/achievements error:", err);
+      return c.json(
+        { error: err?.message || "Failed to load achievements" },
+        500
+      );
+    }
+  });
+  app2.patch("/api/users/:id/avatar", async (c) => {
+    try {
+      const activeUser = requireAuthenticatedUser(c);
+      const targetUserId = Number(c.req.param("id"));
+      const body = await c.req.json();
+      const { avatar } = body;
+      if (!avatar) {
+        return c.json({ error: "Avatar emoji is required" }, 400);
+      }
+      if (activeUser.type !== "parent" && activeUser.id !== targetUserId) {
+        return c.json({ error: "Forbidden: Access denied" }, 403);
+      }
+      const db = getDB(c.env);
+      const targetUser = await db.select().from(users).where(eq(users.id, targetUserId)).get();
+      if (!targetUser) {
+        return c.json({ error: "User not found" }, 404);
+      }
+      const avatarMilestones = {
+        "\u{1F98A}": 0,
+        "\u{1F43C}": 2,
+        "\u{1F428}": 5,
+        "\u{1F42F}": 10,
+        "\u{1F981}": 15,
+        "\u{1F432}": 25
+      };
+      const requiredCompletions = avatarMilestones[avatar];
+      if (requiredCompletions === void 0) {
+        return c.json({ error: "Invalid avatar selection" }, 400);
+      }
+      if (requiredCompletions > 0) {
+        const userTasks = await db.select().from(tasks).where(eq(tasks.assigneeId, targetUserId));
+        const totalCompleted = userTasks.filter(
+          (t) => t.status === "done" || t.status === "archived"
+        ).length;
+        if (totalCompleted < requiredCompletions) {
+          return c.json(
+            {
+              error: `Locked! You need at least ${requiredCompletions} task completions to unlock this avatar.`
+            },
+            400
+          );
+        }
+      }
+      await db.update(users).set({ image: avatar, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, targetUserId));
+      return c.json({ success: true, avatar });
+    } catch (err) {
+      console.error("PATCH /api/users/:id/avatar error:", err);
+      return c.json({ error: err?.message || "Failed to update avatar" }, 500);
+    }
+  });
 }
 __name(userRoutes, "userRoutes");
 
@@ -66380,7 +66574,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-0Cnu99/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-xn0r4T/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -66414,7 +66608,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-0Cnu99/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-xn0r4T/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

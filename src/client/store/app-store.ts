@@ -180,6 +180,16 @@ export const storeActions = {
       return await api.changeChildPassword(id, password);
     });
   },
+
+  async updateUserAvatar(id: number, avatar: string) {
+    return await runStoreAction(async () => {
+      const result = await api.updateUserAvatar(id, avatar);
+      if (result.success) {
+        await Promise.all([reloadUsers(), reloadActiveUser()]);
+      }
+      return result;
+    });
+  },
 };
 
 export { store, isLoading, error };

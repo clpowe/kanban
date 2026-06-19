@@ -45,6 +45,22 @@ export const rewards = sqliteTable("rewards", {
   value: integer("value").notNull(),
 });
 
+// ── TASK ACHIEVEMENTS ──────────────────────────────────
+export const taskAchievements = sqliteTable("task_achievements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  taskId: integer("task_id")
+    .notNull()
+    .unique()
+    .references(() => tasks.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // Achievement name, e.g. "Clean Room Legend"
+  targetStreak: integer("target_streak").notNull(), // e.g. 20
+  currentStreak: integer("current_streak").notNull().default(0),
+  prestigeCount: integer("prestige_count").notNull().default(0),
+  lastCompletedAt: integer("last_completed_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
 // ── BETTER AUTH: SESSIONS ──────────────────────────────
 export const sessions = sqliteTable("session", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -104,6 +120,10 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
     fields: [tasks.assigneeId],
     references: [users.id],
   }),
+  achievement: one(taskAchievements, {
+    fields: [tasks.id],
+    references: [taskAchievements.taskId],
+  }),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -119,3 +139,12 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
     references: [users.id],
   }),
 }));
+export const taskAchievementsRelations = relations(
+  taskAchievements,
+  ({ one }) => ({
+    task: one(tasks, {
+      fields: [taskAchievements.taskId],
+      references: [tasks.id],
+    }),
+  }),
+);

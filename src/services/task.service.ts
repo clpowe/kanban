@@ -1,5 +1,5 @@
 import { and, eq, ne, sql } from "drizzle-orm";
-import { tasks, users } from "../db/schema";
+import { tasks, users, taskAchievements } from "../db/schema";
 import type { TaskUpdate } from "../types";
 import { type TaskStatus } from "../utils/task-status";
 
@@ -10,7 +10,19 @@ const priorityPoints = {
 } as const;
 
 export const getActiveTasks = async (db: any) => {
-  return db.select().from(tasks).where(ne(tasks.status, "archived"));
+  const result = await db
+    .select({
+      task: tasks,
+      achievement: taskAchievements,
+    })
+    .from(tasks)
+    .leftJoin(taskAchievements, eq(tasks.id, taskAchievements.taskId))
+    .where(ne(tasks.status, "archived"));
+
+  return result.map((r: any) => ({
+    ...r.task,
+    achievement: r.achievement,
+  }));
 };
 
 export const getArchivedTasks = async (db: any, assigneeId?: number | null) => {
@@ -27,7 +39,20 @@ export const getArchivedTasks = async (db: any, assigneeId?: number | null) => {
 };
 
 export const getTaskById = async (db: any, id: number) => {
-  return db.select().from(tasks).where(eq(tasks.id, id)).get();
+  const r = await db
+    .select({
+      task: tasks,
+      achievement: taskAchievements,
+    })
+    .from(tasks)
+    .leftJoin(taskAchievements, eq(tasks.id, taskAchievements.taskId))
+    .where(eq(tasks.id, id))
+    .get();
+  if (!r) return null;
+  return {
+    ...r.task,
+    achievement: r.achievement,
+  };
 };
 
 export const createTask = async (db: any, data: any) => {
@@ -45,7 +70,7 @@ export const createTask = async (db: any, data: any) => {
     }
   }
 
-  return await db
+  const [insertedTask] = await db
     .insert(tasks)
     .values({
       title: data.title,
@@ -56,6 +81,24 @@ export const createTask = async (db: any, data: any) => {
       assigneeId: data.assigneeId ? Number(data.assigneeId) : null,
     })
     .returning();
+
+  if (
+    data.achievementName?.trim() &&
+    data.targetStreak &&
+    (data.repeat === "daily" || data.repeat === "weekly")
+  ) {
+    await db.insert(taskAchievements).values({
+      taskId: insertedTask.id,
+      name: data.achievementName.trim(),
+      targetStreak: Number(data.targetStreak),
+      currentStreak: 0,
+      prestigeCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  return [await getTaskById(db, insertedTask.id)];
 };
 
 export const updateTask = async (db: any, id: number, updates: TaskUpdate) => {
@@ -79,44 +122,118 @@ export const updateTaskStatus = async (
   status: TaskStatus,
 ) => {
   const existing = await db.select().from(tasks).where(eq(tasks.id, id)).get();
-
   if (!existing) return;
 
   const prevStatus = existing.status;
   const nextStatus = status ?? prevStatus;
-
-  const assigneeId = existing.assigneeId;
+  const { assigneeId, repeat } = existing;
   const value = existing.value ?? 0;
 
-  // update task first
   await db.update(tasks).set({ status }).where(eq(tasks.id, id));
-
-  // no assignee → nothing to do
   if (!assigneeId) return;
 
-  // DONE → add score
-  if (prevStatus !== "done" && nextStatus === "done") {
-    await db
-      .update(users)
-      .set({
-        points: sql`${users.points} + ${value}`,
-      })
-      .where(eq(users.id, assigneeId));
+  const becameDone = prevStatus !== "done" && nextStatus === "done";
+  const undoneDone =
+    prevStatus === "done" && nextStatus !== "done" && nextStatus !== "archived";
+
+  if (!becameDone && !undoneDone) return;
+
+  if (becameDone) {
+    await addPoints(db, assigneeId, value);
+    await advanceAchievement(db, id, repeat);
+    return;
   }
 
-  // UNDO DONE → subtract score
-  if (
-    prevStatus === "done" &&
-    nextStatus !== "done" &&
-    nextStatus !== "archived"
-  ) {
-    await db
-      .update(users)
-      .set({
-        points: sql`${users.points} - ${value}`,
-      })
-      .where(eq(users.id, assigneeId));
+  await subtractPoints(db, assigneeId, value);
+  await revertAchievement(db, id);
+};
+
+const addPoints = (db: any, userId: number, value: number) =>
+  db
+    .update(users)
+    .set({ points: sql`${users.points} + ${value}` })
+    .where(eq(users.id, userId));
+
+const subtractPoints = (db: any, userId: number, value: number) =>
+  db
+    .update(users)
+    .set({ points: sql`${users.points} - ${value}` })
+    .where(eq(users.id, userId));
+
+const advanceAchievement = async (
+  db: any,
+  taskId: number,
+  repeat: string | null,
+) => {
+  const achievement = await db
+    .select()
+    .from(taskAchievements)
+    .where(eq(taskAchievements.taskId, taskId))
+    .get();
+  if (!achievement) return;
+
+  const now = new Date();
+  let currentStreak = nextStreak(achievement, repeat, now);
+  let { prestigeCount } = achievement;
+
+  if (currentStreak >= achievement.targetStreak) {
+    prestigeCount += 1;
+    currentStreak = 0;
   }
+
+  await db
+    .update(taskAchievements)
+    .set({ currentStreak, prestigeCount, lastCompletedAt: now, updatedAt: now })
+    .where(eq(taskAchievements.id, achievement.id));
+};
+
+const nextStreak = (
+  achievement: { currentStreak: number; lastCompletedAt: Date | null },
+  repeat: string | null,
+  now: Date,
+): number => {
+  const { currentStreak, lastCompletedAt } = achievement;
+  if (!lastCompletedAt) return 1;
+
+  const diffHours =
+    (now.getTime() - new Date(lastCompletedAt).getTime()) / (1000 * 60 * 60);
+
+  if (repeat === "daily") {
+    if (diffHours < 12) return currentStreak; // already done today
+    if (diffHours <= 36) return currentStreak + 1; // continue
+    return 1; // missed
+  }
+
+  if (repeat === "weekly") {
+    if (diffHours < 72) return currentStreak;
+    if (diffHours <= 240) return currentStreak + 1;
+    return 1;
+  }
+
+  return currentStreak;
+};
+
+const revertAchievement = async (db: any, taskId: number) => {
+  const achievement = await db
+    .select()
+    .from(taskAchievements)
+    .where(eq(taskAchievements.taskId, taskId))
+    .get();
+  if (!achievement) return;
+
+  let { currentStreak, prestigeCount } = achievement;
+
+  if (currentStreak > 0) {
+    currentStreak -= 1;
+  } else if (prestigeCount > 0) {
+    prestigeCount -= 1;
+    currentStreak = achievement.targetStreak - 1;
+  }
+
+  await db
+    .update(taskAchievements)
+    .set({ currentStreak, prestigeCount, updatedAt: new Date() })
+    .where(eq(taskAchievements.id, achievement.id));
 };
 
 export const archiveDoneTasks = async (db: any) => {

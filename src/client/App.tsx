@@ -12,6 +12,7 @@ import Register from "./components/Register";
 import Settings from "./components/Settings";
 import Rewards from "./components/Rewards";
 import Analytics from "./components/Analytics";
+import Profile from "./components/Profile";
 import type { JSX } from "solid-js";
 
 // ── AppLayout (Route Wrapper) ───────────────────────────
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="/settings" component={Settings} />
         <Route path="/rewards" component={Rewards} />
         <Route path="/analytics" component={Analytics} />
+        <Route path="/profile" component={Profile} />
       </Route>
     </Router>
   );
