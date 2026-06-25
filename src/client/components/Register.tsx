@@ -33,7 +33,7 @@ export default function Register() {
       }
 
       if (data) {
-        navigate("/", { replace: true });
+        window.location.href = "/";
       }
     } catch (error) {
       console.log(error);

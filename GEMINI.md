@@ -49,6 +49,7 @@ This document serves as the official project board and TODO list for migrating t
 - [x] **Task 6.1**: Create glassmorphic login screen and configure Better Auth sessions.
 - [x] **Task 6.2**: Add a dedicated Create Account (Register) screen with parent/child role selection.
 - [x] **Task 6.3**: Implement a central Navigation Card dashboard component and simplify the header bar.
+- [x] **Task 6.4**: Resolve login/registration redirection loop.
 
 ### 👨‍👩‍👧‍👦 Epic 7: Parent-Managed Child Accounts
 - [x] **Task 7.1**: Add `POST /api/users/children` parent-only backend endpoint.
@@ -64,6 +65,11 @@ This document serves as the official project board and TODO list for migrating t
  - [x] **Task 8.5**: Implement Board task filtering by child/family member.
  - [x] **Task 8.6**: Correct child password reset API endpoint path.
 
+ ### Epic 9: Parent Task Deletion
+ - [x] **Task 9.1**: Modify database foreign keys on taskAchievements to prevent cascade delete of achievements & badges.
+ - [x] **Task 9.2**: Update backend users achievements endpoint to query and return earned badges.
+ - [x] **Task 9.3**: Add delete button to active Board task cards for parent users.
+
 ## 🛠️ Current Focus: All Completed
 
-All refactoring tasks are completed. Waiting for next instructions.
+All task deletion changes, database migrations, and login/registration redirection loop fixes have been successfully implemented and verified.

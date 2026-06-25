@@ -33,6 +33,34 @@ describe('task service', () => {
             }
           }
         }
+      },
+      select() {
+        return {
+          from() {
+            return {
+              leftJoin() {
+                return {
+                  where() {
+                    return {
+                      get: async () => ({
+                        task: {
+                          id: 1,
+                          title: 'Empty dishwasher',
+                          priority,
+                          value: expectedValue,
+                          repeat: 'none',
+                          status: 'todo',
+                          assigneeId: null
+                        },
+                        achievement: null
+                      })
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -61,7 +89,8 @@ describe('task service', () => {
         value: expectedValue,
         repeat: 'none',
         status: 'todo',
-        assigneeId: null
+        assigneeId: null,
+        achievement: null
       }
     ])
   })

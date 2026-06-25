@@ -83,6 +83,10 @@ async function loadRewardsApp() {
         throw new Error("Insufficient points");
       }
     },
+    getRewardById: async (_db: any, id: number) => {
+      const reward = rewards.find((r) => r.id === id);
+      return reward ? { id: reward.id, title: reward.title, cost: reward.cost } : null;
+    },
   });
   return app;
 }

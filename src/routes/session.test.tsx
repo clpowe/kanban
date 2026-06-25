@@ -12,7 +12,7 @@ describe('sessionRoutes', () => {
     const response = await app.request('/session/active-user', {
       method: 'PATCH',
       headers: {
-        'content-type': 'application/x-www-form-urlencoded',
+        'content-type': 'application/json',
         cookie: `${FAMILY_SESSION_COOKIE}=${encodeURIComponent(
           serializeFamilySession({
             loginUserId: 1,
@@ -21,14 +21,15 @@ describe('sessionRoutes', () => {
           })
         )}`,
       },
-      body: new URLSearchParams({ userId: '2' }).toString(),
+      body: JSON.stringify({ userId: 2 }),
     })
 
-    expect(response.status).toBe(204)
-    expect(response.headers.get('HX-Refresh')).toBe('true')
+    expect(response.status).toBe(200)
     expect(decodeURIComponent(response.headers.get('set-cookie') ?? '')).toContain(
       '"activeUserId":2'
     )
+    const json = await response.json()
+    expect(json).toEqual({ success: true, activeUserId: 2 })
   })
 
   test('rejects switching to a user outside the family session', async () => {
@@ -38,7 +39,7 @@ describe('sessionRoutes', () => {
     const response = await app.request('/session/active-user', {
       method: 'PATCH',
       headers: {
-        'content-type': 'application/x-www-form-urlencoded',
+        'content-type': 'application/json',
         cookie: `${FAMILY_SESSION_COOKIE}=${encodeURIComponent(
           serializeFamilySession({
             loginUserId: 1,
@@ -47,7 +48,7 @@ describe('sessionRoutes', () => {
           })
         )}`,
       },
-      body: new URLSearchParams({ userId: '2' }).toString(),
+      body: JSON.stringify({ userId: 2 }),
     })
 
     expect(response.status).toBe(400)

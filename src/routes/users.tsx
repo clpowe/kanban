@@ -4,7 +4,7 @@ import { requireAuthenticatedUser, requireParent } from "../auth/middleware";
 import { getAllUsers } from "../services/user.service";
 import { createAuth } from "../auth/auth";
 import { eq, and } from "drizzle-orm";
-import { users, accounts, tasks, taskAchievements } from "../db/schema";
+import { users, accounts, tasks, taskAchievements, earnedBadges } from "../db/schema";
 import { hashPassword } from "better-auth/crypto";
 
 export function userRoutes(app: Hono<Env>) {
@@ -173,6 +173,12 @@ export function userRoutes(app: Hono<Env>) {
         .from(taskAchievements)
         .innerJoin(tasks, eq(taskAchievements.taskId, tasks.id))
         .where(eq(tasks.assigneeId, userId));
+
+      // Get all earned badges for this user
+      const userBadges = await db
+        .select()
+        .from(earnedBadges)
+        .where(eq(earnedBadges.userId, userId));
       // Get completed tasks counts
       const userTasks = await db
         .select()
@@ -204,6 +210,7 @@ export function userRoutes(app: Hono<Env>) {
           taskTitle: a.taskTitle,
           taskRepeat: a.taskRepeat,
         })),
+        badges: userBadges,
         stats: {
           totalCompleted,
           highPriorityCompleted,
@@ -247,11 +254,11 @@ export function userRoutes(app: Hono<Env>) {
       // Define avatar milestone unlocks
       const avatarMilestones: Record<string, number> = {
         "🦊": 0,
-        "🐼": 2,
-        "🐨": 5,
-        "🐯": 10,
-        "🦁": 15,
-        "🐲": 25,
+        "🐼": 15,
+        "🐨": 30,
+        "🐯": 50,
+        "🦁": 75,
+        "🐲": 100,
       };
       const requiredCompletions = avatarMilestones[avatar];
       if (requiredCompletions === undefined) {

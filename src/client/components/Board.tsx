@@ -140,9 +140,29 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
       class="group relative rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-4 shadow-lg hover:border-slate-700 hover:shadow-xl transition-all duration-200"
     >
       {/* Title */}
-      <h3 class="text-sm font-bold text-slate-100 leading-snug mb-2">
-        {props.task.title}
-      </h3>
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <h3 class="text-sm font-bold text-slate-100 leading-snug">
+          {props.task.title}
+        </h3>
+        <Show when={store.activeUser?.type === "parent"}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (
+                confirm(
+                  "Are you sure you want to permanently delete this task? This cannot be undone.",
+                )
+              ) {
+                storeActions.deleteTask(props.task.id);
+              }
+            }}
+            class="btn btn-xs btn-ghost text-slate-500 hover:bg-rose-500/15 hover:text-rose-400 rounded-lg shrink-0 p-1"
+            title="Permanently delete task"
+          >
+            🗑️
+          </button>
+        </Show>
+      </div>
       {/* Meta row: priority + points */}
       <div class="flex items-center gap-2 flex-wrap mb-3">
         <span

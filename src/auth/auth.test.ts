@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { hashPassword, verifyPassword } from './password'
+import { hashPassword, verifyPassword } from 'better-auth/crypto'
 import { canManageTask, canUpdateTaskStatus } from './authorization'
 import {
   parseFamilySession,
@@ -34,13 +34,13 @@ describe('password auth helpers', () => {
     const hash = await hashPassword('family-secret')
 
     expect(hash).not.toBe('family-secret')
-    await expect(verifyPassword('family-secret', hash)).resolves.toBe(true)
+    expect(await verifyPassword({ password: 'family-secret', hash })).toBe(true)
   })
 
   test('rejects an invalid password', async () => {
     const hash = await hashPassword('family-secret')
 
-    await expect(verifyPassword('not-it', hash)).resolves.toBe(false)
+    expect(await verifyPassword({ password: 'not-it', hash })).toBe(false)
   })
 })
 

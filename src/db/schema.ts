@@ -49,9 +49,8 @@ export const rewards = sqliteTable("rewards", {
 export const taskAchievements = sqliteTable("task_achievements", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   taskId: integer("task_id")
-    .notNull()
     .unique()
-    .references(() => tasks.id, { onDelete: "cascade" }),
+    .references(() => tasks.id, { onDelete: "set null" }),
   name: text("name").notNull(), // Achievement name, e.g. "Clean Room Legend"
   targetStreak: integer("target_streak").notNull(), // e.g. 20
   currentStreak: integer("current_streak").notNull().default(0),
@@ -59,6 +58,20 @@ export const taskAchievements = sqliteTable("task_achievements", {
   lastCompletedAt: integer("last_completed_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ── EARNED BADGES (Trophy Room Collection) ─────────────
+export const earnedBadges = sqliteTable("earned_badges", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  achievementId: integer("achievement_id")
+    .notNull()
+    .references(() => taskAchievements.id, { onDelete: "cascade" }),
+  badgeName: text("badge_name").notNull(),
+  prestigeLevel: integer("prestige_level").notNull(), // 1 for first time, 2 for second, etc.
+  earnedAt: integer("earned_at", { mode: "timestamp" }).notNull(),
 });
 
 // ── BETTER AUTH: SESSIONS ──────────────────────────────
@@ -113,6 +126,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   tasks: many(tasks),
   sessions: many(sessions),
   accounts: many(accounts),
+  badges: many(earnedBadges),
 }));
 
 export const tasksRelations = relations(tasks, ({ one }) => ({
@@ -148,3 +162,14 @@ export const taskAchievementsRelations = relations(
     }),
   }),
 );
+
+export const earnedBadgesRelations = relations(earnedBadges, ({ one }) => ({
+  user: one(users, {
+    fields: [earnedBadges.userId],
+    references: [users.id],
+  }),
+  achievement: one(taskAchievements, {
+    fields: [earnedBadges.achievementId],
+    references: [taskAchievements.id],
+  }),
+}));

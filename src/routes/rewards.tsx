@@ -17,6 +17,7 @@ type RewardRoutesDeps = {
   createReward: typeof createReward
   getAllRewards: typeof getAllRewards
   redeemReward: typeof redeemReward
+  getRewardById: typeof getRewardById
 }
 
 const defaultDeps: RewardRoutesDeps = {
@@ -26,6 +27,7 @@ const defaultDeps: RewardRoutesDeps = {
   createReward,
   getAllRewards,
   redeemReward,
+  getRewardById,
 }
 
 export function rewardRoutes(app: Hono<Env>,
@@ -69,8 +71,11 @@ export function rewardRoutes(app: Hono<Env>,
       })
 
       return c.json(createdReward, 201)
-    } catch (error) {
+    } catch (error: any) {
       console.error('POST /api/rewards error:', error)
+      if (error && typeof error === 'object' && typeof error.status === 'number') {
+        return c.json({ error: error.message }, error.status)
+      }
       return c.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, 500)
     }
   })
@@ -84,7 +89,7 @@ export function rewardRoutes(app: Hono<Env>,
       }
       const db = deps.getDB(c.env)
       const rewardId = Number(c.req.param('id'))
-      const reward = await getRewardById(db, rewardId)
+      const reward = await deps.getRewardById(db, rewardId)
       await deps.redeemReward(db, authUser, rewardId)
 
       const posthog = createPostHogClient(c.env)

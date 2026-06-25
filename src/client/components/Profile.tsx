@@ -13,11 +13,11 @@ import { getStreakLevel } from "./Board";
 // Available Avatars Config
 const avatars = [
   { emoji: "🦊", name: "Friendly Fox", req: 0 },
-  { emoji: "🐼", name: "Playful Panda", req: 2 },
-  { emoji: "🐨", name: "Kind Koala", req: 5 },
-  { emoji: "🐯", name: "Tiny Tiger", req: 10 },
-  { emoji: "🦁", name: "Loyal Lion", req: 15 },
-  { emoji: "🐲", name: "Dreamy Dragon", req: 25 },
+  { emoji: "🐼", name: "Playful Panda", req: 15 },
+  { emoji: "🐨", name: "Kind Koala", req: 30 },
+  { emoji: "🐯", name: "Tiny Tiger", req: 50 },
+  { emoji: "🦁", name: "Loyal Lion", req: 75 },
+  { emoji: "🐲", name: "Dreamy Dragon", req: 100 },
 ];
 
 export default function Profile() {
@@ -33,7 +33,7 @@ export default function Profile() {
     }
   });
 
-  // Resource to pull achievements and stats from backend dynamically
+  // Resource to pull achievements, badges, and stats from backend
   const [achievementsData, { refetch }] = createResource(
     () => store.activeUser?.id,
     async (userId) => {
@@ -162,6 +162,55 @@ export default function Profile() {
               </For>
             </div>
           </section>
+
+          {/* Trophy Room Section */}
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+            <div>
+              <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                🏆 Permanent Trophy Room
+              </h3>
+              <p class="text-xs text-slate-400 mt-1">
+                Your collection of permanent badges earned from completed streak
+                milestones.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <For
+                each={achievementsData()?.badges}
+                fallback={
+                  <div class="col-span-full rounded-2xl border border-dashed border-slate-800 p-8 text-center text-xs text-slate-500 italic">
+                    No badges earned yet. Complete a streak milestone to earn
+                    your first medal!
+                  </div>
+                }
+              >
+                {(badge) => (
+                  <div class="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 flex flex-col items-center gap-2.5 relative overflow-hidden group hover:border-amber-400/40 transition-all duration-200">
+                    {/* Glowing effect */}
+                    <div class="absolute inset-0 bg-gradient-to-br from-amber-400/0 via-amber-400/5 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                    {/* 3D Medal styled icon */}
+                    <div class="relative h-16 w-16 rounded-full bg-slate-900 border border-amber-400/40 shadow-inner flex items-center justify-center">
+                      <span class="text-4xl select-none">👑</span>
+                      <span class="absolute -bottom-1 -right-1 text-[10px] font-black bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded-full border border-slate-950">
+                        x{badge.prestigeLevel}
+                      </span>
+                    </div>
+
+                    <div class="text-center">
+                      <p class="text-xs font-black text-amber-300">
+                        {badge.badgeName}
+                      </p>
+                      <p class="text-[9px] font-bold text-slate-500 mt-1 uppercase tracking-wider">
+                        Earned: {new Date(badge.earnedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </For>
+            </div>
+          </section>
         </div>
 
         {/* Right Column: Achievements & Stats Summary */}
@@ -206,28 +255,25 @@ export default function Profile() {
               </div>
             </div>
           </section>
-        </div>
 
-        {/* Bottom Full-Width Column: Parent Streak Achievements */}
-        <div class="lg:col-span-3">
+          {/* Active Streaks Column */}
           <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
             <div>
               <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-                ⚡ Task Streak Achievements
+                ⚡ Active Task Streaks
               </h3>
               <p class="text-xs text-slate-400 mt-1">
-                Custom badges attached to your repeating chores. Complete tasks
-                to increase your streak and unlock medals!
+                Your active repeating streaks. Maintain completions to upgrade
+                your medal level!
               </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <div class="flex flex-col gap-4 mt-2">
               <For
                 each={achievementsData()?.achievements}
                 fallback={
-                  <div class="md:col-span-2 rounded-2xl border border-dashed border-slate-800 p-8 text-center text-xs text-slate-500 italic">
-                    No custom repeating achievements attached to your chores
-                    yet.
+                  <div class="rounded-2xl border border-dashed border-slate-800 p-8 text-center text-xs text-slate-500 italic">
+                    No active repeating achievements.
                   </div>
                 }
               >
@@ -245,58 +291,37 @@ export default function Profile() {
                     );
 
                   return (
-                    <div class="rounded-2xl border border-slate-850 bg-slate-950/20 p-5 flex flex-col gap-3 relative overflow-hidden group">
-                      <div class="flex items-start justify-between gap-3">
+                    <div class="rounded-2xl border border-slate-850 bg-slate-950/20 p-4 flex flex-col gap-2 relative overflow-hidden group">
+                      <div class="flex items-start justify-between gap-2">
                         <div>
-                          <p class="font-black text-slate-100 text-base">
+                          <p class="font-black text-slate-100 text-sm">
                             {ach.name}
                           </p>
-                          <p class="text-xs text-slate-500 mt-0.5">
-                            Attached to:{" "}
-                            <strong class="text-slate-350">
-                              {ach.taskTitle}
-                            </strong>
-                          </p>
-                          <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">
-                            🔁 {ach.taskRepeat} interval
+                          <p class="text-[10px] text-slate-500 mt-0.5">
+                            Task: {ach.taskTitle} ({ach.taskRepeat})
                           </p>
                         </div>
-                        <div class="flex flex-col items-end gap-1.5">
-                          <span
-                            class={`badge text-xs font-bold uppercase tracking-wider py-3.5 px-3 rounded-lg border ${lvl().color}`}
-                          >
-                            {lvl().icon} {lvl().name}
-                          </span>
-                          <Show when={ach.prestigeCount > 0}>
-                            <span class="text-[10px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-md">
-                              ⭐ Prestige {ach.prestigeCount}x
-                            </span>
-                          </Show>
-                        </div>
+                        <span
+                          class={`badge text-[10px] font-bold uppercase tracking-wider py-2.5 px-2 rounded-lg border ${lvl().color}`}
+                        >
+                          {lvl().icon} {lvl().name}
+                        </span>
                       </div>
 
-                      {/* Progress Bar & Details */}
-                      <div class="flex flex-col gap-1.5 mt-2">
-                        <div class="flex items-center justify-between text-xs">
+                      {/* Progress Bar */}
+                      <div class="flex flex-col gap-1 mt-1">
+                        <div class="flex items-center justify-between text-[10px]">
+                          <span class="text-slate-400 font-bold">Streak</span>
                           <span class="text-slate-400 font-bold">
-                            Streak Progress
-                          </span>
-                          <span class="text-slate-400 font-bold">
-                            {ach.currentStreak} / {ach.targetStreak}{" "}
-                            {ach.taskRepeat === "daily" ? "days" : "weeks"}
+                            {ach.currentStreak} / {ach.targetStreak}
                           </span>
                         </div>
-                        <div class="w-full bg-slate-950 border border-slate-900 rounded-full h-2.5 overflow-hidden">
+                        <div class="w-full bg-slate-950 border border-slate-900 rounded-full h-2 overflow-hidden">
                           <div
                             class="h-full bg-indigo-500 rounded-full transition-all duration-500"
                             style={{ width: `${pct()}%` }}
                           />
                         </div>
-                        <p class="text-[10px] text-slate-500 mt-1">
-                          {lvl().name === "None"
-                            ? "Complete chore to earn Bronze Medal (25% progress)"
-                            : `Keep going to upgrade from ${lvl().name}!`}
-                        </p>
                       </div>
                     </div>
                   );

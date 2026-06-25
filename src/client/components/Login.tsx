@@ -24,7 +24,7 @@ export default function Login() {
         return;
       }
       if (data) {
-        navigate("/", { replace: true });
+        window.location.href = "/";
       }
     } catch (err) {
       setError("Something went wrong. Please try again.");

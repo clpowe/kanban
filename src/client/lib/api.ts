@@ -74,6 +74,14 @@ export const api = {
       taskTitle: string;
       taskRepeat: string;
     }[];
+    badges: {
+      id: number;
+      userId: number;
+      achievementId: number;
+      badgeName: string;
+      prestigeLevel: number;
+      earnedAt: string;
+    }[];
     stats: {
       totalCompleted: number;
       highPriorityCompleted: number;
