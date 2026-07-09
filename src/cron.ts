@@ -57,6 +57,8 @@ export const resetDailyTasks = async (env: Env) => {
   console.log('[CRON] Daily tasks reset → todo')
 }
 
+export const rolloverDailyTasks = resetDailyTasks
+
 export const archiveCompletedTasks = async (env: Env) => {
   const db = getDB(env.Bindings)
 
