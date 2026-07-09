@@ -83,6 +83,12 @@ export const taskAchievements = sqliteTable("task_achievements", {
   currentStreak: integer("current_streak").notNull().default(0),
   prestigeCount: integer("prestige_count").notNull().default(0),
   lastCompletedAt: integer("last_completed_at", { mode: "timestamp" }),
+  missedDaysInARow: integer("missed_days_in_a_row").notNull().default(0),
+  // Snapshot of the state before the most recent completion, so moving a
+  // task back out of "done" can restore the streak exactly.
+  prevStreak: integer("prev_streak"),
+  prevLastCompletedAt: integer("prev_last_completed_at", { mode: "timestamp" }),
+  prevMissedDaysInARow: integer("prev_missed_days_in_a_row"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });

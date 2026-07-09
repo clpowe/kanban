@@ -1,10 +1,9 @@
 import { describe, expect, test } from 'bun:test'
-import { tasks, users, taskAchievements } from '../db/schema'
+import { tasks, users } from '../db/schema'
 import {
   archiveDoneTasks,
   createTask,
-  updateTaskStatus,
-  rolloverPastDailyTasks
+  updateTaskStatus
 } from './task.service'
 
 describe('task service', () => {
@@ -131,16 +130,12 @@ describe('task service', () => {
 
     await updateTaskStatus(db, 9, 'archived')
 
-    expect(updateCalls).toHaveLength(1)
-    expect(updateCalls[0]).toMatchObject({
-      table: tasks,
-      payload: {
-        status: 'archived',
-        archiveReason: 'manual',
-        completedAt: null
+    expect(updateCalls).toEqual([
+      {
+        table: tasks,
+        payload: { status: 'archived' }
       }
-    })
-    expect(updateCalls[0]!.payload.archivedAt).toBeInstanceOf(Date)
+    ])
   })
 
   test('archives only done tasks in the bulk archive helper', async () => {
@@ -204,136 +199,151 @@ describe('task service', () => {
 
     await updateTaskStatus(db, 7, 'todo')
 
-    expect(updateCalls[0]).toMatchObject({
+    expect(updateCalls[0]).toEqual({
       table: tasks,
-      payload: {
-        status: 'todo',
-        archiveReason: null,
-        archivedAt: null,
-        completedAt: null
-      }
+      payload: { status: 'todo' }
     })
     expect(updateCalls[1]?.table).toBe(users)
   })
 
-  test('rolloverPastDailyTasks archives past daily tasks and creates a new task for today', async () => {
-    const archivedTasksCalls: any[] = [];
-    const insertedTasksCalls: any[] = [];
-    const updatedAchievementsCalls: any[] = [];
+  test('awards a badge and reports the milestone when the streak hits the target', async () => {
+    const now = new Date('2026-07-08T12:00:00Z')
+    const selectResults = [
+      // 1st select: the task row
+      {
+        id: 3,
+        status: 'doing',
+        repeat: 'daily',
+        assigneeId: 2,
+        value: 5
+      },
+      // 2nd select: the achievement row, one day from the 20-day badge
+      {
+        id: 11,
+        taskId: 3,
+        name: '20-Day Streak Reward Badge',
+        targetStreak: 20,
+        currentStreak: 19,
+        prestigeCount: 0,
+        missedDaysInARow: 0,
+        lastCompletedAt: new Date('2026-07-07T12:00:00Z')
+      }
+    ]
+    const updateCalls: Array<{ table: unknown; payload: Record<string, unknown> }> = []
+    const insertCalls: Array<{ table: unknown; payload: Record<string, unknown> }> = []
 
     const db = {
       select() {
         return {
-          from(table: any) {
+          from() {
             return {
               where() {
-                if (table === taskAchievements) {
-                  return {
-                    get: async () => ({
-                      id: 5,
-                      taskId: 10,
-                      name: 'Clean Room Streak',
-                      targetStreak: 20,
-                      currentStreak: 0,
-                      prestigeCount: 0
-                    })
-                  };
-                }
                 return {
-                  get: async () => undefined,
-                  then(resolve: any) {
-                    resolve([
-                      {
-                        id: 10,
-                        title: 'Clean Room',
-                        priority: 'medium',
-                        value: 5,
-                        status: 'done',
-                        repeat: 'daily',
-                        assigneeId: 2,
-                        achievementId: 5,
-                        cycleDate: '2026-06-29'
-                      }
-                    ]);
-                  }
-                };
+                  get: async () => selectResults.shift()
+                }
               }
-            };
+            }
           }
-        };
+        }
       },
-      update(table: any) {
+      update(table: unknown) {
         return {
-          set(payload: any) {
-            if (table === tasks) {
-              return {
-                where: async () => {
-                  archivedTasksCalls.push(payload);
-                }
-              };
-            }
-            if (table === taskAchievements) {
-              return {
-                where: async () => {
-                  updatedAchievementsCalls.push(payload);
-                }
-              };
-            }
+          set(payload: Record<string, unknown>) {
+            updateCalls.push({ table, payload })
             return {
-              where: async () => {}
-            };
+              where: async () => undefined
+            }
           }
-        };
+        }
       },
-      insert(table: any) {
+      insert(table: unknown) {
         return {
-          values(payload: any) {
-            if (table === tasks) {
-              insertedTasksCalls.push(payload);
-              return {
-                returning: async () => [
-                  {
-                    id: 11,
-                    title: 'Clean Room',
-                    priority: 'medium',
-                    value: 5,
-                    status: 'todo',
-                    repeat: 'daily',
-                    assigneeId: 2,
-                    achievementId: 5,
-                    cycleDate: '2026-06-30'
-                  }
-                ]
-              };
-            }
-            return {
-              returning: async () => []
-            };
+          values: async (payload: Record<string, unknown>) => {
+            insertCalls.push({ table, payload })
           }
-        };
+        }
       }
-    };
+    }
 
-    const today = new Date(Date.UTC(2026, 5, 30, 12, 0, 0)); // 2026-06-30
+    const { milestone } = await updateTaskStatus(db, 3, 'done', now)
 
-    await rolloverPastDailyTasks(db, today);
+    expect(insertCalls).toHaveLength(1)
+    expect(insertCalls[0]?.payload).toMatchObject({
+      userId: 2,
+      achievementId: 11,
+      badgeName: '20-Day Streak Reward Badge',
+      prestigeLevel: 1
+    })
 
-    expect(archivedTasksCalls).toHaveLength(1);
-    expect(archivedTasksCalls[0]).toMatchObject({
-      status: 'archived',
-      archiveReason: 'completed'
-    });
+    const achievementUpdate = updateCalls.at(-1)?.payload
+    expect(achievementUpdate).toMatchObject({
+      currentStreak: 20,
+      missedDaysInARow: 0,
+      prestigeCount: 1,
+      prevStreak: 19
+    })
 
-    expect(insertedTasksCalls).toHaveLength(1);
-    expect(insertedTasksCalls[0]).toMatchObject({
-      title: 'Clean Room',
-      status: 'todo',
-      cycleDate: '2026-06-30'
-    });
+    expect(milestone).toEqual({
+      achievementId: 11,
+      badgeName: '20-Day Streak Reward Badge',
+      streak: 20,
+      prestigeLevel: 1
+    })
+  })
 
-    expect(updatedAchievementsCalls).toHaveLength(1);
-    expect(updatedAchievementsCalls[0]).toMatchObject({
-      taskId: 11
-    });
+  test('freezes the streak after a single missed day instead of resetting it', async () => {
+    const now = new Date('2026-07-08T12:00:00Z')
+    const selectResults = [
+      { id: 4, status: 'todo', repeat: 'daily', assigneeId: 2, value: 5 },
+      {
+        id: 12,
+        taskId: 4,
+        name: 'Room Cleaner',
+        targetStreak: 20,
+        currentStreak: 5,
+        prestigeCount: 0,
+        missedDaysInARow: 1,
+        lastCompletedAt: new Date('2026-07-06T12:00:00Z') // missed July 7th
+      }
+    ]
+    const updateCalls: Array<{ table: unknown; payload: Record<string, unknown> }> = []
+
+    const db = {
+      select() {
+        return {
+          from() {
+            return {
+              where() {
+                return {
+                  get: async () => selectResults.shift()
+                }
+              }
+            }
+          }
+        }
+      },
+      update(table: unknown) {
+        return {
+          set(payload: Record<string, unknown>) {
+            updateCalls.push({ table, payload })
+            return {
+              where: async () => undefined
+            }
+          }
+        }
+      },
+      insert() {
+        throw new Error('no badge should be inserted for a frozen streak')
+      }
+    }
+
+    const { milestone } = await updateTaskStatus(db, 4, 'done', now)
+
+    expect(milestone).toBeNull()
+    const achievementUpdate = updateCalls.at(-1)?.payload
+    expect(achievementUpdate).toMatchObject({
+      currentStreak: 5, // frozen, not reset
+      missedDaysInARow: 0
+    })
   })
 })
