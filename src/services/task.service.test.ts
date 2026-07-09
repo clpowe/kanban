@@ -205,4 +205,145 @@ describe('task service', () => {
     })
     expect(updateCalls[1]?.table).toBe(users)
   })
+
+  test('awards a badge and reports the milestone when the streak hits the target', async () => {
+    const now = new Date('2026-07-08T12:00:00Z')
+    const selectResults = [
+      // 1st select: the task row
+      {
+        id: 3,
+        status: 'doing',
+        repeat: 'daily',
+        assigneeId: 2,
+        value: 5
+      },
+      // 2nd select: the achievement row, one day from the 20-day badge
+      {
+        id: 11,
+        taskId: 3,
+        name: '20-Day Streak Reward Badge',
+        targetStreak: 20,
+        currentStreak: 19,
+        prestigeCount: 0,
+        missedDaysInARow: 0,
+        lastCompletedAt: new Date('2026-07-07T12:00:00Z')
+      }
+    ]
+    const updateCalls: Array<{ table: unknown; payload: Record<string, unknown> }> = []
+    const insertCalls: Array<{ table: unknown; payload: Record<string, unknown> }> = []
+
+    const db = {
+      select() {
+        return {
+          from() {
+            return {
+              where() {
+                return {
+                  get: async () => selectResults.shift()
+                }
+              }
+            }
+          }
+        }
+      },
+      update(table: unknown) {
+        return {
+          set(payload: Record<string, unknown>) {
+            updateCalls.push({ table, payload })
+            return {
+              where: async () => undefined
+            }
+          }
+        }
+      },
+      insert(table: unknown) {
+        return {
+          values: async (payload: Record<string, unknown>) => {
+            insertCalls.push({ table, payload })
+          }
+        }
+      }
+    }
+
+    const { milestone } = await updateTaskStatus(db, 3, 'done', now)
+
+    expect(insertCalls).toHaveLength(1)
+    expect(insertCalls[0]?.payload).toMatchObject({
+      userId: 2,
+      achievementId: 11,
+      badgeName: '20-Day Streak Reward Badge',
+      prestigeLevel: 1
+    })
+
+    const achievementUpdate = updateCalls.at(-1)?.payload
+    expect(achievementUpdate).toMatchObject({
+      currentStreak: 20,
+      missedDaysInARow: 0,
+      prestigeCount: 1,
+      prevStreak: 19
+    })
+
+    expect(milestone).toEqual({
+      achievementId: 11,
+      badgeName: '20-Day Streak Reward Badge',
+      streak: 20,
+      prestigeLevel: 1
+    })
+  })
+
+  test('freezes the streak after a single missed day instead of resetting it', async () => {
+    const now = new Date('2026-07-08T12:00:00Z')
+    const selectResults = [
+      { id: 4, status: 'todo', repeat: 'daily', assigneeId: 2, value: 5 },
+      {
+        id: 12,
+        taskId: 4,
+        name: 'Room Cleaner',
+        targetStreak: 20,
+        currentStreak: 5,
+        prestigeCount: 0,
+        missedDaysInARow: 1,
+        lastCompletedAt: new Date('2026-07-06T12:00:00Z') // missed July 7th
+      }
+    ]
+    const updateCalls: Array<{ table: unknown; payload: Record<string, unknown> }> = []
+
+    const db = {
+      select() {
+        return {
+          from() {
+            return {
+              where() {
+                return {
+                  get: async () => selectResults.shift()
+                }
+              }
+            }
+          }
+        }
+      },
+      update(table: unknown) {
+        return {
+          set(payload: Record<string, unknown>) {
+            updateCalls.push({ table, payload })
+            return {
+              where: async () => undefined
+            }
+          }
+        }
+      },
+      insert() {
+        throw new Error('no badge should be inserted for a frozen streak')
+      }
+    }
+
+    const { milestone } = await updateTaskStatus(db, 4, 'done', now)
+
+    expect(milestone).toBeNull()
+    const achievementUpdate = updateCalls.at(-1)?.payload
+    expect(achievementUpdate).toMatchObject({
+      currentStreak: 5, // frozen, not reset
+      missedDaysInARow: 0
+    })
+  })
 })

@@ -73,7 +73,7 @@ export function taskRoutes(app: Hono<Env>) {
       if (!isTaskStatus(status)) {
         return c.json({ error: 'Invalid status' }, 400)
       }
-      await updateTaskStatus(db, id, status)
+      const { milestone } = await updateTaskStatus(db, id, status)
       const task = await getTaskById(db, id)
 
       const posthog = createPostHogClient(c.env)
@@ -87,6 +87,20 @@ export function taskRoutes(app: Hono<Env>) {
           assignee_id: task?.assigneeId ?? null,
         },
       })
+
+      if (milestone) {
+        await posthog.captureImmediate({
+          distinctId: String(activeUser.id),
+          event: 'streak milestone reached',
+          properties: {
+            task_id: id,
+            achievement_id: milestone.achievementId,
+            badge_name: milestone.badgeName,
+            streak: milestone.streak,
+            prestige_level: milestone.prestigeLevel,
+          },
+        })
+      }
 
       return c.json(task)
     } catch (err) {
