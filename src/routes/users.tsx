@@ -7,6 +7,10 @@ import { eq, and } from "drizzle-orm";
 import { users, accounts, tasks, taskAchievements, earnedBadges } from "../db/schema";
 import { hashPassword } from "better-auth/crypto";
 
+const isCompletedTask = (task: any) =>
+  task.status === "done" ||
+  (task.status === "archived" && task.archiveReason !== "missed");
+
 export function userRoutes(app: Hono<Env>) {
   // GET list of all users (sorted)
   app.get("/api/users", async (c) => {
@@ -184,23 +188,16 @@ export function userRoutes(app: Hono<Env>) {
         .select()
         .from(tasks)
         .where(eq(tasks.assigneeId, userId));
-      const totalCompleted = userTasks.filter(
-        (t: any) => t.status === "done" || t.status === "archived",
-      ).length;
+      const totalCompleted = userTasks.filter(isCompletedTask).length;
       const highPriorityCompleted = userTasks.filter(
-        (t: any) =>
-          (t.status === "done" || t.status === "archived") &&
-          t.priority === "high",
+        (t: any) => isCompletedTask(t) && t.priority === "high",
       ).length;
       const repeatingCompleted = userTasks.filter(
-        (t: any) =>
-          (t.status === "done" || t.status === "archived") &&
-          t.repeat &&
-          t.repeat !== "none",
+        (t: any) => isCompletedTask(t) && t.repeat && t.repeat !== "none",
       ).length;
       const cleanCompleted = userTasks.filter(
         (t: any) =>
-          (t.status === "done" || t.status === "archived") &&
+          isCompletedTask(t) &&
           (t.title.toLowerCase().includes("clean") ||
             t.title.toLowerCase().includes("room")),
       ).length;
@@ -270,9 +267,7 @@ export function userRoutes(app: Hono<Env>) {
           .select()
           .from(tasks)
           .where(eq(tasks.assigneeId, targetUserId));
-        const totalCompleted = userTasks.filter(
-          (t: any) => t.status === "done" || t.status === "archived",
-        ).length;
+        const totalCompleted = userTasks.filter(isCompletedTask).length;
         if (totalCompleted < requiredCompletions) {
           return c.json(
             {

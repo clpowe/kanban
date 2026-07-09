@@ -1,5 +1,5 @@
 import type { Task } from '../types'
-import { activeTaskStatuses } from './task-status'
+import { activeTaskStatuses, isActiveTaskStatus } from './task-status'
 
 const PRIORITY_RANK: Record<Task['priority'], number> = {
   high: 0,
@@ -10,7 +10,7 @@ const PRIORITY_RANK: Record<Task['priority'], number> = {
 export const groupTasksByStatus = (taskList: Task[]) =>
   taskList.reduce<Record<(typeof activeTaskStatuses)[number], Task[]>>(
     (grouped, task) => {
-      const bucket = grouped[task.status ?? 'todo'] ?? grouped.todo
+      const bucket = isActiveTaskStatus(task.status) ? grouped[task.status] : grouped.todo
       bucket.push(task)
       return grouped
     },

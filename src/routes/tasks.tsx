@@ -31,6 +31,18 @@ export function taskRoutes(app: Hono<Env>) {
     }
   })
 
+  app.get('/api/tasks/archived', async (c) => {
+    try {
+      requireAuthenticatedUser(c)
+      const db = getDB(c.env)
+      const result = await getArchivedTasks(db)
+      return c.json(result)
+    } catch (err) {
+      console.error('GET /tasks/archived error:', err)
+      return c.json({ error: 'Failed to load archived tasks' }, 500)
+    }
+  })
+
   app.post('/api/tasks', async (c) => {
     try {
       const parentUser = requireParent(c)

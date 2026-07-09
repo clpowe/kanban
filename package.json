@@ -28,6 +28,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
     "@solidjs/router": "^0.16.1",
     "better-auth": "^1.6.14",
     "drizzle-kit": "^0.31.10",

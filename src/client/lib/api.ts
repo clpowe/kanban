@@ -130,6 +130,10 @@ export const api = {
     return apiFetch<Task[]>("/api/tasks");
   },
 
+  async getArchivedTasks(): Promise<Task[]> {
+    return apiFetch<Task[]>("/api/tasks/archived");
+  },
+
   async createTask(task: CreateTask): Promise<Task> {
     return apiFetch<Task>("/api/tasks", {
       method: "POST",

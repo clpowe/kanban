@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { tasks, users } from '../db/schema'
+import { tasks, users, taskAchievements } from '../db/schema'
 import {
   archiveDoneTasks,
   createTask,
-  updateTaskStatus
+  updateTaskStatus,
+  rolloverPastDailyTasks
 } from './task.service'
 
 describe('task service', () => {
@@ -130,12 +131,16 @@ describe('task service', () => {
 
     await updateTaskStatus(db, 9, 'archived')
 
-    expect(updateCalls).toEqual([
-      {
-        table: tasks,
-        payload: { status: 'archived' }
+    expect(updateCalls).toHaveLength(1)
+    expect(updateCalls[0]).toMatchObject({
+      table: tasks,
+      payload: {
+        status: 'archived',
+        archiveReason: 'manual',
+        completedAt: null
       }
-    ])
+    })
+    expect(updateCalls[0]!.payload.archivedAt).toBeInstanceOf(Date)
   })
 
   test('archives only done tasks in the bulk archive helper', async () => {
@@ -199,10 +204,136 @@ describe('task service', () => {
 
     await updateTaskStatus(db, 7, 'todo')
 
-    expect(updateCalls[0]).toEqual({
+    expect(updateCalls[0]).toMatchObject({
       table: tasks,
-      payload: { status: 'todo' }
+      payload: {
+        status: 'todo',
+        archiveReason: null,
+        archivedAt: null,
+        completedAt: null
+      }
     })
     expect(updateCalls[1]?.table).toBe(users)
+  })
+
+  test('rolloverPastDailyTasks archives past daily tasks and creates a new task for today', async () => {
+    const archivedTasksCalls: any[] = [];
+    const insertedTasksCalls: any[] = [];
+    const updatedAchievementsCalls: any[] = [];
+
+    const db = {
+      select() {
+        return {
+          from(table: any) {
+            return {
+              where() {
+                if (table === taskAchievements) {
+                  return {
+                    get: async () => ({
+                      id: 5,
+                      taskId: 10,
+                      name: 'Clean Room Streak',
+                      targetStreak: 20,
+                      currentStreak: 0,
+                      prestigeCount: 0
+                    })
+                  };
+                }
+                return {
+                  get: async () => undefined,
+                  then(resolve: any) {
+                    resolve([
+                      {
+                        id: 10,
+                        title: 'Clean Room',
+                        priority: 'medium',
+                        value: 5,
+                        status: 'done',
+                        repeat: 'daily',
+                        assigneeId: 2,
+                        achievementId: 5,
+                        cycleDate: '2026-06-29'
+                      }
+                    ]);
+                  }
+                };
+              }
+            };
+          }
+        };
+      },
+      update(table: any) {
+        return {
+          set(payload: any) {
+            if (table === tasks) {
+              return {
+                where: async () => {
+                  archivedTasksCalls.push(payload);
+                }
+              };
+            }
+            if (table === taskAchievements) {
+              return {
+                where: async () => {
+                  updatedAchievementsCalls.push(payload);
+                }
+              };
+            }
+            return {
+              where: async () => {}
+            };
+          }
+        };
+      },
+      insert(table: any) {
+        return {
+          values(payload: any) {
+            if (table === tasks) {
+              insertedTasksCalls.push(payload);
+              return {
+                returning: async () => [
+                  {
+                    id: 11,
+                    title: 'Clean Room',
+                    priority: 'medium',
+                    value: 5,
+                    status: 'todo',
+                    repeat: 'daily',
+                    assigneeId: 2,
+                    achievementId: 5,
+                    cycleDate: '2026-06-30'
+                  }
+                ]
+              };
+            }
+            return {
+              returning: async () => []
+            };
+          }
+        };
+      }
+    };
+
+    const today = new Date(Date.UTC(2026, 5, 30, 12, 0, 0)); // 2026-06-30
+
+    await rolloverPastDailyTasks(db, today);
+
+    expect(archivedTasksCalls).toHaveLength(1);
+    expect(archivedTasksCalls[0]).toMatchObject({
+      status: 'archived',
+      archiveReason: 'completed'
+    });
+
+    expect(insertedTasksCalls).toHaveLength(1);
+    expect(insertedTasksCalls[0]).toMatchObject({
+      title: 'Clean Room',
+      status: 'todo',
+      cycleDate: '2026-06-30'
+    });
+
+    expect(updatedAchievementsCalls).toHaveLength(1);
+    expect(updatedAchievementsCalls[0]).toMatchObject({
+      taskId: 11
+    });
   })
 })

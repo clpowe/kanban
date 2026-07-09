@@ -1,6 +1,7 @@
 import { For, Show, createSignal, createMemo } from "solid-js";
 import { store, storeActions } from "../store/app-store";
 import { priorityStyles } from "./Board";
+import type { Task } from "../../types";
 
 export default function Archive() {
   // ── Local Filter States ───────────────────────────────
@@ -45,6 +46,11 @@ export default function Archive() {
   const handleRestore = (id: number) => {
     storeActions.updateTaskStatus(id, "todo");
   };
+
+  const isRolloverArchive = (task: Task) =>
+    task.repeat &&
+    task.repeat !== "none" &&
+    (task.archiveReason === "completed" || task.archiveReason === "missed");
 
   const handleDelete = (id: number) => {
     if (
@@ -184,6 +190,17 @@ export default function Archive() {
                     <h3 class="text-sm font-bold text-slate-300 leading-snug line-clamp-2">
                       {task.title}
                     </h3>
+                    <Show when={task.archiveReason}>
+                      <span
+                        class={`mt-2 inline-flex w-fit rounded-lg border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                          task.archiveReason === "missed"
+                            ? "border-rose-500/25 bg-rose-500/10 text-rose-300"
+                            : "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                        }`}
+                      >
+                        {task.archiveReason}
+                      </span>
+                    </Show>
                   </div>
                   {/* Card Footer (Assignee + Buttons) */}
                   <div class="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between gap-4">
@@ -194,8 +211,13 @@ export default function Archive() {
                       {/* Restore Button */}
                       <button
                         onClick={() => handleRestore(task.id)}
-                        class="btn btn-xs rounded-lg font-semibold border-0 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white"
-                        title="Restore to active board"
+                        disabled={Boolean(isRolloverArchive(task))}
+                        class="btn btn-xs rounded-lg font-semibold border-0 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white disabled:pointer-events-none disabled:opacity-40"
+                        title={
+                          isRolloverArchive(task)
+                            ? "Recurring history cannot be restored"
+                            : "Restore to active board"
+                        }
                       >
                         Restore
                       </button>

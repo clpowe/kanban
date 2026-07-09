@@ -1,7 +1,12 @@
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 import { tasks, users, taskAchievements, earnedBadges } from "../db/schema";
 import type { TaskUpdate } from "../types";
 import { type TaskStatus } from "../utils/task-status";
+import {
+  countWeekdaysBetween,
+  getNewYorkDateKey,
+  getNextWeekdayDateKey,
+} from "../utils/new-york-time";
 
 const priorityPoints = {
   high: 10,
@@ -10,13 +15,19 @@ const priorityPoints = {
 } as const;
 
 export const getActiveTasks = async (db: any) => {
+  try {
+    await rolloverPastDailyTasks(db);
+  } catch (err) {
+    console.error("Error rolling over past daily tasks in getActiveTasks:", err);
+  }
+
   const result = await db
     .select({
       task: tasks,
       achievement: taskAchievements,
     })
     .from(tasks)
-    .leftJoin(taskAchievements, eq(tasks.id, taskAchievements.taskId))
+    .leftJoin(taskAchievements, eq(tasks.achievementId, taskAchievements.id))
     .where(ne(tasks.status, "archived"));
 
   return result.map((r: any) => ({
@@ -45,7 +56,7 @@ export const getTaskById = async (db: any, id: number) => {
       achievement: taskAchievements,
     })
     .from(tasks)
-    .leftJoin(taskAchievements, eq(tasks.id, taskAchievements.taskId))
+    .leftJoin(taskAchievements, eq(tasks.achievementId, taskAchievements.id))
     .where(eq(tasks.id, id))
     .get();
   if (!r) return null;
@@ -70,6 +81,8 @@ export const createTask = async (db: any, data: any) => {
     }
   }
 
+  const isRepeatable = data.repeat === "daily" || data.repeat === "weekly";
+
   const [insertedTask] = await db
     .insert(tasks)
     .values({
@@ -79,23 +92,28 @@ export const createTask = async (db: any, data: any) => {
       repeat: data.repeat,
       status: "todo",
       assigneeId: data.assigneeId ? Number(data.assigneeId) : null,
+      cycleDate: isRepeatable ? getNewYorkDateKey() : null,
     })
     .returning();
 
-  if (
-    data.achievementName?.trim() &&
-    data.targetStreak &&
-    (data.repeat === "daily" || data.repeat === "weekly")
-  ) {
-    await db.insert(taskAchievements).values({
-      taskId: insertedTask.id,
-      name: data.achievementName.trim(),
-      targetStreak: Number(data.targetStreak),
-      currentStreak: 0,
-      prestigeCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  if (isRepeatable) {
+    const [achievement] = await db
+      .insert(taskAchievements)
+      .values({
+        taskId: insertedTask.id,
+        name: data.achievementName?.trim() || `${data.title} Streak`,
+        targetStreak: Number(data.targetStreak || 20),
+        currentStreak: 0,
+        prestigeCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    await db
+      .update(tasks)
+      .set({ achievementId: achievement.id })
+      .where(eq(tasks.id, insertedTask.id));
   }
 
   return [await getTaskById(db, insertedTask.id)];
@@ -131,8 +149,23 @@ export const updateTaskStatus = async (
   const assigneeId = existing.assigneeId;
   const value = existing.value ?? 0;
 
+  const now = new Date();
   // update task status first
-  await db.update(tasks).set({ status }).where(eq(tasks.id, id));
+  await db
+    .update(tasks)
+    .set({
+      status,
+      completedAt:
+        prevStatus !== "done" && nextStatus === "done"
+          ? now
+          : nextStatus === "done"
+            ? existing.completedAt
+            : null,
+      archiveReason:
+        nextStatus === "archived" ? (existing.archiveReason ?? "manual") : null,
+      archivedAt: nextStatus === "archived" ? now : null,
+    })
+    .where(eq(tasks.id, id));
 
   // no assignee → nothing to do for score or achievements
   if (!assigneeId) return;
@@ -148,11 +181,7 @@ export const updateTaskStatus = async (
       .where(eq(users.id, assigneeId));
 
     // 2. Handle Streak
-    const achievement = await db
-      .select()
-      .from(taskAchievements)
-      .where(eq(taskAchievements.taskId, id))
-      .get();
+    const achievement = await getTaskAchievement(db, existing);
 
     if (achievement) {
       const now = new Date();
@@ -167,13 +196,21 @@ export const updateTaskStatus = async (
         if (existing.repeat === "daily") {
           if (diffHours < 12) {
             // Already completed today or very recently, do not increase streak again
-          } else if (diffHours <= 36) {
-            // Completed yesterday (within 36h), continue streak!
-            currentStreak += 1;
           } else {
-            // Missed days penalty: lose 2 days of streak per missed 24h interval
-            const missedDays = Math.max(1, Math.floor(diffHours / 24) - 1);
-            currentStreak = Math.max(0, currentStreak - missedDays * 2) + 1; // +1 for current completion
+            const lastDateKey = getNewYorkDateKey(new Date(lastCompletedAt));
+            const currentDateKey = getNewYorkDateKey(now);
+            const weekdaysElapsed = countWeekdaysBetween(
+              lastDateKey,
+              currentDateKey,
+            );
+
+            if (weekdaysElapsed <= 1) {
+              currentStreak += 1;
+            } else {
+              // Missed days penalty: lose 2 days of streak per missed weekday
+              const missedDays = weekdaysElapsed - 1;
+              currentStreak = Math.max(0, currentStreak - missedDays * 2) + 1; // +1 for current completion
+            }
           }
         } else if (existing.repeat === "weekly") {
           if (diffHours < 72) {
@@ -234,11 +271,7 @@ export const updateTaskStatus = async (
       .where(eq(users.id, assigneeId));
 
     // 2. Revert Streak
-    const achievement = await db
-      .select()
-      .from(taskAchievements)
-      .where(eq(taskAchievements.taskId, id))
-      .get();
+    const achievement = await getTaskAchievement(db, existing);
 
     if (achievement) {
       let currentStreak = achievement.currentStreak;
@@ -284,4 +317,181 @@ export const archiveDoneTasks = async (db: any) => {
 
 export const deleteTask = async (db: any, id: number) => {
   await db.delete(tasks).where(eq(tasks.id, id));
+};
+
+const getTaskAchievement = async (db: any, task: any) => {
+  if (task.achievementId) {
+    return db
+      .select()
+      .from(taskAchievements)
+      .where(eq(taskAchievements.id, task.achievementId))
+      .get();
+  }
+
+  return db
+    .select()
+    .from(taskAchievements)
+    .where(eq(taskAchievements.taskId, task.id))
+    .get();
+};
+
+const ensureRepeatableTaskAchievement = async (
+  db: any,
+  task: any,
+  now: Date,
+) => {
+  let achievement = await getTaskAchievement(db, task);
+
+  if (!achievement) {
+    const [createdAchievement] = await db
+      .insert(taskAchievements)
+      .values({
+        taskId: task.id,
+        name: `${task.title} Streak`,
+        targetStreak: 20,
+        currentStreak: 0,
+        prestigeCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    achievement = createdAchievement;
+  }
+
+  if (achievement && task.achievementId !== achievement.id) {
+    await db
+      .update(tasks)
+      .set({ achievementId: achievement.id })
+      .where(eq(tasks.id, task.id));
+  }
+
+  return achievement;
+};
+
+export const rolloverPastDailyTasks = async (db: any, now = new Date()) => {
+  const todayDateKey = getNewYorkDateKey(now);
+
+  const pastTasks = await db
+    .select()
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.repeat, "daily"),
+        ne(tasks.status, "archived"),
+        or(isNull(tasks.cycleDate), lt(tasks.cycleDate, todayDateKey)),
+      ),
+    );
+
+  for (const task of pastTasks) {
+    const achievement = await ensureRepeatableTaskAchievement(db, task, now);
+    const achievementId = achievement?.id;
+
+    if (achievementId) {
+      const existingTodayTask = await db
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.achievementId, achievementId),
+            eq(tasks.cycleDate, todayDateKey),
+          ),
+        )
+        .get();
+
+      if (!existingTodayTask) {
+        const [nextTask] = await db
+          .insert(tasks)
+          .values({
+            title: task.title,
+            priority: task.priority,
+            value: task.value,
+            status: "todo",
+            repeat: "daily",
+            assigneeId: task.assigneeId,
+            achievementId,
+            cycleDate: todayDateKey,
+          })
+          .returning();
+
+        await db
+          .update(taskAchievements)
+          .set({ taskId: nextTask.id, updatedAt: now })
+          .where(eq(taskAchievements.id, achievementId));
+      }
+    }
+
+    await db
+      .update(tasks)
+      .set({
+        status: "archived",
+        archiveReason: task.status === "done" ? "completed" : "missed",
+        archivedAt: now,
+      })
+      .where(eq(tasks.id, task.id));
+  }
+};
+
+export const rolloverDailyTasks = async (db: any, now = new Date()) => {
+  const cycleDate = getNewYorkDateKey(now);
+  const nextCycleDate = getNextWeekdayDateKey(cycleDate);
+
+  const dueTasks = await db
+    .select()
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.repeat, "daily"),
+        ne(tasks.status, "archived"),
+        or(isNull(tasks.cycleDate), lte(tasks.cycleDate, cycleDate)),
+      ),
+    );
+
+  for (const task of dueTasks) {
+    const achievement = await ensureRepeatableTaskAchievement(db, task, now);
+    const achievementId = achievement?.id;
+
+    if (achievementId) {
+      const existingNextTask = await db
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.achievementId, achievementId),
+            eq(tasks.cycleDate, nextCycleDate),
+          ),
+        )
+        .get();
+
+      if (!existingNextTask) {
+        const [nextTask] = await db
+          .insert(tasks)
+          .values({
+            title: task.title,
+            priority: task.priority,
+            value: task.value,
+            status: "todo",
+            repeat: "daily",
+            assigneeId: task.assigneeId,
+            achievementId,
+            cycleDate: nextCycleDate,
+          })
+          .returning();
+
+        await db
+          .update(taskAchievements)
+          .set({ taskId: nextTask.id, updatedAt: now })
+          .where(eq(taskAchievements.id, achievementId));
+      }
+    }
+
+    await db
+      .update(tasks)
+      .set({
+        status: "archived",
+        archiveReason: task.status === "done" ? "completed" : "missed",
+        archivedAt: now,
+      })
+      .where(eq(tasks.id, task.id));
+  }
 };

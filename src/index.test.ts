@@ -2,14 +2,17 @@ import { describe, expect, test } from 'bun:test'
 import { handleScheduled } from './index'
 
 describe('handleScheduled', () => {
-  test('dispatches the daily reset cron separately from weekly archive', async () => {
+  test('dispatches the daily rollover cron separately from weekly archive', async () => {
     const calls: string[] = []
 
     await handleScheduled(
-      { cron: '0 0 * * *' } as ScheduledController,
+      {
+        cron: '59 3 * * *',
+        scheduledTime: Date.UTC(2026, 6, 1, 3, 59)
+      } as ScheduledController,
       {} as any,
       {
-        resetDailyTasks: async () => {
+        rolloverDailyTasks: async () => {
           calls.push('daily')
         },
         archiveCompletedTasks: async () => {
@@ -28,7 +31,7 @@ describe('handleScheduled', () => {
       { cron: '59 23 * * 6' } as ScheduledController,
       {} as any,
       {
-        resetDailyTasks: async () => {
+        rolloverDailyTasks: async () => {
           calls.push('daily')
         },
         archiveCompletedTasks: async () => {

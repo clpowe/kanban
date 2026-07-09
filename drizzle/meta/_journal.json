@@ -64,6 +64,13 @@
       "when": 1781921387391,
       "tag": "0008_violet_devos",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1782779053115,
+      "tag": "0009_clumsy_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }

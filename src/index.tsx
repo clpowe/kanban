@@ -7,7 +7,7 @@ import { rewardRoutes } from "./routes/rewards.tsx";
 import { userRoutes } from "./routes/users.tsx";
 import { sessionRoutes } from "./routes/session.tsx";
 import { analyticsRoutes } from "./routes/analytics.tsx";
-import { archiveCompletedTasks, resetDailyTasks } from "./cron.ts";
+import { archiveCompletedTasks, rolloverDailyTasks } from "./cron.ts";
 
 const app = new Hono<Env>();
 
@@ -47,12 +47,12 @@ app.get("*", async (c) => {
 
 // ── Scheduled handlers ──────────────────────────────────
 type ScheduledDeps = {
-  resetDailyTasks: typeof resetDailyTasks;
+  rolloverDailyTasks: typeof rolloverDailyTasks;
   archiveCompletedTasks: typeof archiveCompletedTasks;
 };
 
 const scheduledDeps: ScheduledDeps = {
-  resetDailyTasks,
+  rolloverDailyTasks,
   archiveCompletedTasks,
 };
 
@@ -63,10 +63,12 @@ export const handleScheduled = async (
 ) => {
   console.log("[CRON] triggered", controller.cron);
 
-  if (controller.cron === "0 0 * * *") {
-    await deps.resetDailyTasks({ Bindings: env } as Env);
+  if (controller.cron === "59 3 * * *" || controller.cron === "59 4 * * *") {
+    await deps.rolloverDailyTasks(
+      { Bindings: env } as Env,
+      new Date(controller.scheduledTime),
+    );
   }
-
   if (controller.cron === "59 23 * * 6") {
     await deps.archiveCompletedTasks({ Bindings: env } as Env);
   }
@@ -75,9 +77,9 @@ export const handleScheduled = async (
 export default {
   fetch: app.fetch,
 
-  async scheduled(controller: ScheduledController, env: Env) {
+  async scheduled(controller: ScheduledController, env: Env["Bindings"]) {
     try {
-      await handleScheduled(controller, env.Bindings);
+      await handleScheduled(controller, env);
     } catch (err) {
       console.error("[CRON ERROR]", err);
       throw err;

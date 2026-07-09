@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  uniqueIndex,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 // ── USERS (extended for Better Auth) ───────────────────
@@ -20,23 +26,44 @@ export const users = sqliteTable("users", {
 });
 
 // ── TASKS ──────────────────────────────────────────────
-export const tasks = sqliteTable("tasks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),
-  priority: text("priority", {
-    enum: ["high", "medium", "low"],
-  }).notNull(),
-  value: integer("value").notNull(),
-  status: text("status", {
-    enum: ["todo", "doing", "review", "done", "archived"],
-  })
-    .notNull()
-    .default("todo"),
-  repeat: text("repeat", {
-    enum: ["daily", "weekly", "none"],
-  }).default("none"),
-  assigneeId: integer("assignee_id").references(() => users.id),
-});
+export const tasks = sqliteTable(
+  "tasks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    title: text("title").notNull(),
+    priority: text("priority", {
+      enum: ["high", "medium", "low"],
+    }).notNull(),
+    value: integer("value").notNull(),
+    status: text("status", {
+      enum: ["todo", "doing", "review", "done", "archived"],
+    })
+      .notNull()
+      .default("todo"),
+    repeat: text("repeat", {
+      enum: ["daily", "weekly", "none"],
+    }).default("none"),
+    assigneeId: integer("assignee_id").references(() => users.id),
+    achievementId: integer("achievement_id").references(
+      (): AnySQLiteColumn => taskAchievements.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    cycleDate: text("cycle_date"),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+    archivedAt: integer("archived_at", { mode: "timestamp" }),
+    archiveReason: text("archive_reason", {
+      enum: ["completed", "missed", "manual"],
+    }),
+  },
+  (table) => [
+    uniqueIndex("tasks_achievement_cycle_unique").on(
+      table.achievementId,
+      table.cycleDate,
+    ),
+  ],
+);
 
 // ── REWARDS ────────────────────────────────────────────
 export const rewards = sqliteTable("rewards", {
@@ -50,7 +77,7 @@ export const taskAchievements = sqliteTable("task_achievements", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   taskId: integer("task_id")
     .unique()
-    .references(() => tasks.id, { onDelete: "set null" }),
+    .references((): AnySQLiteColumn => tasks.id, { onDelete: "set null" }),
   name: text("name").notNull(), // Achievement name, e.g. "Clean Room Legend"
   targetStreak: integer("target_streak").notNull(), // e.g. 20
   currentStreak: integer("current_streak").notNull().default(0),
@@ -135,8 +162,8 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
     references: [users.id],
   }),
   achievement: one(taskAchievements, {
-    fields: [tasks.id],
-    references: [taskAchievements.taskId],
+    fields: [tasks.achievementId],
+    references: [taskAchievements.id],
   }),
 }));
 

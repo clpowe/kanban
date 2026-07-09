@@ -49,14 +49,16 @@ async function runStoreAction<T>(
 // Full Sync Fetch - Bootstraps the application data in parallel
 async function fetchBoardData() {
   await runStoreAction(async () => {
-    const [tasks, rewards, users, activeUser] = await Promise.all([
+    const [activeTasks, archivedTasks, rewards, users, activeUser] =
+      await Promise.all([
       api.getTasks(),
+      api.getArchivedTasks(),
       api.getRewards(),
       api.getUsers(),
       api.getActiveUser(),
     ]);
     setStore({
-      tasks: tasks,
+      tasks: [...activeTasks, ...archivedTasks],
       rewards: rewards,
       users: users,
       activeUser: activeUser,
@@ -71,8 +73,11 @@ async function reloadUsers() {
 }
 
 async function reloadTasks() {
-  const tasks = await api.getTasks();
-  setStore("tasks", tasks);
+  const [activeTasks, archivedTasks] = await Promise.all([
+    api.getTasks(),
+    api.getArchivedTasks(),
+  ]);
+  setStore("tasks", [...activeTasks, ...archivedTasks]);
 }
 
 async function reloadActiveUser() {
