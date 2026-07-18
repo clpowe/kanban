@@ -139,14 +139,11 @@ export default function Settings() {
   };
 
   return (
-    <div class="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+    <div class="app-view settings-view flex flex-col gap-6 w-full max-w-5xl mx-auto">
       {/* Page Header */}
       <div class="flex flex-col gap-1.5 p-1">
-        <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-400">
-          Administration Portal
-        </span>
         <h2 class="text-3xl font-black text-slate-100 tracking-tight">
-          Parent Settings
+          Household settings
         </h2>
         <p class="text-sm text-slate-400 max-w-xl">
           Manage your household by configuring store reward items and creating
@@ -157,10 +154,10 @@ export default function Settings() {
       {/* Settings Grid */}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Section 1: Reward Form */}
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+        <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4">
           <div>
             <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-              🎁 Add Reward Item
+              Add a reward
             </h3>
             <p class="text-xs text-slate-400 mt-1">
               Create a new reward child accounts can redeem using their
@@ -171,7 +168,7 @@ export default function Settings() {
           <Show when={rewardSuccess()}>
             <div class="rounded-xl bg-teal-500/10 border border-teal-500/20 px-4 py-2.5">
               <p class="text-xs font-semibold text-teal-400">
-                ✓ Reward item added successfully!
+                Reward added.
               </p>
             </div>
           </Show>
@@ -183,12 +180,13 @@ export default function Settings() {
 
           <form onSubmit={handleAddReward} class="flex flex-col gap-4">
             <div class="flex flex-col gap-1.5">
-              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+              <label for="reward-name" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                 Reward Name
               </label>
               <input
+                id="reward-name"
                 type="text"
-                placeholder="e.g. Extra 30 mins screen time"
+                placeholder="Extra 30 minutes of screen time"
                 class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
                 value={rewardTitle()}
                 onInput={(e) => setRewardTitle(e.currentTarget.value)}
@@ -196,13 +194,14 @@ export default function Settings() {
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+              <label for="reward-cost" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                 Point Cost
               </label>
               <input
+                id="reward-cost"
                 type="number"
                 min="1"
-                placeholder="e.g. 50"
+                placeholder="50"
                 class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
                 value={rewardCost()}
                 onInput={(e) => setRewardCost(Number(e.currentTarget.value))}
@@ -211,7 +210,7 @@ export default function Settings() {
             </div>
             <button
               type="submit"
-              class="btn rounded-xl font-bold border-0 bg-teal-400 hover:bg-teal-300 text-slate-950 mt-2 w-full transition-all duration-200"
+              class="btn rounded-xl font-bold border-0 bg-teal-400 hover:bg-teal-300 text-slate-950 mt-2 w-full"
             >
               Create Reward
             </button>
@@ -219,10 +218,10 @@ export default function Settings() {
         </section>
 
         {/* Section 2: Add Family Member Form */}
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+        <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4">
           <div>
             <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-              👶 Add Family Member
+              Add a child account
             </h3>
             <p class="text-xs text-slate-400 mt-1">
               Add a child account to your household board so they can claim
@@ -233,7 +232,7 @@ export default function Settings() {
           <Show when={childSuccess()}>
             <div class="rounded-xl bg-teal-500/10 border border-teal-500/20 px-4 py-2.5">
               <p class="text-xs font-semibold text-teal-400">
-                ✓ Child account created successfully!
+                Child account created.
               </p>
             </div>
           </Show>
@@ -245,12 +244,13 @@ export default function Settings() {
 
           <form onSubmit={handleAddChild} class="flex flex-col gap-4">
             <div class="flex flex-col gap-1.5">
-              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+              <label for="child-name" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                 Full Name
               </label>
               <input
+                id="child-name"
                 type="text"
-                placeholder="e.g. Emma"
+                placeholder="Emma"
                 class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
                 value={childName()}
                 onInput={(e) => setChildName(e.currentTarget.value)}
@@ -259,12 +259,13 @@ export default function Settings() {
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                <label for="child-username" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                   Username
                 </label>
                 <input
+                  id="child-username"
                   type="text"
-                  placeholder="e.g. emma"
+                  placeholder="emma"
                   class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
                   value={childUsername()}
                   onInput={(e) => setChildUsername(e.currentTarget.value)}
@@ -272,10 +273,11 @@ export default function Settings() {
                 />
               </div>
               <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                <label for="child-email" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                   Email
                 </label>
                 <input
+                  id="child-email"
                   type="email"
                   placeholder="emma@family.local"
                   class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
@@ -286,10 +288,11 @@ export default function Settings() {
               </div>
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+              <label for="child-password" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                 Password
               </label>
               <input
+                id="child-password"
                 type="password"
                 placeholder="Min 6 characters"
                 class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
@@ -302,18 +305,18 @@ export default function Settings() {
             <button
               type="submit"
               disabled={childLoading()}
-              class="btn rounded-xl font-bold border-0 bg-purple-600 hover:bg-purple-500 text-white mt-2 w-full disabled:opacity-50 transition-all duration-200"
+              class="btn rounded-xl font-bold border-0 bg-purple-600 hover:bg-purple-500 text-white mt-2 w-full disabled:opacity-50"
             >
-              {childLoading() ? "Creating..." : "Add Child Member"}
+              {childLoading() ? "Creating…" : "Add child"}
             </button>
           </form>
         </section>
 
         {/* Section 3: Change Child Password Form */}
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4 md:col-span-2 max-w-2xl mx-auto w-full mt-2">
+        <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4 md:col-span-2 max-w-2xl mx-auto w-full mt-2">
           <div>
             <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-              🔑 Change Child Password
+              Change a child password
             </h3>
             <p class="text-xs text-slate-400 mt-1">
               Reset the password for any child account in your household.
@@ -322,7 +325,7 @@ export default function Settings() {
           <Show when={passwordSuccess()}>
             <div class="rounded-xl bg-teal-500/10 border border-teal-500/20 px-4 py-2.5">
               <p class="text-xs font-semibold text-teal-400">
-                ✓ Password changed successfully!
+                Password changed.
               </p>
             </div>
           </Show>
@@ -336,10 +339,11 @@ export default function Settings() {
           <form onSubmit={handleChangePassword} class="flex flex-col gap-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                <label for="password-child" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                   Select Child
                 </label>
                 <select
+                  id="password-child"
                   class="select bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
                   value={targetChildId()}
                   onChange={(e) =>
@@ -347,7 +351,7 @@ export default function Settings() {
                   }
                   required
                 >
-                  <option value="">Choose a child...</option>
+                  <option value="">Choose a child…</option>
                   <For each={store.users.filter((u) => u.type === "child")}>
                     {(user) => (
                       <option value={user.id}>
@@ -358,10 +362,11 @@ export default function Settings() {
                 </select>
               </div>
               <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                <label for="new-child-password" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                   New Password
                 </label>
                 <input
+                  id="new-child-password"
                   type="password"
                   placeholder="Min 6 characters"
                   class="input bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 w-full"
@@ -375,9 +380,9 @@ export default function Settings() {
             <button
               type="submit"
               disabled={passwordLoading()}
-              class="btn rounded-xl font-bold border-0 bg-indigo-600 hover:bg-indigo-500 text-white mt-2 w-full disabled:opacity-50 transition-all duration-200 cursor-pointer"
+              class="btn rounded-xl font-bold border-0 bg-indigo-600 hover:bg-indigo-500 text-white mt-2 w-full disabled:opacity-50 cursor-pointer"
             >
-              {passwordLoading() ? "Updating..." : "Update Password"}
+              {passwordLoading() ? "Updating…" : "Update password"}
             </button>
           </form>
         </section>

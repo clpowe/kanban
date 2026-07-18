@@ -17,30 +17,26 @@ export default function Rewards() {
   };
 
   return (
-    <div class="flex flex-col gap-6 w-full max-w-5xl mx-auto animate-fade-in">
-      {/* Page Header */}
+    <div class="app-view rewards-view flex flex-col gap-6 w-full max-w-5xl mx-auto">
       <div class="flex flex-col gap-1.5 p-1">
-        <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-400">
-          Household Portal
-        </span>
         <h2 class="text-3xl font-black text-slate-100 tracking-tight">
-          Scores & Rewards
+          Points and rewards
         </h2>
         <p class="text-sm text-slate-400 max-w-xl">
-          Track the family standings, view point balances, and redeem your hard-earned rewards.
+          See everyone’s points and choose what to work toward next.
         </p>
       </div>
 
       {/* Main Content Grid */}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Section 1: Leaderboard */}
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+        <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4">
           <div>
             <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-              🏆 Family Leaderboard
+              Family leaderboard
             </h3>
             <p class="text-xs text-slate-400 mt-1">
-              See who is currently leading the household in points!
+              Current points across the household.
             </p>
           </div>
 
@@ -65,7 +61,7 @@ export default function Rewards() {
                       </span>
                     </div>
                     <span class="badge font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3.5 py-3 rounded-lg">
-                      ⭐ <AnimatedPoints value={u.points} /> pts
+                      <AnimatedPoints value={u.points} /> pts
                     </span>
                   </li>
                 )}
@@ -75,13 +71,13 @@ export default function Rewards() {
         </section>
 
         {/* Section 2: Rewards Center */}
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+        <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4">
           <div>
             <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-              🎁 Reward Store
+              Reward shelf
             </h3>
             <p class="text-xs text-slate-400 mt-1">
-              Redeem your points for these special rewards.
+              Spend earned points on a family reward.
             </p>
           </div>
 
@@ -99,13 +95,13 @@ export default function Rewards() {
                 const canAfford = () => activeUserPoints() >= reward.cost;
                 const shortfall = () => reward.cost - activeUserPoints();
                 return (
-                  <li class="flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-800 bg-slate-950/20 hover:bg-slate-950/30 transition-all duration-200">
+                  <li class="reward-row flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-800 bg-slate-950/20">
                     <div class="min-w-0">
                       <p class="font-bold text-sm text-slate-200 truncate">
                         {reward.title}
                       </p>
                       <p class="text-xs font-semibold text-slate-400 mt-0.5">
-                        ⭐ {reward.cost} pts
+                        {reward.cost} pts
                       </p>
                     </div>
                     <Show
@@ -121,7 +117,7 @@ export default function Rewards() {
                               >
                                 Redeem
                               </button>
-                              <span class="text-[9px] font-bold text-rose-400">
+                              <span class="text-[10px] font-bold text-rose-400">
                                 Need {shortfall()} more
                               </span>
                             </div>

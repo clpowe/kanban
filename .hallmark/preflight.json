@@ -1,0 +1,13 @@
+{
+  "date": "2026-07-17",
+  "font_stack": "System sans; no custom font detected",
+  "palette": "DaisyUI corporate/business mapped through CSS variables",
+  "motion": "CSS utilities only; no motion library",
+  "spacing": "Tailwind default 4px scale",
+  "framework": "SolidJS 1.9 + Tailwind CSS 4 + DaisyUI 5",
+  "sources": [
+    "package.json",
+    "src/styles/app.css",
+    "src/client/App.tsx"
+  ]
+}

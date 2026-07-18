@@ -12,21 +12,24 @@ export default function AnimatedPoints(props: AnimatedPointsProps) {
     const target = props.value;
     const start = displayValue();
     if (start === target) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDisplayValue(target);
+      return;
+    }
 
-    const duration = 500; // animation duration in ms
+    const duration = 500;
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
-      const progess = Math.min(elapsed / duration, 1);
+      const progress = Math.min(elapsed / duration, 1);
 
-      // Easing function: easeOutQuad
-      const ease = progess * (2 - progess);
+      const ease = progress * (2 - progress);
       const current = Math.round(start + (target - start) * ease);
 
       setDisplayValue(current);
 
-      if (progess < 1) {
+      if (progress < 1) {
         animationFrameId = requestAnimationFrame(animate);
       }
     };
@@ -38,5 +41,9 @@ export default function AnimatedPoints(props: AnimatedPointsProps) {
     });
   });
 
-  return <span class={props.class}>{displayValue()}</span>;
+  return (
+    <span class={props.class} aria-live="polite">
+      {displayValue()}
+    </span>
+  );
 }

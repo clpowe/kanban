@@ -63,16 +63,15 @@ export default function Archive() {
   };
 
   return (
-    <section class="px-4 py-6 md:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col gap-6">
+    <section class="app-view archive-view max-w-7xl mx-auto flex flex-col gap-6">
       {/* Header Area */}
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-3xl font-black text-slate-100">
-            Historical Archives
+            Task archive
           </h2>
           <p class="text-slate-400 text-sm mt-1">
-            View, restore, or manage completed or archived family
-            accomplishments.
+            Find finished work, restore a task, or clear old history.
           </p>
         </div>
         <div class="badge badge-lg bg-slate-900 border-slate-800 text-slate-300 font-bold px-4 py-3 rounded-xl shadow-inner">
@@ -80,7 +79,7 @@ export default function Archive() {
         </div>
       </div>
       {/* Filter Control Bar */}
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-2xl border border-slate-800 bg-slate-900/40 p-4 backdrop-blur-md shadow-lg">
+      <div class="view-panel grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
         {/* Search Text */}
         <div class="flex flex-col gap-1">
           <label
@@ -92,7 +91,7 @@ export default function Archive() {
           <input
             id="search-tasks"
             type="text"
-            placeholder="Type to filter..."
+            placeholder="Laundry"
             class="input input-sm w-full bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
             value={searchQuery()}
             onInput={(e) => setSearchQuery(e.currentTarget.value)}
@@ -145,9 +144,9 @@ export default function Archive() {
         when={archivedTasks().length > 0}
         fallback={
           <div class="rounded-3xl border-2 border-dashed border-slate-800 bg-slate-900/10 p-12 text-center max-w-md mx-auto mt-8">
-            <span class="text-4xl">📁</span>
+            <span class="empty-mark" aria-hidden="true">A</span>
             <h3 class="text-lg font-bold text-slate-300 mt-4">
-              Archive is Empty
+              Archive is empty
             </h3>
             <p class="text-xs text-slate-500 mt-2">
               Completed recurring tasks or manually moved items will appear
@@ -160,7 +159,7 @@ export default function Archive() {
           when={filteredTasks().length > 0}
           fallback={
             <div class="rounded-3xl border border-slate-800 bg-slate-900/30 p-12 text-center max-w-md mx-auto mt-8">
-              <span class="text-3xl">🔍</span>
+              <span class="empty-mark" aria-hidden="true">0</span>
               <h3 class="text-md font-bold text-slate-400 mt-3">
                 No matching tasks
               </h3>
@@ -173,17 +172,17 @@ export default function Archive() {
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <For each={filteredTasks()}>
               {(task) => (
-                <div class="group relative rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/40 p-4 shadow-lg hover:border-slate-700/60 transition-all duration-200 flex flex-col justify-between min-h-35">
+                <div class="archive-card group relative rounded-2xl border border-slate-800/80 bg-slate-950/40 p-4 flex flex-col justify-between min-h-35">
                   <div>
                     {/* Priority & Points Row */}
                     <div class="flex items-center justify-between gap-2 mb-2">
                       <span
-                        class={`text-[9px] font-bold uppercase tracking-wider rounded-lg border px-2 py-0.5 ${priorityStyles[task.priority] ?? ""}`}
+                        class={`text-[10px] font-bold uppercase tracking-wider rounded-lg border px-2 py-0.5 ${priorityStyles[task.priority] ?? ""}`}
                       >
                         {task.priority}
                       </span>
                       <span class="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/10">
-                        ⭐ {task.value} pts
+                        {task.value} pts
                       </span>
                     </div>
                     {/* Task Title */}
@@ -192,7 +191,7 @@ export default function Archive() {
                     </h3>
                     <Show when={task.archiveReason}>
                       <span
-                        class={`mt-2 inline-flex w-fit rounded-lg border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                        class={`mt-2 inline-flex w-fit rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                           task.archiveReason === "missed"
                             ? "border-rose-500/25 bg-rose-500/10 text-rose-300"
                             : "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
@@ -205,14 +204,14 @@ export default function Archive() {
                   {/* Card Footer (Assignee + Buttons) */}
                   <div class="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between gap-4">
                     <span class="text-[10px] text-slate-500 truncate max-w-30">
-                      👤 {getAssigneeName(task.assigneeId)}
+                      {getAssigneeName(task.assigneeId)}
                     </span>
                     <div class="flex items-center gap-1.5 shrink-0">
                       {/* Restore Button */}
                       <button
                         onClick={() => handleRestore(task.id)}
                         disabled={Boolean(isRolloverArchive(task))}
-                        class="btn btn-xs rounded-lg font-semibold border-0 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white disabled:pointer-events-none disabled:opacity-40"
+                        class="btn btn-xs rounded-lg font-semibold border-0 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 disabled:pointer-events-none disabled:opacity-40"
                         title={
                           isRolloverArchive(task)
                             ? "Recurring history cannot be restored"
@@ -224,10 +223,11 @@ export default function Archive() {
                       {/* Delete Button */}
                       <button
                         onClick={() => handleDelete(task.id)}
-                        class="btn btn-xs btn-ghost text-slate-500 hover:bg-rose-500/15 hover:text-rose-400 rounded-lg"
+                        class="btn btn-xs btn-ghost text-slate-500 hover:bg-rose-500/15 rounded-lg"
                         title="Permanently delete task"
+                        aria-label={`Delete ${task.title}`}
                       >
-                        🗑️
+                        Delete
                       </button>
                     </div>
                   </div>

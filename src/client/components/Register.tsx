@@ -37,126 +37,116 @@ export default function Register() {
       }
     } catch (error) {
       console.log(error);
-      setError("Something went wrong. Please try again.");
+      setError("We couldn’t create the account. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div class="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-8">
-      <div class="relative w-full max-w-md animate-fade-in">
-        {/* Branding */}
-        <div class="text-center mb-6">
-          <div class="mx-auto h-14 w-14 rounded-2xl bg-primary shadow-lg shadow-primary/20 flex items-center justify-center mb-4">
-            <span class="text-lg font-black tracking-widest text-white">K</span>
-          </div>
-          <span class="text-[10px] font-extrabold uppercase tracking-widest text-primary">
-            Household Board
-          </span>
-          <h1 class="text-2xl font-black text-primary mt-1">
-            Create Account
-          </h1>
-        </div>
-        {/* Sign Up Card */}
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-2xl">
-          <h2 class="text-lg font-bold text-slate-100 mb-1">Join the family</h2>
-          <p class="text-xs text-slate-400 mb-6 font-medium">
-            Create a parent account to manage your family's tasks.
-          </p>
-          <Show when={error()}>
-            <div class="rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5 mb-4">
-              <p class="text-xs font-semibold text-rose-400">{error()}</p>
-            </div>
-          </Show>
-          <form onSubmit={handleRegister} class="flex flex-col gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label
-                for="register-name"
-                class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
-              >
-                Full Name
-              </label>
-              <input
-                id="register-name"
-                type="text"
-                placeholder="e.g. Emma Powe"
-                class="input input-sm w-full bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-                value={name()}
-                onInput={(e) => setName(e.currentTarget.value)}
-                required
-              />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label
-                for="register-username"
-                class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
-              >
-                Username
-              </label>
-              <input
-                id="register-username"
-                type="text"
-                placeholder="e.g. emma"
-                class="input input-sm w-full bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-                value={username()}
-                onInput={(e) => setUsername(e.currentTarget.value)}
-                required
-              />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label
-                for="register-email"
-                class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
-              >
-                Email Address
-              </label>
-              <input
-                id="register-email"
-                type="email"
-                placeholder="e.g. emma@family.local"
-                class="input input-sm w-full bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-                value={email()}
-                onInput={(e) => setEmail(e.currentTarget.value)}
-                required
-              />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label
-                for="register-password"
-                class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
-              >
-                Password
-              </label>
-              <input
-                id="register-password"
-                type="password"
-                placeholder="Min 6 characters"
-                class="input input-sm w-full bg-slate-950 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-                value={password()}
-                onInput={(e) => setPassword(e.currentTarget.value)}
-                required
-                minlength="6"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading()}
-              class="btn btn-sm rounded-xl font-bold border-0 bg-indigo-600 hover:bg-indigo-500 text-white mt-2 disabled:opacity-50"
-            >
-              {loading() ? "Creating account..." : "Create Account"}
-            </button>
-          </form>
-          <div class="mt-6 pt-4 border-t border-slate-800/60 text-center">
-            <span class="text-xs text-slate-400">
-              Already have an account?{" "}
-              <A
-                href="/login"
-                class="text-indigo-400 hover:text-indigo-300 font-bold transition-colors"
-              >
-                Sign In
-              </A>
+    <div class="auth-page">
+      <div class="auth-shell">
+        <section class="auth-intro" aria-labelledby="register-brand-title">
+          <div class="app-brand">
+            <span class="brand-character" aria-hidden="true">
+              FT
             </span>
+            <span class="app-brand__copy">
+              <span class="app-brand__name">Family Task</span>
+              <span class="app-brand__meta">Household board</span>
+            </span>
+          </div>
+          <div class="grid gap-4">
+            <h1 id="register-brand-title">One board. Fewer reminders.</h1>
+            <p>Parents set the task. Kids move it forward. The board keeps score.</p>
+          </div>
+        </section>
+
+        <div class="auth-card-wrap">
+          <div class="auth-card">
+            <h2 class="text-2xl font-bold text-slate-100 mb-2">Start your board</h2>
+            <p class="text-sm text-slate-400 mb-6 font-medium">
+              Create the parent account first. You can add children next.
+            </p>
+            <Show when={error()}>
+              <div class="auth-error px-4 py-3 mb-4" role="alert" aria-live="polite">
+                <p class="text-sm font-semibold">{error()}</p>
+              </div>
+            </Show>
+            <form onSubmit={handleRegister} class="flex flex-col gap-4">
+              <div class="flex flex-col gap-1.5">
+                <label for="register-name" class="text-xs font-bold text-slate-500 px-1">
+                  Full name
+                </label>
+                <input
+                  id="register-name"
+                  type="text"
+                  placeholder="Emma Powe"
+                  class="input w-full"
+                  value={name()}
+                  onInput={(e) => setName(e.currentTarget.value)}
+                  required
+                  autocomplete="name"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label for="register-username" class="text-xs font-bold text-slate-500 px-1">
+                  Username
+                </label>
+                <input
+                  id="register-username"
+                  type="text"
+                  placeholder="emma"
+                  class="input w-full"
+                  value={username()}
+                  onInput={(e) => setUsername(e.currentTarget.value)}
+                  required
+                  autocomplete="username"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label for="register-email" class="text-xs font-bold text-slate-500 px-1">
+                  Email address
+                </label>
+                <input
+                  id="register-email"
+                  type="email"
+                  placeholder="emma@example.com"
+                  class="input w-full"
+                  value={email()}
+                  onInput={(e) => setEmail(e.currentTarget.value)}
+                  required
+                  autocomplete="email"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label for="register-password" class="text-xs font-bold text-slate-500 px-1">
+                  Password
+                </label>
+                <input
+                  id="register-password"
+                  type="password"
+                  placeholder="At least 6 characters"
+                  class="input w-full"
+                  value={password()}
+                  onInput={(e) => setPassword(e.currentTarget.value)}
+                  required
+                  minlength="6"
+                  autocomplete="new-password"
+                />
+              </div>
+              <button type="submit" disabled={loading()} class="btn w-full mt-2">
+                {loading() ? "Creating account…" : "Create account"}
+              </button>
+            </form>
+            <div class="auth-card__footer">
+              <span>
+                Already have an account?{" "}
+                <A href="/login" class="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
+                  Sign in
+                </A>
+              </span>
+            </div>
           </div>
         </div>
       </div>

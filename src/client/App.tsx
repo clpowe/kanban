@@ -40,19 +40,14 @@ function AppLayout(props: { children?: JSX.Element }) {
     <Show
       when={session().data}
       fallback={
-        <div class="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans">
-          <div class="relative flex items-center justify-center">
-            <div class="absolute h-24 w-24 rounded-full border border-primary/30 animate-ping opacity-75" />
-            <div class="absolute h-16 w-16 rounded-full border border-primary/20 animate-pulse" />
-            <div class="h-10 w-10 rounded-full bg-primary shadow-lg shadow-primary/20 flex items-center justify-center">
-              <span class="text-xs font-bold tracking-widest text-white">
-                K
-              </span>
-            </div>
-          </div>
-          <h2 class="mt-6 text-sm font-semibold tracking-wider uppercase text-slate-400 animate-pulse">
-            Syncing Household...
+        <div class="app-shell min-h-screen flex flex-col items-center justify-center gap-5 px-4">
+          <span class="brand-character" aria-hidden="true">
+            FT
+          </span>
+          <h2 class="text-xl font-bold text-slate-100">
+            Getting your board ready…
           </h2>
+          <span class="loading loading-dots loading-md text-primary" aria-hidden="true" />
         </div>
       }
     >

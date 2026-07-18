@@ -4,10 +4,10 @@ import { store } from "../store/app-store";
 import { api } from "../lib/api";
 
 const statusColors = {
-  todo: "#6366f1", // Indigo
-  doing: "#f59e0b", // Amber
-  done: "#10b981", // Emerald
-  archived: "#64748b", // Slate
+  todo: "var(--color-accent-2)",
+  doing: "var(--color-warning)",
+  done: "var(--color-success)",
+  archived: "var(--color-muted)",
 };
 
 const statusLabels: Record<string, string> = {
@@ -87,7 +87,8 @@ export default function Analytics() {
         strokeDash: `${strokeLength} ${circumference}`,
         rotation,
         color:
-          statusColors[item.status as keyof typeof statusColors] || "#cccccc",
+          statusColors[item.status as keyof typeof statusColors] ||
+          "var(--color-muted)",
       };
     });
   };
@@ -101,18 +102,13 @@ export default function Analytics() {
   };
 
   return (
-    <div class="flex flex-col gap-6 w-full max-w-5xl mx-auto">
-      {/* Page Header */}
+    <div class="app-view analytics-view flex flex-col gap-6 w-full max-w-5xl mx-auto">
       <div class="flex flex-col gap-1.5 p-1">
-        <span class="text-xs font-extrabold uppercase tracking-widest text-primary">
-          Family Insights
-        </span>
         <h2 class="text-3xl font-black text-slate-100 tracking-tight">
-          Chores Analytics
+          Household progress
         </h2>
         <p class="text-sm text-slate-400 max-w-xl">
-          Track task completion rates, evaluate distribution balances, and
-          monitor family chore milestones.
+          See what gets finished, who needs room, and how work is shared.
         </p>
       </div>
 
@@ -122,7 +118,7 @@ export default function Analytics() {
           <div class="flex flex-col items-center justify-center p-20 gap-4">
             <div class="loading loading-spinner loading-lg text-primary"></div>
             <p class="text-sm font-semibold text-slate-500">
-              Compiling statistics...
+              Loading progress…
             </p>
           </div>
         }
@@ -131,9 +127,9 @@ export default function Analytics() {
           when={totalTasks() > 0}
           fallback={
             <div class="rounded-3xl border border-dashed border-slate-800 bg-slate-900/10 p-16 text-center max-w-md mx-auto mt-8">
-              <span class="text-5xl">📊</span>
+              <span class="empty-mark" aria-hidden="true">0</span>
               <h3 class="text-lg font-bold text-slate-300 mt-4">
-                No Data Available
+                No progress data yet
               </h3>
               <p class="text-xs text-slate-500 mt-2">
                 Create family tasks and assign them to children to populate
@@ -143,9 +139,9 @@ export default function Analytics() {
           }
         >
           {/* Key Metrics Cards */}
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="analytics-metrics grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Completion Rate */}
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg flex flex-col justify-between min-h-32">
+            <div class="analytics-card rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between min-h-32">
               <div>
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Completion Rate
@@ -156,14 +152,14 @@ export default function Analytics() {
               </div>
               <div class="w-full bg-slate-950 rounded-full h-2 mt-4 overflow-hidden border border-slate-800">
                 <div
-                  class="bg-linear-to-r from-emerald-500 to-teal-400 h-full rounded-full"
+                  class="bg-emerald-500 h-full rounded-full"
                   style={{ width: `${completionRate()}%` }}
                 />
               </div>
             </div>
 
             {/* Top Performer */}
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg flex flex-col justify-between min-h-32">
+            <div class="analytics-card rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between min-h-32">
               <div>
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Top Achiever
@@ -180,7 +176,7 @@ export default function Analytics() {
                     {topPerformer()?.name}
                   </h3>
                   <p class="text-xs font-semibold text-slate-400 mt-1">
-                    ✓ Completed{" "}
+                    Completed{" "}
                     {topPerformer()!.done + topPerformer()!.archived} tasks
                   </p>
                 </Show>
@@ -188,13 +184,13 @@ export default function Analytics() {
             </div>
 
             {/* Total House Points */}
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg flex flex-col justify-between min-h-32">
+            <div class="analytics-card rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between min-h-32">
               <div>
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Total House Points
                 </span>
                 <h3 class="text-3xl font-black text-indigo-400 mt-1">
-                  ⭐ {totalHousePoints()} pts
+                  {totalHousePoints()} pts
                 </h3>
               </div>
               <p class="text-[10px] text-slate-500 mt-2">
@@ -206,7 +202,7 @@ export default function Analytics() {
           {/* Charts Grid */}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
             {/* Donut Chart: Status Distribution */}
-            <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+            <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4">
               <div>
                 <h4 class="text-md font-bold text-slate-200">
                   Task Status Distribution
@@ -219,13 +215,18 @@ export default function Analytics() {
               <div class="flex flex-col sm:flex-row items-center justify-around gap-6 py-4">
                 {/* SVG Donut */}
                 <div class="relative w-36 h-36">
-                  <svg class="w-full h-full" viewBox="0 0 100 100">
+                  <svg
+                    class="w-full h-full"
+                    viewBox="0 0 100 100"
+                    role="img"
+                    aria-label="Task status distribution chart"
+                  >
                     <circle
                       cx="50"
                       cy="50"
                       r="35"
                       fill="transparent"
-                      stroke="#0f172a"
+                      stroke="var(--color-paper-3)"
                       stroke-width="12"
                     />
                     <For each={donutData()}>
@@ -239,7 +240,7 @@ export default function Analytics() {
                           stroke-width="12"
                           stroke-dasharray={seg.strokeDash}
                           transform={`rotate(${seg.rotation} 50 50)`}
-                          class="transition-all duration-300 hover:stroke-[14px] cursor-pointer"
+                          class="cursor-pointer"
                         />
                       )}
                     </For>
@@ -248,7 +249,7 @@ export default function Analytics() {
                     <span class="text-2xl font-black text-slate-100">
                       {totalTasks()}
                     </span>
-                    <span class="text-[8px] font-extrabold text-slate-500 uppercase tracking-widest">
+                    <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
                       Total Tasks
                     </span>
                   </div>
@@ -279,7 +280,7 @@ export default function Analytics() {
             </section>
 
             {/* Stacked Bar Chart: Comparison */}
-            <section class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-6 shadow-xl flex flex-col gap-4">
+            <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4">
               <div>
                 <h4 class="text-md font-bold text-slate-200">
                   Tasks per Family Member
@@ -291,14 +292,19 @@ export default function Analytics() {
 
               {/* Stacked Chart SVG */}
               <div class="w-full flex flex-col gap-3 justify-center py-2 h-48">
-                <svg class="w-full h-full" viewBox="0 0 300 150">
+                <svg
+                  class="w-full h-full"
+                  viewBox="0 0 300 150"
+                  role="img"
+                  aria-label="Tasks per family member chart"
+                >
                   {/* Grid Lines */}
                   <line
                     x1="30"
                     y1="20"
                     x2="290"
                     y2="20"
-                    stroke="#1e293b"
+                    stroke="var(--color-rule)"
                     stroke-dasharray="2 2"
                   />
                   <line
@@ -306,7 +312,7 @@ export default function Analytics() {
                     y1="70"
                     x2="290"
                     y2="70"
-                    stroke="#1e293b"
+                    stroke="var(--color-rule)"
                     stroke-dasharray="2 2"
                   />
                   <line
@@ -314,14 +320,14 @@ export default function Analytics() {
                     y1="120"
                     x2="290"
                     y2="120"
-                    stroke="#1e293b"
+                    stroke="var(--color-rule)"
                     stroke-dasharray="2 2"
                   />
 
                   {/* Y Axis line */}
-                  <line x1="30" y1="10" x2="30" y2="120" stroke="#334155" />
+                  <line x1="30" y1="10" x2="30" y2="120" stroke="var(--color-rule-strong)" />
                   {/* X Axis line */}
-                  <line x1="30" y1="120" x2="290" y2="120" stroke="#334155" />
+                  <line x1="30" y1="120" x2="290" y2="120" stroke="var(--color-rule-strong)" />
 
                   <For each={analytics()?.childStats}>
                     {(child, index) => {
@@ -354,7 +360,7 @@ export default function Analytics() {
                             height={doneH}
                             fill={statusColors.done}
                             rx="2"
-                            class="transition-all duration-300 hover:opacity-90"
+                            class="hover:opacity-90"
                           />
                           {/* Doing Segment */}
                           <rect
@@ -364,7 +370,7 @@ export default function Analytics() {
                             height={doingH}
                             fill={statusColors.doing}
                             rx="2"
-                            class="transition-all duration-300 hover:opacity-90"
+                            class="hover:opacity-90"
                           />
                           {/* Todo Segment */}
                           <rect
@@ -374,13 +380,13 @@ export default function Analytics() {
                             height={todoH}
                             fill={statusColors.todo}
                             rx="2"
-                            class="transition-all duration-300 hover:opacity-90"
+                            class="hover:opacity-90"
                           />
                           {/* Child Label */}
                           <text
                             x={xPos + barWidth / 2}
                             y="136"
-                            fill="#94a3b8"
+                            fill="var(--color-muted)"
                             font-size="8"
                             font-weight="bold"
                             text-anchor="middle"
@@ -395,7 +401,7 @@ export default function Analytics() {
               </div>
 
               {/* Stacked Chart Legend */}
-              <div class="flex items-center justify-center gap-4 text-[9px] font-extrabold uppercase tracking-wider text-slate-500">
+              <div class="flex items-center justify-center gap-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
                 <div class="flex items-center gap-1.5">
                   <span
                     class="w-2 h-2 rounded-full"

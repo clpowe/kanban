@@ -11,7 +11,7 @@ export function getStreakLevel(
     return {
       name: "Legend",
       color: "text-amber-400 border-amber-500/35 bg-amber-500/10",
-      icon: "👑",
+      icon: "L",
     };
   }
   const ratio = current / target;
@@ -19,27 +19,27 @@ export function getStreakLevel(
     return {
       name: "Gold",
       color: "text-yellow-500 border-yellow-500/35 bg-yellow-500/10",
-      icon: "🥇",
+      icon: "G",
     };
   }
   if (ratio >= 0.5) {
     return {
       name: "Silver",
       color: "text-slate-350 border-slate-300/35 bg-slate-300/10",
-      icon: "🥈",
+      icon: "S",
     };
   }
   if (ratio >= 0.25) {
     return {
       name: "Bronze",
       color: "text-amber-700 border-amber-700/35 bg-amber-700/10",
-      icon: "🥉",
+      icon: "B",
     };
   }
   return {
     name: "None",
     color: "text-slate-500 border-slate-800 bg-slate-900/40",
-    icon: "🌱",
+    icon: "N",
   };
 }
 
@@ -58,7 +58,7 @@ const columns: ColumnDef[] = [
   {
     key: "todo",
     label: "To Do",
-    accent: "primary",
+    accent: "blue",
     emptyText: "Nothing to do — nice!",
     nextStatus: "doing",
     nextLabel: "Start",
@@ -66,7 +66,7 @@ const columns: ColumnDef[] = [
   {
     key: "doing",
     label: "In Progress",
-    accent: "amber",
+    accent: "gold",
     emptyText: "No tasks in progress.",
     nextStatus: "done",
     nextLabel: "Done ✓",
@@ -74,7 +74,7 @@ const columns: ColumnDef[] = [
   {
     key: "done",
     label: "Done",
-    accent: "emerald",
+    accent: "teal",
     emptyText: "Complete some tasks!",
   },
 ];
@@ -91,23 +91,23 @@ const accentMap: Record<
   string,
   { border: string; bg: string; text: string; glow: string }
 > = {
-  primary: {
-    border: "border-primary/45",
-    bg: "bg-primary/10",
-    text: "text-primary",
-    glow: "bg-primary/5",
+  blue: {
+    border: "board-accent-border--blue",
+    bg: "board-accent-bg--blue",
+    text: "board-accent-text--blue",
+    glow: "board-accent-glow--blue",
   },
-  amber: {
-    border: "border-amber-500/45",
-    bg: "bg-amber-500/10",
-    text: "text-amber-500",
-    glow: "bg-amber-500/5",
+  gold: {
+    border: "board-accent-border--gold",
+    bg: "board-accent-bg--gold",
+    text: "board-accent-text--gold",
+    glow: "board-accent-glow--gold",
   },
-  emerald: {
-    border: "border-emerald-500/45",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-500",
-    glow: "bg-emerald-500/5",
+  teal: {
+    border: "board-accent-border--teal",
+    bg: "board-accent-bg--teal",
+    text: "board-accent-text--teal",
+    glow: "board-accent-glow--teal",
   },
 };
 
@@ -137,11 +137,11 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
     <div
       draggable={true}
       onDragStart={handleDragStart}
-      class="group relative rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-4 shadow-lg hover:border-slate-700 hover:shadow-xl transition-all duration-200"
+      class="task-card group relative rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg"
     >
       {/* Title */}
-      <div class="flex items-start justify-between gap-2 mb-2">
-        <h3 class="text-sm font-bold text-slate-100 leading-snug">
+      <div class="task-card__title-row flex items-start justify-between gap-2">
+        <h3 class="task-card__title text-sm font-bold text-slate-100 leading-snug">
           {props.task.title}
         </h3>
         <Show when={store.activeUser?.type === "parent"}>
@@ -156,33 +156,34 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
                 storeActions.deleteTask(props.task.id);
               }
             }}
-            class="btn btn-xs btn-ghost text-slate-500 hover:bg-rose-500/15 hover:text-rose-400 rounded-lg shrink-0 p-1"
+            class="task-card__delete btn btn-xs btn-ghost text-slate-500 hover:bg-rose-500/15 rounded-lg shrink-0 px-2"
             title="Permanently delete task"
+            aria-label={`Delete ${props.task.title}`}
           >
-            🗑️
+            Delete
           </button>
         </Show>
       </div>
       {/* Meta row: priority + points */}
-      <div class="flex items-center gap-2 flex-wrap mb-3">
+      <div class="task-card__meta flex items-center gap-2 flex-wrap">
         <span
           class={`text-[10px] font-bold uppercase tracking-wider rounded-lg border px-2 py-0.5 ${priorityStyles[props.task.priority] ?? ""}`}
         >
           {props.task.priority}
         </span>
-        <span class="text-xs font-semibold text-slate-400">
-          ⭐ {props.task.value} pts
+        <span class="task-card__points text-xs font-semibold text-slate-400">
+          {props.task.value} pts
         </span>
         <Show when={props.task.repeat && props.task.repeat !== "none"}>
-          <span class="text-[10px] font-semibold text-slate-400 bg-slate-800/30 border border-slate-700/40 rounded-lg px-2 py-0.5 capitalize">
-            🔁 {props.task.repeat}
+          <span class="task-card__repeat text-[10px] font-semibold text-slate-400 bg-slate-800/30 border border-slate-700/40 rounded-lg px-2 py-0.5 capitalize">
+            Repeats {props.task.repeat}
           </span>
         </Show>
       </div>
       {/* Assignee */}
       <Show when={name()}>
-        <p class="text-[11px] text-slate-500 mb-3">
-          Assigned to <strong class="text-slate-300">{name()}</strong>
+        <p class="task-card__assignee text-[11px] text-slate-500">
+          <span>Assigned to</span> <strong class="text-slate-300">{name()}</strong>
         </p>
       </Show>
 
@@ -203,23 +204,23 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
             );
 
           return (
-            <div class="mt-2.5 mb-2.5 p-2 rounded-xl bg-slate-950/30 border border-slate-800/80 flex flex-col gap-1.5 animate-fade-in text-xs">
+            <div class="task-card__goal mt-2.5 mb-2.5 p-2 rounded-xl bg-slate-950/30 border border-slate-800/80 flex flex-col gap-1.5 text-xs">
               <div class="flex items-center justify-between gap-2 flex-wrap">
                 <span class="text-[10px] font-bold text-slate-300 flex items-center gap-1">
-                  🏆 {ach.name}
+                  Goal · {ach.name}
                 </span>
                 <div class="flex items-center gap-1.5">
                   <span
-                    class={`text-[8px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-lg border ${lvl().color}`}
+                    class={`text-[10px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-lg border ${lvl().color}`}
                   >
                     {lvl().icon} {lvl().name}
                   </span>
                   <Show when={ach.prestigeCount > 0}>
                     <span
-                      class="text-[9px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1 rounded-md"
+                      class="text-[10px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1 rounded-md"
                       title={`Prestiged ${ach.prestigeCount} times`}
                     >
-                      ⭐ {ach.prestigeCount}x
+                      {ach.prestigeCount}×
                     </span>
                   </Show>
                 </div>
@@ -228,11 +229,11 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
               <div class="flex items-center gap-2">
                 <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
                   <div
-                    class="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                    class="h-full bg-indigo-500 rounded-full"
                     style={{ width: `${pct()}%` }}
                   />
                 </div>
-                <span class="text-[9px] font-bold text-slate-500 select-none whitespace-nowrap">
+                <span class="text-[10px] font-bold text-slate-500 select-none whitespace-nowrap">
                   {ach.currentStreak}/{ach.targetStreak}
                 </span>
               </div>
@@ -245,7 +246,7 @@ function TaskCard(props: { task: Task; col: ColumnDef }) {
       <Show when={props.col.nextStatus}>
         <button
           onClick={handleAdvance}
-          class="btn btn-sm w-full rounded-xl font-semibold border-0 transition-all duration-200 bg-slate-800 text-slate-300 hover:bg-primary hover:text-white"
+          class="task-card__action btn btn-sm w-full rounded-xl font-semibold border-0 bg-slate-800 text-slate-300 hover:bg-primary"
         >
           {props.col.nextLabel}
         </button>
@@ -284,13 +285,13 @@ export default function Board() {
   });
 
   return (
-    <section class="px-4 py-6 md:px-6 lg:px-8">
+    <section class="task-board">
       {/* Board Header & Filter */}
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-800 p-4 shadow-lg">
+      <div class="board-toolbar flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-800 p-4">
         <div>
-          <h2 class="text-lg font-bold text-slate-100">Tasks Board</h2>
+          <h2 class="text-3xl font-bold text-slate-100">Today’s tasks</h2>
           <p class="text-xs text-slate-400">
-            Track and update household chore progress
+            Pick one up, move it forward, mark it done.
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -314,7 +315,7 @@ export default function Board() {
           </select>
         </div>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="board-grid grid grid-cols-1 md:grid-cols-3 gap-5">
         <For each={columns}>
           {(col) => {
             const a = accentMap[col.accent];
@@ -322,7 +323,7 @@ export default function Board() {
             const isOver = () => dragOverCol() === col.key;
 
             return (
-              <div class="flex flex-col gap-3 min-w-0">
+              <div class={`board-column board-column--${col.accent} flex flex-col gap-3 min-w-0`}>
                 {/* Column header */}
                 <div
                   class={`flex items-center gap-2 rounded-xl border ${a?.border} ${a?.bg} px-4 py-2`}
@@ -340,7 +341,7 @@ export default function Board() {
                 </div>
                 {/* Cards drop-zone container */}
                 <div
-                  class={`flex flex-col gap-3 min-h-125 rounded-2xl p-2 transition-all duration-200 ${
+                  class={`task-dropzone flex flex-col gap-3 min-h-125 rounded-2xl p-2 ${
                     isOver()
                       ? "bg-slate-900/40 ring-2 ring-primary/20 border border-slate-800/80"
                       : "bg-transparent border border-transparent"

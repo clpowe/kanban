@@ -3,6 +3,40 @@ import { A, useLocation, useNavigate } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
 import { authClient } from "../lib/auth-client";
 
+function SunIcon() {
+  return (
+    <svg
+      class="theme-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3.5" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg
+      class="theme-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20.4 14.4A8.4 8.4 0 0 1 9.6 3.6a8.5 8.5 0 1 0 10.8 10.8Z" />
+    </svg>
+  );
+}
+
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,6 +61,7 @@ export default function Navbar() {
   const [theme, setTheme] = createSignal(
     document.documentElement.getAttribute("data-theme") || "corporate",
   );
+  const [navOpen, setNavOpen] = createSignal(false);
 
   const toggleTheme = () => {
     const nextTheme = theme() === "corporate" ? "business" : "corporate";
@@ -48,159 +83,147 @@ export default function Navbar() {
     }
   };
 
+  const openTaskDrawer = () => {
+    const toggle = document.getElementById(
+      "task-drawer",
+    ) as HTMLInputElement | null;
+    if (toggle) toggle.checked = true;
+  };
+
+  const pageLinkClass = () => "app-nav__link";
+
   return (
-    <header class="navbar rounded-2xl border border-slate-800 bg-slate-900/50 backdrop-blur-md px-4 py-3 shadow-xl md:px-6 flex-col md:flex-row gap-4 items-stretch justify-between">
-      {/* Branding & Info */}
-      <div class="flex flex-col items-start gap-1">
-        <span class="text-xs font-bold uppercase tracking-widest text-primary">
-          Household Board
+    <header class="app-nav">
+      <A href="/" class="app-brand" aria-label="Family Task home">
+        <span class="brand-character" aria-hidden="true">
+          FT
         </span>
-        <h1 class="text-2xl font-black text-primary">Family Task</h1>
-        <Show when={store.activeUser}>
-          <div class="mt-1 flex items-center gap-2">
-            <span class="text-xs text-slate-400">
-              Active:{" "}
-              <strong class="text-slate-200 inline-flex items-center gap-1.5">
-                <Show when={store.activeUser!.image}>
-                  <span class="text-sm select-none">
-                    {store.activeUser!.image}
-                  </span>
-                </Show>
-                {store.activeUser!.name}
-              </strong>
-            </span>
-            <span class="badge badge-primary badge-outline badge-xs capitalize py-1.5 px-2 font-semibold">
-              {store.activeUser!.type}
-            </span>
-          </div>
+        <span class="app-brand__copy">
+          <span class="app-brand__name">Family Task</span>
+        </span>
+      </A>
+
+      <nav
+        class="app-nav__links"
+        data-open={navOpen()}
+        aria-label="Primary navigation"
+      >
+        <A
+          href="/"
+          class={pageLinkClass()}
+          aria-current={isBoard() ? "page" : undefined}
+          onClick={() => setNavOpen(false)}
+        >
+          Board
+        </A>
+        <A
+          href="/archived"
+          class={pageLinkClass()}
+          aria-current={isArchive() ? "page" : undefined}
+          onClick={() => setNavOpen(false)}
+        >
+          Archive
+        </A>
+        <Show when={isParent()}>
+          <A
+            href="/analytics"
+            class={pageLinkClass()}
+            aria-current={isAnalytics() ? "page" : undefined}
+            onClick={() => setNavOpen(false)}
+          >
+            Analytics
+          </A>
         </Show>
-      </div>
+        <A
+          href="/rewards"
+          class={pageLinkClass()}
+          aria-current={isRewards() ? "page" : undefined}
+          onClick={() => setNavOpen(false)}
+        >
+          Rewards
+        </A>
+        <Show when={store.activeUser?.type === "child"}>
+          <A
+            href="/profile"
+            class={pageLinkClass()}
+            aria-current={isProfile() ? "page" : undefined}
+            onClick={() => setNavOpen(false)}
+          >
+            Badges
+          </A>
+        </Show>
+        <Show when={isParent()}>
+          <A
+            href="/settings"
+            class={pageLinkClass()}
+            aria-current={isSettings() ? "page" : undefined}
+            onClick={() => setNavOpen(false)}
+          >
+            Settings
+          </A>
+        </Show>
+      </nav>
 
-      <div class="flex flex-col md:items-end gap-3 w-full md:w-auto max-w-md">
-        {/* Navigation Tabs & Drawer Labels */}
-        <div class="flex flex-wrap items-center gap-2">
-          <A
-            href="/"
-            class={`btn btn-sm rounded-xl font-semibold border-0 transition-all duration-200 ${
-              isBoard()
-                ? "btn-primary text-white shadow-md shadow-primary/20 hover:opacity-90"
-                : "bg-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-            }`}
-          >
-            Board
-          </A>
-          <A
-            href="/archived"
-            class={`btn btn-sm rounded-xl font-semibold border-0 transition-all duration-200 ${
-              isArchive()
-                ? "btn-primary text-white shadow-md shadow-primary/20 hover:opacity-90"
-                : "bg-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-            }`}
-          >
-            Archive
-          </A>
-          <Show when={isParent()}>
-            <A
-              href="/analytics"
-              class={`btn btn-sm rounded-xl font-semibold border-0 transition-all duration-200 ${
-                isAnalytics()
-                  ? "btn-primary text-white shadow-md shadow-primary/20 hover:opacity-90"
-                  : "bg-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-              }`}
-            >
-              Analytics
-            </A>
-          </Show>
-          <A
-            href="/rewards"
-            class={`btn btn-sm rounded-xl font-semibold border-0 transition-all duration-200 ${
-              isRewards()
-                ? "btn-primary text-white shadow-md shadow-primary/20 hover:opacity-90"
-                : "bg-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-            }`}
-          >
-            Scores & Rewards
-          </A>
-          <Show when={store.activeUser && store.activeUser.type === "child"}>
-            <A
-              href="/profile"
-              class={`btn btn-sm rounded-xl font-semibold border-0 transition-all duration-200 ${
-                isProfile()
-                  ? "btn-primary text-white shadow-md shadow-primary/20 hover:opacity-90"
-                  : "bg-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-              }`}
-            >
-              Profile & Badges
-            </A>
-          </Show>
+      <div class="app-nav__actions">
+        <select
+          id="active-user-id"
+          class="select app-nav__user"
+          aria-label="Active family member"
+          value={store.activeUser?.id || ""}
+          onChange={handleUserSwitch}
+        >
+          <For each={switchableUsers()}>
+            {(u) => (
+              <option value={u.id} selected={u.id === store.activeUser?.id}>
+                {u.name} · {u.type}
+              </option>
+            )}
+          </For>
+        </select>
 
-          {/* Theme Toggle */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          class="btn btn-ghost btn-circle app-nav__theme"
+          title={
+            theme() === "corporate" ? "Use night theme" : "Use light theme"
+          }
+          aria-label={
+            theme() === "corporate" ? "Use night theme" : "Use light theme"
+          }
+        >
+          <Show when={theme() === "corporate"} fallback={<MoonIcon />}>
+            <SunIcon />
+          </Show>
+        </button>
+
+        <Show when={isParent()}>
           <button
-            onClick={toggleTheme}
-            class="btn btn-ghost btn-sm btn-circle text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 cursor-pointer"
-            title={
-              theme() === "corporate"
-                ? "Switch to Dark Mode"
-                : "Switch to Light Mode"
-            }
-            aria-label="Toggle Theme"
+            type="button"
+            class="btn cursor-pointer app-nav__add"
+            onClick={openTaskDrawer}
           >
-            <Show when={theme() === "corporate"} fallback={<span>☀️</span>}>
-              <span>🌙</span>
-            </Show>
+            Add task
           </button>
+        </Show>
 
-          {/* Log Out Button */}
-          <button
-            onClick={handleLogout}
-            class="btn btn-ghost btn-sm text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 rounded-xl font-semibold border-0 transition-all duration-200 cursor-pointer"
-          >
-            Log Out
-          </button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          class="btn btn-ghost app-nav__logout"
+        >
+          Sign out
+        </button>
 
-          <Show when={isParent()}>
-            <A
-              href="/settings"
-              class={`btn btn-sm rounded-xl font-semibold border-0 transition-all duration-200 ${
-                isSettings()
-                  ? "btn-primary text-white shadow-md shadow-primary/20 hover:opacity-90"
-                  : "bg-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-              }`}
-            >
-              Settings
-            </A>
-            <label
-              for="task-drawer"
-              class="btn btn-primary btn-sm rounded-xl text-white font-bold border-0 cursor-pointer hover:opacity-90"
-            >
-              Add Task
-            </label>
-          </Show>
-        </div>
-
-        {/* User Switcher Dropdown */}
-        <div class="flex w-full flex-col gap-1">
-          <label
-            for="active-user-id"
-            class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
-          >
-            Switch User
-          </label>
-          <select
-            id="active-user-id"
-            class="select select-bordered select-sm w-full bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
-            value={store.activeUser?.id || ""}
-            onChange={handleUserSwitch}
-          >
-            <For each={switchableUsers()}>
-              {(u) => (
-                <option value={u.id} selected={u.id === store.activeUser?.id}>
-                  {u.name} ({u.type})
-                </option>
-              )}
-            </For>
-          </select>
-        </div>
+        <button
+          type="button"
+          class="btn btn-ghost app-nav__menu"
+          aria-label="Toggle navigation"
+          aria-expanded={navOpen()}
+          onClick={() => setNavOpen(!navOpen())}
+        >
+          <span class="app-nav__menu-lines" aria-hidden="true" />
+        </button>
       </div>
     </header>
   );

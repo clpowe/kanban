@@ -17,16 +17,16 @@ export default function PointCards() {
 
   return (
     <Show when={store.activeUser && store.activeUser.type !== "parent"}>
-      <div class="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md shadow-xl flex flex-col gap-4 group">
+      <div class="points-panel relative overflow-hidden rounded-3xl border border-slate-800 p-6 flex flex-col gap-4 group">
         {/* Top Row: User details & points balance */}
         <div class="flex items-center justify-between gap-6">
           <div class="relative z-10">
             <p class="text-xs font-bold uppercase tracking-widest text-slate-400">
-              Active Member
+              Playing as
             </p>
             <h2 class="text-4xl font-black mt-1 text-slate-100 flex items-center gap-2.5">
               <Show when={store.activeUser!.image}>
-                <span class="text-3xl select-none animate-bounce">
+                <span class="text-3xl select-none">
                   {store.activeUser!.image}
                 </span>
               </Show>
@@ -36,10 +36,10 @@ export default function PointCards() {
           {/* Right: Smooth Ticking Points Balance */}
           <div class="relative z-10 text-right">
             <p class="text-xs font-bold uppercase tracking-widest text-slate-400">
-              Accumulated Balance
+              Points ready
             </p>
             <h2 class="text-3xl font-black mt-1 text-slate-100 flex items-center justify-end gap-1.5">
-              ⭐ <AnimatedPoints value={store.activeUser!.points} />
+              <AnimatedPoints value={store.activeUser!.points} /> pts
             </h2>
           </div>
         </div>
@@ -48,7 +48,7 @@ export default function PointCards() {
         <Show when={activeStreaks().length > 0}>
           <div class="border-t border-slate-800/80 pt-4 flex flex-col gap-2 relative z-10">
             <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-              ⚡ Active Streaks
+              Active streaks
             </p>
             <div class="flex flex-wrap gap-2.5 mt-0.5">
               <For each={activeStreaks()}>
@@ -61,24 +61,24 @@ export default function PointCards() {
                       ach.prestigeCount,
                     );
                   return (
-                    <div class="flex items-center gap-2 bg-slate-950/40 border border-slate-850 rounded-2xl px-3 py-1.5 text-xs text-slate-350 shadow-inner group/streak hover:border-slate-800 hover:text-slate-200 transition-all duration-200">
-                      <span class="text-slate-400 font-medium select-none">
+                    <div class="streak-chip flex items-center gap-2 bg-slate-950/40 border border-slate-850 rounded-2xl px-3 py-2 text-xs text-slate-350 group/streak">
+                      <span class="rank-chip text-slate-400 font-medium select-none">
                         {lvl().icon}
                       </span>
                       <span class="font-bold flex items-center gap-1">
                         {ach.name}
                         <Show when={ach.prestigeCount > 0}>
                           <span
-                            class="text-amber-400 font-extrabold flex items-center animate-pulse"
+                            class="text-amber-400 font-extrabold flex items-center"
                             title={`Prestige ${ach.prestigeCount}x`}
                           >
-                            ⭐{ach.prestigeCount > 1 ? ` ${ach.prestigeCount}` : ""}
+                            {ach.prestigeCount}×
                           </span>
                         </Show>
                       </span>
                       <span class="text-slate-800 font-semibold select-none">|</span>
                       <span class="text-indigo-400 font-black tracking-wide whitespace-nowrap">
-                        ⚡ {ach.currentStreak}/{ach.targetStreak}
+                        {ach.currentStreak}/{ach.targetStreak}
                       </span>
                     </div>
                   );

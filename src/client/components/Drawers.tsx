@@ -20,6 +20,13 @@ export default function Drawers(props: ParentProps) {
   const [achievementName, setAchievementName] = createSignal("");
   const [targetStreak, setTargetStreak] = createSignal(20);
 
+  const closeTaskDrawer = () => {
+    const toggle = document.getElementById(
+      "task-drawer",
+    ) as HTMLInputElement | null;
+    if (toggle) toggle.checked = false;
+  };
+
   // ── Action Handlers ──────────────────────────────────
   const handleAddTask = async (e: Event) => {
     e.preventDefault();
@@ -56,10 +63,7 @@ export default function Drawers(props: ParentProps) {
       setTargetStreak(20);
 
       // Programmatically close task drawer
-      const toggle = document.getElementById(
-        "task-drawer",
-      ) as HTMLInputElement | null;
-      if (toggle) toggle.checked = false;
+      closeTaskDrawer();
     }
   };
 
@@ -74,52 +78,74 @@ export default function Drawers(props: ParentProps) {
   };
 
   return (
-    <div class="drawer drawer-end">
-      <input id="task-drawer" type="checkbox" class="drawer-toggle" />
+    <div class="drawer drawer-end app-shell">
+      <input
+        id="task-drawer"
+        type="checkbox"
+        class="drawer-toggle"
+        aria-hidden="true"
+        tabindex="-1"
+      />
 
-      {/* Inner page content (Header + Main App Pages) */}
-      <div class="drawer-content min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-        <main class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6">
+      <div class="drawer-content app-shell flex flex-col">
+        <main class="app-main">
           {props.children}
         </main>
+        <footer class="app-footer" aria-label="Footer">
+          <div class="app-footer__track" aria-hidden="true">
+            <span>Pick a task · Do the thing · Earn the point · Help the house ·</span>
+            <span>Pick a task · Do the thing · Earn the point · Help the house ·</span>
+          </div>
+          <span class="sr-only">
+            Pick a task. Do the thing. Earn the point. Help the house.
+          </span>
+        </footer>
       </div>
 
       {/* ── PARENT CREATION DRAWER SIDEBAR ────────────────── */}
       <Show when={isParent()}>
         <div class="drawer-side z-20">
-          <label
-            for="task-drawer"
-            aria-label="close sidebar"
+          <button
+            type="button"
+            aria-label="Close task drawer"
             class="drawer-overlay"
-          ></label>
-          <div class="flex min-h-full w-full max-w-md flex-col gap-6 bg-slate-900 border-l border-slate-800 p-5 shadow-2xl overflow-y-auto">
-            {/* Drawer Header */}
+            onClick={closeTaskDrawer}
+          />
+          <div class="task-drawer-panel flex min-h-full w-full max-w-md flex-col gap-6 p-5 overflow-y-auto">
             <div class="flex items-center justify-between">
               <div>
                 <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400">
-                  Manager Dashboard
+                  Parent tools
                 </span>
                 <h2 class="text-xl font-black text-slate-100">
-                  Create New Task
+                  Make a new task
                 </h2>
               </div>
-              <label
-                for="task-drawer"
-                class="btn btn-sm btn-circle btn-ghost text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+              <button
+                type="button"
+                class="btn btn-sm btn-circle btn-ghost text-slate-400 hover:bg-slate-800"
+                aria-label="Close task drawer"
+                onClick={closeTaskDrawer}
               >
-                ✕
-              </label>
+                ×
+              </button>
             </div>
-            {/* Task Form */}
-            <section class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-              <h3 class="text-xs font-black uppercase tracking-wider text-slate-400 mb-3">
-                📝 Add New Task
+            <section>
+              <h3 class="text-lg font-black text-slate-100 mb-3">
+                Task details
               </h3>
               <form onSubmit={handleAddTask} class="flex flex-col gap-3">
                 <div class="flex flex-col gap-1">
+                  <label
+                    for="new-task-title"
+                    class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1"
+                  >
+                    Task name
+                  </label>
                   <input
+                    id="new-task-title"
                     type="text"
-                    placeholder="Task title..."
+                    placeholder="Vacuum the living room"
                     class="input input-sm bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
                     value={taskTitle()}
                     onInput={(e) => setTaskTitle(e.currentTarget.value)}
@@ -128,10 +154,11 @@ export default function Drawers(props: ParentProps) {
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div class="flex flex-col gap-1">
-                    <label class="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                    <label for="task-priority" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                       Priority
                     </label>
                     <select
+                      id="task-priority"
                       class="select select-sm bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
                       value={taskPriority()}
                       onChange={(e) =>
@@ -144,10 +171,11 @@ export default function Drawers(props: ParentProps) {
                     </select>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <label class="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                    <label for="task-repeat" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                       Repeat
                     </label>
                     <select
+                      id="task-repeat"
                       class="select select-sm bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
                       value={taskRepeat()}
                       onChange={(e) =>
@@ -161,10 +189,11 @@ export default function Drawers(props: ParentProps) {
                   </div>
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                  <label for="task-assignee" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                     Assignee
                   </label>
                   <select
+                    id="task-assignee"
                     class="select select-sm bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"
                     value={taskAssigneeId()}
                     onChange={(e) => setTaskAssigneeId(e.currentTarget.value)}
@@ -194,14 +223,15 @@ export default function Drawers(props: ParentProps) {
                       </span>
                     </label>
                     <Show when={attachAchievement()}>
-                      <div class="flex flex-col gap-2 mt-1.5 animate-fade-in">
+                      <div class="flex flex-col gap-2 mt-1.5">
                         <div class="flex flex-col gap-1">
-                          <label class="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                          <label for="achievement-name" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                             Achievement Name
                           </label>
                           <input
+                            id="achievement-name"
                             type="text"
-                            placeholder="e.g. Room Cleaning Legend"
+                            placeholder="Room Cleaning Legend"
                             class="input input-xs bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-lg text-slate-200"
                             value={achievementName()}
                             onInput={(e) =>
@@ -211,11 +241,12 @@ export default function Drawers(props: ParentProps) {
                           />
                         </div>
                         <div class="flex flex-col gap-1">
-                          <label class="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">
+                          <label for="target-streak" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                             Target Streak (
                             {taskRepeat() === "daily" ? "days" : "weeks"})
                           </label>
                           <input
+                            id="target-streak"
                             type="number"
                             min="1"
                             class="input input-xs bg-slate-900 border-slate-800 focus:border-indigo-500 focus:outline-none rounded-lg text-slate-200"
@@ -234,7 +265,7 @@ export default function Drawers(props: ParentProps) {
                   type="submit"
                   class="btn btn-sm rounded-xl font-bold border-0 bg-indigo-600 hover:bg-indigo-500 text-white mt-2"
                 >
-                  Add Task
+                  Add task
                 </button>
               </form>
             </section>
