@@ -277,7 +277,7 @@ describe('task service', () => {
 
     const achievementUpdate = updateCalls.at(-1)?.payload
     expect(achievementUpdate).toMatchObject({
-      currentStreak: 20,
+      currentStreak: 0,
       missedDaysInARow: 0,
       prestigeCount: 1,
       prevStreak: 19
@@ -291,7 +291,7 @@ describe('task service', () => {
     })
   })
 
-  test('freezes the streak after a single missed day instead of resetting it', async () => {
+  test('applies the daily penalty after a skipped weekday', async () => {
     const now = new Date('2026-07-08T12:00:00Z')
     const selectResults = [
       { id: 4, status: 'todo', repeat: 'daily', assigneeId: 2, value: 5 },
@@ -342,7 +342,7 @@ describe('task service', () => {
     expect(milestone).toBeNull()
     const achievementUpdate = updateCalls.at(-1)?.payload
     expect(achievementUpdate).toMatchObject({
-      currentStreak: 5, // frozen, not reset
+      currentStreak: 4,
       missedDaysInARow: 0
     })
   })

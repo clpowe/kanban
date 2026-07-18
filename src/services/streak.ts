@@ -1,118 +1,57 @@
-/**
- * Pure streak/grace-period logic for daily (and weekly) repeating tasks.
- *
- * Rules (per period, 1 day for daily tasks, 7 days for weekly):
- *  A. Completed the very next period  → streak + 1
- *  B. Missed exactly one period       → streak frozen (kept, not incremented)
- *  C. Missed two or more periods      → streak resets to 1 (today counts)
- *  D. Streak hits the target          → badge milestone
- *
- * All date comparisons use UTC calendar days, never elapsed hours, so a
- * completion at 23:50 followed by one at 00:10 the next day still counts
- * as consecutive days.
- */
+import { countWeekdaysBetween, getNewYorkDateKey } from "../utils/new-york-time";
 
-export type StreakState = {
+export type StreakInput = {
+  repeat: "daily" | "weekly" | "none" | null;
+  targetStreak: number;
+  currentStreak: number;
+  prestigeCount: number;
+  lastCompletedAt: Date | null;
+};
+
+export type StreakResult = {
+  currentStreak: number;
+  prestigeCount: number;
+  lastCompletedAt: Date;
+  earnedBadge: boolean;
+};
+
+export type DailyResetState = {
   streakCount: number;
   lastCompletedDate: Date | null;
   missedDaysInARow: number;
 };
 
-export type StreakOptions = {
-  /** Streak length that earns a badge (e.g. 20). */
-  targetStreak: number;
-  /** 1 for daily tasks, 7 for weekly. Defaults to 1. */
-  periodDays?: number;
-};
-
-export type CompletionResult = {
-  state: StreakState;
-  /** false when the task was already completed this period (no-op). */
-  changed: boolean;
-  /** true when this completion earned a badge. */
-  milestoneReached: boolean;
-};
-
 export type DailyResetResult = {
-  state: StreakState;
+  state: DailyResetState;
   changed: boolean;
-  /** true when this reset zeroed out a running streak. */
   streakBroken: boolean;
 };
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MILLISECONDS_PER_HOUR = 1000 * 60 * 60;
+const MILLISECONDS_PER_DAY = 24 * MILLISECONDS_PER_HOUR;
 
-/** Milliseconds at 00:00 UTC of the given date's calendar day. */
-export const startOfUTCDay = (d: Date): number =>
-  Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-
-/** Whole calendar days from `from` to `to` (positive when `to` is later). */
-export const daysBetween = (from: Date, to: Date): number =>
-  Math.round((startOfUTCDay(to) - startOfUTCDay(from)) / MS_PER_DAY);
-
-/**
- * Apply a task completion to the streak state.
- * Idempotent within a period: completing twice on the same day is a no-op.
- */
-export function completeTask(
-  state: StreakState,
-  now: Date,
-  options: StreakOptions,
-): CompletionResult {
-  const periodDays = options.periodDays ?? 1;
-
-  let streakCount: number;
-  if (!state.lastCompletedDate) {
-    // First completion ever starts a streak of 1.
-    streakCount = 1;
-  } else {
-    const periodsSince = Math.floor(
-      daysBetween(state.lastCompletedDate, now) / periodDays,
-    );
-
-    if (periodsSince <= 0) {
-      return { state, changed: false, milestoneReached: false };
-    }
-    if (periodsSince === 1) {
-      streakCount = state.streakCount + 1; // Rule A: consecutive
-    } else if (periodsSince === 2) {
-      streakCount = state.streakCount; // Rule B: 1-period grace, freeze
-    } else {
-      streakCount = 1; // Rule C: broken, today restarts it
-    }
-  }
-
-  // Rule D. Guard on streak growth so a frozen streak sitting on the
-  // target doesn't re-award; modulo makes the badge repeatable each cycle
-  // (prestige) without resetting the visible streak.
-  const milestoneReached =
-    streakCount > state.streakCount &&
-    options.targetStreak > 0 &&
-    streakCount % options.targetStreak === 0;
-
-  return {
-    state: {
-      streakCount,
-      lastCompletedDate: now,
-      missedDaysInARow: 0,
-    },
-    changed: true,
-    milestoneReached,
-  };
+export function startOfUTCDay(date: Date): number {
+  return Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+  );
 }
 
-/**
- * End-of-day sweep for a task that may not have been completed.
- * `endedDay` is the calendar day being closed out (for a midnight cron,
- * the previous UTC day).
- */
+function calendarDaysBetween(from: Date, to: Date): number {
+  return Math.round(
+    (startOfUTCDay(to) - startOfUTCDay(from)) /
+      MILLISECONDS_PER_DAY,
+  );
+}
+
 export function dailyReset(
-  state: StreakState,
+  state: DailyResetState,
   endedDay: Date,
 ): DailyResetResult {
   const completedThatDay =
     state.lastCompletedDate !== null &&
-    daysBetween(state.lastCompletedDate, endedDay) <= 0;
+    calendarDaysBetween(state.lastCompletedDate, endedDay) <= 0;
 
   if (completedThatDay) {
     return { state, changed: false, streakBroken: false };
@@ -129,5 +68,72 @@ export function dailyReset(
     },
     changed: true,
     streakBroken: breaksStreak && state.streakCount > 0,
+  };
+}
+
+function hoursBetween(from: Date, to: Date): number {
+  return (to.getTime() - from.getTime()) / MILLISECONDS_PER_HOUR;
+}
+
+function applyDailyCompletion(currentStreak: number, lastCompletedAt: Date, now: Date): number {
+  if (hoursBetween(lastCompletedAt, now) < 12) {
+    return currentStreak;
+  }
+
+  const weekdaysElapsed = countWeekdaysBetween(
+    getNewYorkDateKey(lastCompletedAt),
+    getNewYorkDateKey(now),
+  );
+
+  if (weekdaysElapsed <= 1) {
+    return currentStreak + 1;
+  }
+
+  const missedDays = weekdaysElapsed - 1;
+
+  return Math.max(0, currentStreak - missedDays * 2) + 1;
+}
+
+function applyWeeklyCompletion(currentStreak: number, lastCompletedAt: Date, now: Date): number {
+  const elapsedHours = hoursBetween(lastCompletedAt, now);
+
+  if (elapsedHours < 72) {
+    return currentStreak;
+  }
+
+  if (elapsedHours <= 240) {
+    return currentStreak + 1;
+  }
+
+  const missedWeeks = Math.max(1, Math.floor(elapsedHours / 168) - 1);
+
+  return Math.max(0, currentStreak - missedWeeks * 2) + 1;
+}
+
+function calculateCurrentStreak(input: StreakInput, now: Date): number {
+  if (!input.lastCompletedAt) {
+    return 1;
+  }
+
+  if (input.repeat === "daily") {
+    return applyDailyCompletion(input.currentStreak, input.lastCompletedAt, now);
+  }
+
+  if (input.repeat === "weekly") {
+    return applyWeeklyCompletion(input.currentStreak, input.lastCompletedAt, now);
+  }
+
+  return input.currentStreak;
+}
+
+export function applyCompletionToStreak(input: StreakInput, now: Date): StreakResult {
+  const currentStreak = calculateCurrentStreak(input, now);
+  const earnedBadge = currentStreak >= input.targetStreak;
+
+  return {
+    currentStreak: earnedBadge ? 0 : currentStreak,
+    prestigeCount: earnedBadge ? input.prestigeCount + 1 : input.prestigeCount,
+    lastCompletedAt: now,
+    earnedBadge,
   };
 }

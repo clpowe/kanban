@@ -6,9 +6,8 @@ import { dailyReset, startOfUTCDay } from './services/streak'
 
 // End-of-day sweep for daily tasks: track missed days, break streaks after
 // two consecutive misses, then reset statuses back to "todo".
-export const resetDailyTasks = async (env: Env) => {
+export const resetDailyTasks = async (env: Env, now = new Date()) => {
   const db = getDB(env.Bindings)
-  const now = new Date()
   // The cron fires at UTC midnight, so the day being closed out is the
   // previous UTC calendar day.
   const endedDay = new Date(startOfUTCDay(now) - 1)
