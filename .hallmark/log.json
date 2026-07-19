@@ -1,13 +1,32 @@
 [
   {
     "date": "2026-07-18",
+    "macrostructure": "none",
+    "theme": "none — stripped to unstyled bare bones at user request",
+    "enrichment": "none",
+    "brief": "Removed all styling: minimal functional CSS only, browser defaults everywhere",
+    "scope": "app"
+  },
+  {
+    "date": "2026-07-18",
+    "macrostructure": "Workbench",
+    "theme": "studied-DNA (source: image · Dei learning-app reference)",
+    "theme_axes": "dual chrome+light / rounded-sans / pastel-quartet",
+    "enrichment": "E5 hand-built SVG character set (original clay-style kids: Rory/Milo/Ash/Ember/Goldie/Sage)",
+    "brief": "App-wide restyle to Dei aesthetic: black chrome, white flat cards, pastel mint/lilac/butter/blush, pill voice, character avatars",
     "scope": "app",
+    "nav": "N1b",
+    "footer": "Ft8"
+  },
+  {
+    "date": "2026-07-18",
     "macrostructure": "Bento Grid",
     "theme": "studied-DNA (source: user reference image)",
     "theme_axes": "light / geometric-sans / chromatic-sage",
     "vibe": "peach rooms, quiet pastels, exact type",
     "enrichment": "none",
     "brief": "Complete Family Task app redesign with native UI and CSS",
+    "scope": "app",
     "nav": "N3",
     "footer": "Ft2"
   },
