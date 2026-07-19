@@ -3,31 +3,24 @@ import { Temporal } from "@js-temporal/polyfill";
 export const NEW_YORK_TIME_ZONE = "America/New_York";
 
 export function getNewYorkNow(now = new Date()) {
-  return Temporal.Instant.fromEpochMilliseconds(
-    now.getTime(),
-  ).toZonedDateTimeISO(NEW_YORK_TIME_ZONE);
+  return Temporal.Instant.fromEpochMilliseconds(now.getTime())
+    .toZonedDateTimeISO(NEW_YORK_TIME_ZONE);
 }
 
 export function getNewYorkDateKey(now = new Date()) {
   return getNewYorkNow(now).toPlainDate().toString();
 }
 
-export function isDailyRolloverTime(now = new Date()) {
-  const ny = getNewYorkNow(now);
-
-  return (
-    ny.hour === 23 && ny.minute === 59 && ny.dayOfWeek >= 1 && ny.dayOfWeek <= 5
-  );
+export function isNewYorkWeekdayDateKey(dateKey: string) {
+  const date = Temporal.PlainDate.from(dateKey);
+  return date.dayOfWeek >= 1 && date.dayOfWeek <= 5;
 }
 
-export function getNextWeekdayDateKey(dateKey: string) {
-  let date = Temporal.PlainDate.from(dateKey).add({ days: 1 });
-
-  while (date.dayOfWeek === 6 || date.dayOfWeek === 7) {
-    date = date.add({ days: 1 });
-  }
-
-  return date.toString();
+// Both UTC cron entries are retained for DST. Only the one that is actually
+// 23:59 in New York should perform the rollover.
+export function isDailyRolloverTime(now = new Date()) {
+  const ny = getNewYorkNow(now);
+  return ny.hour === 23 && ny.minute === 59;
 }
 
 export function countWeekdaysBetween(startDateKey: string, endDateKey: string) {
@@ -37,6 +30,7 @@ export function countWeekdaysBetween(startDateKey: string, endDateKey: string) {
 
   while (Temporal.PlainDate.compare(cursor, end) < 0) {
     cursor = cursor.add({ days: 1 });
+
     if (cursor.dayOfWeek >= 1 && cursor.dayOfWeek <= 5) {
       weekdays += 1;
     }

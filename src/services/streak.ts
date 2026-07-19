@@ -1,4 +1,8 @@
-import { countWeekdaysBetween, getNewYorkDateKey } from "../utils/new-york-time";
+import {
+  countWeekdaysBetween,
+  getNewYorkDateKey,
+  isNewYorkWeekdayDateKey,
+} from "../utils/new-york-time";
 
 export type StreakInput = {
   repeat: "daily" | "weekly" | "none" | null;
@@ -11,8 +15,9 @@ export type StreakInput = {
 export type StreakResult = {
   currentStreak: number;
   prestigeCount: number;
-  lastCompletedAt: Date;
+  lastCompletedAt: Date | null;
   earnedBadge: boolean;
+  changed: boolean;
 };
 
 export type DailyResetState = {
@@ -28,30 +33,20 @@ export type DailyResetResult = {
 };
 
 const MILLISECONDS_PER_HOUR = 1000 * 60 * 60;
-const MILLISECONDS_PER_DAY = 24 * MILLISECONDS_PER_HOUR;
 
-export function startOfUTCDay(date: Date): number {
-  return Date.UTC(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate(),
-  );
-}
-
-function calendarDaysBetween(from: Date, to: Date): number {
-  return Math.round(
-    (startOfUTCDay(to) - startOfUTCDay(from)) /
-      MILLISECONDS_PER_DAY,
-  );
-}
 
 export function dailyReset(
   state: DailyResetState,
-  endedDay: Date,
+  endedDateKey: string,
 ): DailyResetResult {
+  // Weekends are neutral for weekday streaks.
+  if (!isNewYorkWeekdayDateKey(endedDateKey)) {
+    return { state, changed: false, streakBroken: false };
+  }
+
   const completedThatDay =
     state.lastCompletedDate !== null &&
-    calendarDaysBetween(state.lastCompletedDate, endedDay) <= 0;
+    getNewYorkDateKey(state.lastCompletedDate) === endedDateKey;
 
   if (completedThatDay) {
     return { state, changed: false, streakBroken: false };
@@ -71,69 +66,105 @@ export function dailyReset(
   };
 }
 
-function hoursBetween(from: Date, to: Date): number {
+function hoursBetween(from: Date, to: Date) {
   return (to.getTime() - from.getTime()) / MILLISECONDS_PER_HOUR;
 }
 
-function applyDailyCompletion(currentStreak: number, lastCompletedAt: Date, now: Date): number {
-  if (hoursBetween(lastCompletedAt, now) < 12) {
-    return currentStreak;
+function applyDailyCompletion(
+  currentStreak: number,
+  lastCompletedAt: Date | null,
+  now: Date,
+) {
+  const nowDateKey = getNewYorkDateKey(now);
+
+  // Weekend task completion can still award task points, but does not alter
+  // the weekday streak or overwrite its last qualifying completion.
+  if (!isNewYorkWeekdayDateKey(nowDateKey)) {
+    return { currentStreak, changed: false };
+  }
+
+  if (!lastCompletedAt) {
+    return { currentStreak: 1, changed: true };
+  }
+
+  const previousDateKey = getNewYorkDateKey(lastCompletedAt);
+
+  // Same New York date is always the same streak period, regardless of hours.
+  if (previousDateKey === nowDateKey) {
+    return { currentStreak, changed: false };
   }
 
   const weekdaysElapsed = countWeekdaysBetween(
-    getNewYorkDateKey(lastCompletedAt),
-    getNewYorkDateKey(now),
+    previousDateKey,
+    nowDateKey,
   );
 
-  if (weekdaysElapsed <= 1) {
-    return currentStreak + 1;
+  if (weekdaysElapsed <= 0) {
+    return { currentStreak, changed: false };
+  }
+
+  if (weekdaysElapsed === 1) {
+    return { currentStreak: currentStreak + 1, changed: true };
   }
 
   const missedDays = weekdaysElapsed - 1;
 
-  return Math.max(0, currentStreak - missedDays * 2) + 1;
+  return {
+    currentStreak: Math.max(0, currentStreak - missedDays * 2) + 1,
+    changed: true,
+  };
 }
 
-function applyWeeklyCompletion(currentStreak: number, lastCompletedAt: Date, now: Date): number {
+function applyWeeklyCompletion(
+  currentStreak: number,
+  lastCompletedAt: Date | null,
+  now: Date,
+) {
+  if (!lastCompletedAt) {
+    return { currentStreak: 1, changed: true };
+  }
+
   const elapsedHours = hoursBetween(lastCompletedAt, now);
 
   if (elapsedHours < 72) {
-    return currentStreak;
+    return { currentStreak, changed: false };
   }
 
   if (elapsedHours <= 240) {
-    return currentStreak + 1;
+    return { currentStreak: currentStreak + 1, changed: true };
   }
 
   const missedWeeks = Math.max(1, Math.floor(elapsedHours / 168) - 1);
 
-  return Math.max(0, currentStreak - missedWeeks * 2) + 1;
+  return {
+    currentStreak: Math.max(0, currentStreak - missedWeeks * 2) + 1,
+    changed: true,
+  };
 }
 
-function calculateCurrentStreak(input: StreakInput, now: Date): number {
-  if (!input.lastCompletedAt) {
-    return 1;
-  }
+export function applyCompletionToStreak(
+  input: StreakInput,
+  now: Date,
+): StreakResult {
+  const calculation =
+    input.repeat === "daily"
+      ? applyDailyCompletion(input.currentStreak, input.lastCompletedAt, now)
+      : input.repeat === "weekly"
+        ? applyWeeklyCompletion(input.currentStreak, input.lastCompletedAt, now)
+        : { currentStreak: input.currentStreak, changed: false };
 
-  if (input.repeat === "daily") {
-    return applyDailyCompletion(input.currentStreak, input.lastCompletedAt, now);
-  }
-
-  if (input.repeat === "weekly") {
-    return applyWeeklyCompletion(input.currentStreak, input.lastCompletedAt, now);
-  }
-
-  return input.currentStreak;
-}
-
-export function applyCompletionToStreak(input: StreakInput, now: Date): StreakResult {
-  const currentStreak = calculateCurrentStreak(input, now);
-  const earnedBadge = currentStreak >= input.targetStreak;
+  const earnedBadge =
+    calculation.changed &&
+    input.targetStreak > 0 &&
+    calculation.currentStreak >= input.targetStreak;
 
   return {
-    currentStreak: earnedBadge ? 0 : currentStreak,
-    prestigeCount: earnedBadge ? input.prestigeCount + 1 : input.prestigeCount,
-    lastCompletedAt: now,
+    currentStreak: earnedBadge ? 0 : calculation.currentStreak,
+    prestigeCount: earnedBadge
+      ? input.prestigeCount + 1
+      : input.prestigeCount,
+    lastCompletedAt: calculation.changed ? now : input.lastCompletedAt,
     earnedBadge,
+    changed: calculation.changed,
   };
 }

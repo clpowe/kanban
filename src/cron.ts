@@ -1,22 +1,24 @@
-import { tasks, taskAchievements } from './db/schema'
-import { getDB, type Env } from './db/client'
-import { eq } from 'drizzle-orm'
-import { archiveDoneTasks } from './services/task.service'
-import { dailyReset, startOfUTCDay } from './services/streak'
+import { and, eq, ne } from "drizzle-orm";
+import { tasks, taskAchievements } from "./db/schema";
+import { getDB, type Env } from "./db/client";
+import { archiveDoneTasks } from "./services/task.service";
+import { dailyReset } from "./services/streak";
+import { getNewYorkDateKey } from "./utils/new-york-time";
 
-// End-of-day sweep for daily tasks: track missed days, break streaks after
-// two consecutive misses, then reset statuses back to "todo".
 export const resetDailyTasks = async (env: Env, now = new Date()) => {
-  const db = getDB(env.Bindings)
-  // The cron fires at UTC midnight, so the day being closed out is the
-  // previous UTC calendar day.
-  const endedDay = new Date(startOfUTCDay(now) - 1)
+  const db = getDB(env.Bindings);
+  const endedDateKey = getNewYorkDateKey(now);
+
+  const activeDailyTask = and(
+    eq(tasks.repeat, "daily"),
+    ne(tasks.status, "archived"),
+  );
 
   const rows = await db
     .select({ achievement: taskAchievements })
     .from(taskAchievements)
     .innerJoin(tasks, eq(taskAchievements.taskId, tasks.id))
-    .where(eq(tasks.repeat, 'daily'))
+    .where(activeDailyTask);
 
   for (const { achievement } of rows) {
     const result = dailyReset(
@@ -25,10 +27,10 @@ export const resetDailyTasks = async (env: Env, now = new Date()) => {
         lastCompletedDate: achievement.lastCompletedAt
           ? new Date(achievement.lastCompletedAt)
           : null,
-        missedDaysInARow: achievement.missedDaysInARow ?? 0
+        missedDaysInARow: achievement.missedDaysInARow ?? 0,
       },
-      endedDay
-    )
+      endedDateKey,
+    );
 
     if (result.changed) {
       await db
@@ -36,32 +38,26 @@ export const resetDailyTasks = async (env: Env, now = new Date()) => {
         .set({
           currentStreak: result.state.streakCount,
           missedDaysInARow: result.state.missedDaysInARow,
-          updatedAt: now
+          updatedAt: now,
         })
-        .where(eq(taskAchievements.id, achievement.id))
-
-      if (result.streakBroken) {
-        console.log(
-          `[CRON] Streak broken for achievement ${achievement.id} after 2 missed days`
-        )
-      }
+        .where(eq(taskAchievements.id, achievement.id));
     }
   }
 
   await db
     .update(tasks)
-    .set({ status: 'todo' })
-    .where(eq(tasks.repeat, 'daily'))
+    .set({ status: "todo" })
+    .where(activeDailyTask);
 
-  console.log('[CRON] Daily tasks reset → todo')
-}
+  console.log(`[CRON] Daily rollover completed for ${endedDateKey}`);
+};
 
-export const rolloverDailyTasks = resetDailyTasks
+export const rolloverDailyTasks = resetDailyTasks;
 
 export const archiveCompletedTasks = async (env: Env) => {
-  const db = getDB(env.Bindings)
+  const db = getDB(env.Bindings);
 
-  await archiveDoneTasks(db)
+  await archiveDoneTasks(db);
 
-  console.log('[CRON] Weekly completed tasks archived')
-}
+  console.log("[CRON] Weekly completed tasks archived");
+};

@@ -1,5 +1,17 @@
 [
   {
+    "date": "2026-07-18",
+    "scope": "app",
+    "macrostructure": "Bento Grid",
+    "theme": "studied-DNA (source: user reference image)",
+    "theme_axes": "light / geometric-sans / chromatic-sage",
+    "vibe": "peach rooms, quiet pastels, exact type",
+    "enrichment": "none",
+    "brief": "Complete Family Task app redesign with native UI and CSS",
+    "nav": "N3",
+    "footer": "Ft2"
+  },
+  {
     "date": "2026-07-17",
     "macrostructure": "Workbench",
     "theme": "Hum",

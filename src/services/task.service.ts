@@ -174,37 +174,38 @@ export const updateTaskStatus = async (
         now,
       );
 
-      if (result.earnedBadge) {
-        await db.insert(earnedBadges).values({
-          userId: assigneeId,
-          achievementId: achievement.id,
-          badgeName: achievement.name,
-          prestigeLevel: result.prestigeCount,
-          earnedAt: now,
-        });
+      if (result.changed) {
+        if (result.earnedBadge) {
+          await db.insert(earnedBadges).values({
+            userId: assigneeId,
+            achievementId: achievement.id,
+            badgeName: achievement.name,
+            prestigeLevel: result.prestigeCount,
+            earnedAt: now,
+          });
 
-        milestone = {
-          achievementId: achievement.id,
-          badgeName: achievement.name,
-          streak: achievement.targetStreak,
-          prestigeLevel: result.prestigeCount,
-        };
+          milestone = {
+            achievementId: achievement.id,
+            badgeName: achievement.name,
+            streak: achievement.targetStreak,
+            prestigeLevel: result.prestigeCount,
+          };
+        }
+
+        await db
+          .update(taskAchievements)
+          .set({
+            currentStreak: result.currentStreak,
+            missedDaysInARow: 0,
+            prestigeCount: result.prestigeCount,
+            lastCompletedAt: result.lastCompletedAt,
+            prevStreak: achievement.currentStreak ?? 0,
+            prevLastCompletedAt: achievement.lastCompletedAt ?? null,
+            prevMissedDaysInARow: achievement.missedDaysInARow ?? 0,
+            updatedAt: now,
+          })
+          .where(eq(taskAchievements.id, achievement.id));
       }
-
-      await db
-        .update(taskAchievements)
-        .set({
-          currentStreak: result.currentStreak,
-          missedDaysInARow: 0,
-          prestigeCount: result.prestigeCount,
-          lastCompletedAt: result.lastCompletedAt,
-          // Snapshot so an undo can restore the exact prior state.
-          prevStreak: achievement.currentStreak ?? 0,
-          prevLastCompletedAt: achievement.lastCompletedAt ?? null,
-          prevMissedDaysInARow: achievement.missedDaysInARow ?? 0,
-          updatedAt: now,
-        })
-        .where(eq(taskAchievements.id, achievement.id));
     }
   }
 

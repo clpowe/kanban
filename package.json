@@ -4,22 +4,17 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun dev:client dev:css dev:server",
+    "dev": "bun run --parallel dev:client dev:server",
     "dev:client": "vp dev",
-    "dev:css": "npx @tailwindcss/cli -i ./src/styles/app.css -o ./public/app.css --watch",
-    "build:css": "npx @tailwindcss/cli -i ./src/styles/app.css -o ./public/app.css --minify",
     "build:client": "vp build",
     "dev:server": "wrangler dev",
     "deploy": "vp build && wrangler deploy"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260607.1",
-    "@tailwindcss/cli": "^4.3.0",
     "@types/bun": "latest",
     "@types/node": "^25.9.2",
     "@types/react": "^19.2.17",
-    "daisyui": "^5.5.23",
-    "tailwindcss": "^4.3.0",
     "typed-htmx": "^0.3.1",
     "vite-plugin-solid": "^2.11.12",
     "wrangler": "^4.98.0"

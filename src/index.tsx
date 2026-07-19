@@ -8,6 +8,7 @@ import { userRoutes } from "./routes/users.tsx";
 import { sessionRoutes } from "./routes/session.tsx";
 import { analyticsRoutes } from "./routes/analytics.tsx";
 import { archiveCompletedTasks, rolloverDailyTasks } from "./cron.ts";
+import { isDailyRolloverTime } from "./utils/new-york-time";
 
 const app = new Hono<Env>();
 
@@ -64,10 +65,14 @@ export const handleScheduled = async (
   console.log("[CRON] triggered", controller.cron);
 
   if (controller.cron === "59 3 * * *" || controller.cron === "59 4 * * *") {
-    await deps.rolloverDailyTasks(
-      { Bindings: env } as Env,
-      new Date(controller.scheduledTime),
-    );
+    const scheduledAt = new Date(controller.scheduledTime);
+
+    if (isDailyRolloverTime(scheduledAt)) {
+      await deps.rolloverDailyTasks(
+        { Bindings: env } as Env,
+        scheduledAt,
+      );
+    }
   }
   if (controller.cron === "59 23 * * 6") {
     await deps.archiveCompletedTasks({ Bindings: env } as Env);

@@ -1,13 +1,14 @@
 {
-  "date": "2026-07-17",
-  "font_stack": "System sans; no custom font detected",
-  "palette": "DaisyUI corporate/business mapped through CSS variables",
-  "motion": "CSS utilities only; no motion library",
-  "spacing": "Tailwind default 4px scale",
-  "framework": "SolidJS 1.9 + Tailwind CSS 4 + DaisyUI 5",
+  "date": "2026-07-18",
+  "font_stack": "Bricolage Grotesque display + Geist body",
+  "palette": "Custom OKLCH peach field, olive accent, semantic pastel surfaces",
+  "motion": "CSS state transitions only; no motion library",
+  "spacing": "Named 4px CSS custom-property scale",
+  "framework": "SolidJS 1.9 + native CSS",
   "sources": [
     "package.json",
     "src/styles/app.css",
-    "src/client/App.tsx"
+    "tokens.css",
+    "design.md"
   ]
 }

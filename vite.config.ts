@@ -14,6 +14,6 @@ export default defineConfig({
   build: {
     target: "esnext",
     outDir: "public",
-    emptyOutDir: false,
+    emptyOutDir: true,
   },
 });

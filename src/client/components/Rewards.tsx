@@ -1,140 +1,87 @@
-import { Show, For } from "solid-js";
+import { For, Show } from "solid-js";
 import { store, storeActions } from "../store/app-store";
 import AnimatedPoints from "./AnimatedPoints";
 
 export default function Rewards() {
   const isParent = () => store.activeUser?.type === "parent";
-
-  const handleRedeem = async (id: number) => {
-    await storeActions.redeemReward(id);
-  };
-
-  // Sort users for the leaderboard (highest points first)
-  const sortedUsers = () => {
-    return [...store.users]
-      .filter((u) => u.type === "child")
+  const sortedUsers = () =>
+    [...store.users]
+      .filter((user) => user.type === "child")
       .sort((a, b) => b.points - a.points);
-  };
 
   return (
-    <div class="app-view rewards-view flex flex-col gap-6 w-full max-w-5xl mx-auto">
-      <div class="flex flex-col gap-1.5 p-1">
-        <h2 class="text-3xl font-black text-slate-100 tracking-tight">
-          Points and rewards
-        </h2>
-        <p class="text-sm text-slate-400 max-w-xl">
-          See everyone’s points and choose what to work toward next.
-        </p>
-      </div>
+    <section class="app-view rewards-view">
+      <header class="page-lead">
+        <div>
+          <h1>Points and rewards</h1>
+          <p>See everyone’s points and choose what to work toward next.</p>
+        </div>
+      </header>
 
-      {/* Main Content Grid */}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        {/* Section 1: Leaderboard */}
-        <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4">
-          <div>
-            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-              Family leaderboard
-            </h3>
-            <p class="text-xs text-slate-400 mt-1">
-              Current points across the household.
-            </p>
-          </div>
+      <div class="rewards-grid">
+        <section class="leaderboard">
+          <header>
+            <h2>Family leaderboard</h2>
+            <p>Current points across the household.</p>
+          </header>
 
-          <div class="rounded-xl bg-slate-950/20 border border-slate-800/80 p-4">
-            <ul class="divide-y divide-slate-800/60">
-              <For
-                each={sortedUsers()}
-                fallback={
-                  <li class="py-4 text-center text-xs text-slate-500 italic">
-                    No child accounts registered yet.
-                  </li>
-                }
-              >
-                {(u) => (
-                  <li class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                    <div class="flex flex-col">
-                      <span class="text-sm font-bold text-slate-200">
-                        {u.name}
-                      </span>
-                      <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                        {u.type}
-                      </span>
-                    </div>
-                    <span class="badge font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3.5 py-3 rounded-lg">
-                      <AnimatedPoints value={u.points} /> pts
-                    </span>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </div>
+          <ol>
+            <For
+              each={sortedUsers()}
+              fallback={<li class="empty-row">No child accounts yet.</li>}
+            >
+              {(user, index) => (
+                <li>
+                  <span>{index() + 1}</span>
+                  <strong>{user.name}</strong>
+                  <output><AnimatedPoints value={user.points} /> pts</output>
+                </li>
+              )}
+            </For>
+          </ol>
         </section>
 
-        {/* Section 2: Rewards Center */}
-        <section class="view-panel rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col gap-4">
-          <div>
-            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-              Reward shelf
-            </h3>
-            <p class="text-xs text-slate-400 mt-1">
-              Spend earned points on a family reward.
-            </p>
-          </div>
+        <section class="reward-shelf">
+          <header>
+            <h2>Reward shelf</h2>
+            <p>Spend earned points on a family reward.</p>
+          </header>
 
-          <ul class="flex flex-col gap-3">
+          <ul>
             <For
               each={store.rewards}
-              fallback={
-                <li class="rounded-2xl border border-dashed border-slate-800 p-8 text-center text-xs text-slate-500 italic">
-                  No rewards configured yet.
-                </li>
-              }
+              fallback={<li class="empty-row">No rewards configured yet.</li>}
             >
               {(reward) => {
-                const activeUserPoints = () => store.activeUser?.points || 0;
-                const canAfford = () => activeUserPoints() >= reward.cost;
-                const shortfall = () => reward.cost - activeUserPoints();
+                const points = () => store.activeUser?.points || 0;
+                const canAfford = () => points() >= reward.cost;
+
                 return (
-                  <li class="reward-row flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-800 bg-slate-950/20">
-                    <div class="min-w-0">
-                      <p class="font-bold text-sm text-slate-200 truncate">
-                        {reward.title}
-                      </p>
-                      <p class="text-xs font-semibold text-slate-400 mt-0.5">
-                        {reward.cost} pts
-                      </p>
-                    </div>
+                  <li>
+                    <p>
+                      <strong>{reward.title}</strong>
+                      <span>{reward.cost} pts</span>
+                    </p>
+
                     <Show
                       when={isParent()}
                       fallback={
-                        <Show
-                          when={canAfford()}
-                          fallback={
-                            <div class="flex flex-col items-end gap-1">
-                              <button
-                                class="btn btn-xs rounded-lg bg-slate-850 text-slate-500 cursor-not-allowed border-0"
-                                disabled
-                              >
-                                Redeem
-                              </button>
-                              <span class="text-[10px] font-bold text-rose-400">
-                                Need {shortfall()} more
-                              </span>
-                            </div>
+                        <button
+                          type="button"
+                          class="primary"
+                          disabled={!canAfford()}
+                          title={
+                            canAfford()
+                              ? `Redeem ${reward.title}`
+                              : `Need ${reward.cost - points()} more points`
                           }
+                          onClick={() => storeActions.redeemReward(reward.id)}
                         >
-                          <button
-                            onClick={() => handleRedeem(reward.id)}
-                            class="btn btn-xs rounded-lg font-bold border-0 bg-teal-400 hover:bg-teal-300 text-slate-950"
-                          >
-                            Redeem
-                          </button>
-                        </Show>
+                          {canAfford() ? "Redeem" : `Need ${reward.cost - points()} more`}
+                        </button>
                       }
                     >
-                      <span class="badge text-xs font-semibold bg-slate-800 text-slate-300 border-0 rounded-lg">
-                        {reward.cost} pts
-                      </span>
+                      <output>{reward.cost} pts</output>
                     </Show>
                   </li>
                 );
@@ -143,6 +90,6 @@ export default function Rewards() {
           </ul>
         </section>
       </div>
-    </div>
+    </section>
   );
 }

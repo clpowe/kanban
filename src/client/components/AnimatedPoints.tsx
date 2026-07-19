@@ -17,7 +17,7 @@ export default function AnimatedPoints(props: AnimatedPointsProps) {
       return;
     }
 
-    const duration = 500;
+    const duration = 400;
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
@@ -43,7 +43,7 @@ export default function AnimatedPoints(props: AnimatedPointsProps) {
 
   return (
     <span class={props.class} aria-live="polite">
-      {displayValue()}
+      {new Intl.NumberFormat().format(displayValue())}
     </span>
   );
 }

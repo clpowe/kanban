@@ -35,7 +35,7 @@ The app is built for a parent-managed family workflow: parents create child acco
 - [Bun](https://bun.sh/) for package management and local scripts.
 - [SolidJS](https://www.solidjs.com/) and `@solidjs/router` for the client.
 - [Vite](https://vite.dev/) through `vite-plugin-solid` for client builds.
-- [Tailwind CSS](https://tailwindcss.com/) and [daisyUI](https://daisyui.com/) for styling.
+- Native CSS with custom properties, shallow nesting, and no UI framework.
 - [Hono](https://hono.dev/) for the Cloudflare Worker API.
 - [Better Auth](https://www.better-auth.com/) for authentication.
 - [Drizzle ORM](https://orm.drizzle.team/) with Cloudflare D1/SQLite.
@@ -93,7 +93,7 @@ There is also a `seed.ts` Worker entry that can create sample family users, rewa
 
 ## Development
 
-Start the full local development environment:
+Start the full local development environment in parallel:
 
 ```bash
 bun run dev
@@ -103,7 +103,8 @@ The development command starts:
 
 - Cloudflare Worker API: `http://localhost:8787`
 - Vite client: `http://localhost:3000`
-- Tailwind CSS watcher for `public/app.css`
+
+Vite imports and bundles `src/styles/app.css` directly.
 
 The Vite dev server proxies `/api` and `/session` requests to the Worker.
 
@@ -111,7 +112,6 @@ Useful scripts:
 
 ```bash
 bun run dev:client
-bun run dev:css
 bun run dev:server
 ```
 
@@ -147,7 +147,6 @@ The current tests cover authentication helpers, authorization rules, schema expe
 Build the client and CSS assets before deploying:
 
 ```bash
-bun run build:css
 bun run build:client
 ```
 

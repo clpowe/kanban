@@ -71314,15 +71314,23 @@ for (const e2 of _i) {
 // src/utils/new-york-time.ts
 var NEW_YORK_TIME_ZONE = "America/New_York";
 function getNewYorkNow(now2 = /* @__PURE__ */ new Date()) {
-  return qi.Instant.fromEpochMilliseconds(
-    now2.getTime()
-  ).toZonedDateTimeISO(NEW_YORK_TIME_ZONE);
+  return qi.Instant.fromEpochMilliseconds(now2.getTime()).toZonedDateTimeISO(NEW_YORK_TIME_ZONE);
 }
 __name(getNewYorkNow, "getNewYorkNow");
 function getNewYorkDateKey(now2 = /* @__PURE__ */ new Date()) {
   return getNewYorkNow(now2).toPlainDate().toString();
 }
 __name(getNewYorkDateKey, "getNewYorkDateKey");
+function isNewYorkWeekdayDateKey(dateKey) {
+  const date5 = qi.PlainDate.from(dateKey);
+  return date5.dayOfWeek >= 1 && date5.dayOfWeek <= 5;
+}
+__name(isNewYorkWeekdayDateKey, "isNewYorkWeekdayDateKey");
+function isDailyRolloverTime(now2 = /* @__PURE__ */ new Date()) {
+  const ny = getNewYorkNow(now2);
+  return ny.hour === 23 && ny.minute === 59;
+}
+__name(isDailyRolloverTime, "isDailyRolloverTime");
 function countWeekdaysBetween(startDateKey, endDateKey) {
   let cursor = qi.PlainDate.from(startDateKey);
   const end = qi.PlainDate.from(endDateKey);
@@ -71348,23 +71356,11 @@ var isTaskStatus = /* @__PURE__ */ __name((value) => allTaskStatuses.includes(va
 init_checked_fetch();
 init_modules_watch_stub();
 var MILLISECONDS_PER_HOUR = 1e3 * 60 * 60;
-var MILLISECONDS_PER_DAY = 24 * MILLISECONDS_PER_HOUR;
-function startOfUTCDay(date5) {
-  return Date.UTC(
-    date5.getUTCFullYear(),
-    date5.getUTCMonth(),
-    date5.getUTCDate()
-  );
-}
-__name(startOfUTCDay, "startOfUTCDay");
-function calendarDaysBetween(from, to2) {
-  return Math.round(
-    (startOfUTCDay(to2) - startOfUTCDay(from)) / MILLISECONDS_PER_DAY
-  );
-}
-__name(calendarDaysBetween, "calendarDaysBetween");
-function dailyReset(state, endedDay) {
-  const completedThatDay = state.lastCompletedDate !== null && calendarDaysBetween(state.lastCompletedDate, endedDay) <= 0;
+function dailyReset(state, endedDateKey) {
+  if (!isNewYorkWeekdayDateKey(endedDateKey)) {
+    return { state, changed: false, streakBroken: false };
+  }
+  const completedThatDay = state.lastCompletedDate !== null && getNewYorkDateKey(state.lastCompletedDate) === endedDateKey;
   if (completedThatDay) {
     return { state, changed: false, streakBroken: false };
   }
@@ -71386,53 +71382,61 @@ function hoursBetween(from, to2) {
 }
 __name(hoursBetween, "hoursBetween");
 function applyDailyCompletion(currentStreak, lastCompletedAt, now2) {
-  if (hoursBetween(lastCompletedAt, now2) < 12) {
-    return currentStreak;
+  const nowDateKey = getNewYorkDateKey(now2);
+  if (!isNewYorkWeekdayDateKey(nowDateKey)) {
+    return { currentStreak, changed: false };
+  }
+  if (!lastCompletedAt) {
+    return { currentStreak: 1, changed: true };
+  }
+  const previousDateKey = getNewYorkDateKey(lastCompletedAt);
+  if (previousDateKey === nowDateKey) {
+    return { currentStreak, changed: false };
   }
   const weekdaysElapsed = countWeekdaysBetween(
-    getNewYorkDateKey(lastCompletedAt),
-    getNewYorkDateKey(now2)
+    previousDateKey,
+    nowDateKey
   );
-  if (weekdaysElapsed <= 1) {
-    return currentStreak + 1;
+  if (weekdaysElapsed <= 0) {
+    return { currentStreak, changed: false };
+  }
+  if (weekdaysElapsed === 1) {
+    return { currentStreak: currentStreak + 1, changed: true };
   }
   const missedDays = weekdaysElapsed - 1;
-  return Math.max(0, currentStreak - missedDays * 2) + 1;
+  return {
+    currentStreak: Math.max(0, currentStreak - missedDays * 2) + 1,
+    changed: true
+  };
 }
 __name(applyDailyCompletion, "applyDailyCompletion");
 function applyWeeklyCompletion(currentStreak, lastCompletedAt, now2) {
+  if (!lastCompletedAt) {
+    return { currentStreak: 1, changed: true };
+  }
   const elapsedHours = hoursBetween(lastCompletedAt, now2);
   if (elapsedHours < 72) {
-    return currentStreak;
+    return { currentStreak, changed: false };
   }
   if (elapsedHours <= 240) {
-    return currentStreak + 1;
+    return { currentStreak: currentStreak + 1, changed: true };
   }
   const missedWeeks = Math.max(1, Math.floor(elapsedHours / 168) - 1);
-  return Math.max(0, currentStreak - missedWeeks * 2) + 1;
+  return {
+    currentStreak: Math.max(0, currentStreak - missedWeeks * 2) + 1,
+    changed: true
+  };
 }
 __name(applyWeeklyCompletion, "applyWeeklyCompletion");
-function calculateCurrentStreak(input, now2) {
-  if (!input.lastCompletedAt) {
-    return 1;
-  }
-  if (input.repeat === "daily") {
-    return applyDailyCompletion(input.currentStreak, input.lastCompletedAt, now2);
-  }
-  if (input.repeat === "weekly") {
-    return applyWeeklyCompletion(input.currentStreak, input.lastCompletedAt, now2);
-  }
-  return input.currentStreak;
-}
-__name(calculateCurrentStreak, "calculateCurrentStreak");
 function applyCompletionToStreak(input, now2) {
-  const currentStreak = calculateCurrentStreak(input, now2);
-  const earnedBadge = currentStreak >= input.targetStreak;
+  const calculation = input.repeat === "daily" ? applyDailyCompletion(input.currentStreak, input.lastCompletedAt, now2) : input.repeat === "weekly" ? applyWeeklyCompletion(input.currentStreak, input.lastCompletedAt, now2) : { currentStreak: input.currentStreak, changed: false };
+  const earnedBadge = calculation.changed && input.targetStreak > 0 && calculation.currentStreak >= input.targetStreak;
   return {
-    currentStreak: earnedBadge ? 0 : currentStreak,
+    currentStreak: earnedBadge ? 0 : calculation.currentStreak,
     prestigeCount: earnedBadge ? input.prestigeCount + 1 : input.prestigeCount,
-    lastCompletedAt: now2,
-    earnedBadge
+    lastCompletedAt: calculation.changed ? now2 : input.lastCompletedAt,
+    earnedBadge,
+    changed: calculation.changed
   };
 }
 __name(applyCompletionToStreak, "applyCompletionToStreak");
@@ -71534,32 +71538,33 @@ var updateTaskStatus = /* @__PURE__ */ __name(async (db, id, status, now2 = /* @
         },
         now2
       );
-      if (result.earnedBadge) {
-        await db.insert(earnedBadges).values({
-          userId: assigneeId,
-          achievementId: achievement.id,
-          badgeName: achievement.name,
-          prestigeLevel: result.prestigeCount,
-          earnedAt: now2
-        });
-        milestone = {
-          achievementId: achievement.id,
-          badgeName: achievement.name,
-          streak: achievement.targetStreak,
-          prestigeLevel: result.prestigeCount
-        };
+      if (result.changed) {
+        if (result.earnedBadge) {
+          await db.insert(earnedBadges).values({
+            userId: assigneeId,
+            achievementId: achievement.id,
+            badgeName: achievement.name,
+            prestigeLevel: result.prestigeCount,
+            earnedAt: now2
+          });
+          milestone = {
+            achievementId: achievement.id,
+            badgeName: achievement.name,
+            streak: achievement.targetStreak,
+            prestigeLevel: result.prestigeCount
+          };
+        }
+        await db.update(taskAchievements).set({
+          currentStreak: result.currentStreak,
+          missedDaysInARow: 0,
+          prestigeCount: result.prestigeCount,
+          lastCompletedAt: result.lastCompletedAt,
+          prevStreak: achievement.currentStreak ?? 0,
+          prevLastCompletedAt: achievement.lastCompletedAt ?? null,
+          prevMissedDaysInARow: achievement.missedDaysInARow ?? 0,
+          updatedAt: now2
+        }).where(eq(taskAchievements.id, achievement.id));
       }
-      await db.update(taskAchievements).set({
-        currentStreak: result.currentStreak,
-        missedDaysInARow: 0,
-        prestigeCount: result.prestigeCount,
-        lastCompletedAt: result.lastCompletedAt,
-        // Snapshot so an undo can restore the exact prior state.
-        prevStreak: achievement.currentStreak ?? 0,
-        prevLastCompletedAt: achievement.lastCompletedAt ?? null,
-        prevMissedDaysInARow: achievement.missedDaysInARow ?? 0,
-        updatedAt: now2
-      }).where(eq(taskAchievements.id, achievement.id));
     }
   }
   if (prevStatus === "done" && nextStatus !== "done" && nextStatus !== "archived") {
@@ -72217,8 +72222,12 @@ init_checked_fetch();
 init_modules_watch_stub();
 var resetDailyTasks = /* @__PURE__ */ __name(async (env2, now2 = /* @__PURE__ */ new Date()) => {
   const db = getDB(env2.Bindings);
-  const endedDay = new Date(startOfUTCDay(now2) - 1);
-  const rows = await db.select({ achievement: taskAchievements }).from(taskAchievements).innerJoin(tasks, eq(taskAchievements.taskId, tasks.id)).where(eq(tasks.repeat, "daily"));
+  const endedDateKey = getNewYorkDateKey(now2);
+  const activeDailyTask = and(
+    eq(tasks.repeat, "daily"),
+    ne(tasks.status, "archived")
+  );
+  const rows = await db.select({ achievement: taskAchievements }).from(taskAchievements).innerJoin(tasks, eq(taskAchievements.taskId, tasks.id)).where(activeDailyTask);
   for (const { achievement } of rows) {
     const result = dailyReset(
       {
@@ -72226,7 +72235,7 @@ var resetDailyTasks = /* @__PURE__ */ __name(async (env2, now2 = /* @__PURE__ */
         lastCompletedDate: achievement.lastCompletedAt ? new Date(achievement.lastCompletedAt) : null,
         missedDaysInARow: achievement.missedDaysInARow ?? 0
       },
-      endedDay
+      endedDateKey
     );
     if (result.changed) {
       await db.update(taskAchievements).set({
@@ -72234,15 +72243,10 @@ var resetDailyTasks = /* @__PURE__ */ __name(async (env2, now2 = /* @__PURE__ */
         missedDaysInARow: result.state.missedDaysInARow,
         updatedAt: now2
       }).where(eq(taskAchievements.id, achievement.id));
-      if (result.streakBroken) {
-        console.log(
-          `[CRON] Streak broken for achievement ${achievement.id} after 2 missed days`
-        );
-      }
     }
   }
-  await db.update(tasks).set({ status: "todo" }).where(eq(tasks.repeat, "daily"));
-  console.log("[CRON] Daily tasks reset \u2192 todo");
+  await db.update(tasks).set({ status: "todo" }).where(activeDailyTask);
+  console.log(`[CRON] Daily rollover completed for ${endedDateKey}`);
 }, "resetDailyTasks");
 var rolloverDailyTasks = resetDailyTasks;
 var archiveCompletedTasks = /* @__PURE__ */ __name(async (env2) => {
@@ -72284,10 +72288,13 @@ var scheduledDeps = {
 var handleScheduled = /* @__PURE__ */ __name(async (controller, env2, deps = scheduledDeps) => {
   console.log("[CRON] triggered", controller.cron);
   if (controller.cron === "59 3 * * *" || controller.cron === "59 4 * * *") {
-    await deps.rolloverDailyTasks(
-      { Bindings: env2 },
-      new Date(controller.scheduledTime)
-    );
+    const scheduledAt = new Date(controller.scheduledTime);
+    if (isDailyRolloverTime(scheduledAt)) {
+      await deps.rolloverDailyTasks(
+        { Bindings: env2 },
+        scheduledAt
+      );
+    }
   }
   if (controller.cron === "59 23 * * 6") {
     await deps.archiveCompletedTasks({ Bindings: env2 });
