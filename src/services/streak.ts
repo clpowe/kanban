@@ -32,8 +32,18 @@ export type DailyResetResult = {
   streakBroken: boolean;
 };
 
-const MILLISECONDS_PER_HOUR = 1000 * 60 * 60;
+export type CompletionForStreak = {
+  completedOn: string;
+  completedAt: Date;
+};
 
+export type DerivedStreak = {
+  currentStreak: number;
+  lastCompletedAt: Date | null;
+  projectedPrestigeCount: number;
+};
+
+const MILLISECONDS_PER_HOUR = 1000 * 60 * 60;
 
 export function dailyReset(
   state: DailyResetState,
@@ -167,4 +177,43 @@ export function applyCompletionToStreak(
     earnedBadge,
     changed: calculation.changed,
   };
+}
+
+export function deriveStreakFromCompletions(
+  completions: CompletionForStreak[],
+  options: {
+    repeat: "daily" | "weekly" | "none" | null;
+    targetStreak: number;
+  },
+): DerivedStreak {
+  const sortedCompletions = [...completions].sort(
+    (left, right) =>
+      left.completedAt.getTime() - right.completedAt.getTime(),
+  );
+
+  return sortedCompletions.reduce<DerivedStreak>(
+    (projection, completion) => {
+      const result = applyCompletionToStreak(
+        {
+          repeat: options.repeat,
+          targetStreak: options.targetStreak,
+          currentStreak: projection.currentStreak,
+          prestigeCount: projection.projectedPrestigeCount,
+          lastCompletedAt: projection.lastCompletedAt,
+        },
+        completion.completedAt,
+      );
+
+      return {
+        currentStreak: result.currentStreak,
+        lastCompletedAt: result.lastCompletedAt,
+        projectedPrestigeCount: result.prestigeCount,
+      };
+    },
+    {
+      currentStreak: 0,
+      lastCompletedAt: null,
+      projectedPrestigeCount: 0,
+    },
+  );
 }

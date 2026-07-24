@@ -1,4 +1,5 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
+import { A } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
 import type { Task } from "../../types";
 
@@ -47,6 +48,16 @@ function assigneeName(id: number | null | undefined) {
   return store.users.find((user) => user.id === id)?.name;
 }
 
+function initials(name: string | undefined) {
+  if (!name) return "?";
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
 function TaskCard(props: { task: Task; column: ColumnDef }) {
   const name = () => assigneeName(props.task.assigneeId);
 
@@ -66,29 +77,32 @@ function TaskCard(props: { task: Task; column: ColumnDef }) {
     <article
       class="task-card"
       data-priority={props.task.priority}
-      draggable
+      draggable="true"
       onDragStart={handleDragStart}
     >
-      <header>
-        <h3>{props.task.title}</h3>
+      <header class="task-card-header">
+        <span class="issue-number">#{props.task.id}</span>
         <Show when={store.activeUser?.type === "parent"}>
-          <button type="button" class="text-button danger" onClick={deleteTask}>
+          <button
+            type="button"
+            class="card-delete"
+            aria-label={`Delete ${props.task.title}`}
+            onClick={deleteTask}
+          >
             Delete
           </button>
         </Show>
       </header>
 
-      <div class="task-meta">
-        <span>{props.task.priority}</span>
-        <span>{props.task.value} pts</span>
+      <h3>{props.task.title}</h3>
+
+      <div class="task-labels" aria-label="Task metadata">
+        <span data-priority={props.task.priority}>{props.task.priority} priority</span>
+        <span class="points-label">{props.task.value} pts</span>
         <Show when={props.task.repeat && props.task.repeat !== "none"}>
-          <span>Repeats {props.task.repeat}</span>
+          <span class="repeat-label">{props.task.repeat}</span>
         </Show>
       </div>
-
-      <Show when={name()}>
-        <p class="assignee">Assigned to <strong>{name()}</strong></p>
-      </Show>
 
       <Show when={props.task.achievement}>
         {(achievement) => {
@@ -103,32 +117,37 @@ function TaskCard(props: { task: Task; column: ColumnDef }) {
             <section class="task-streak" data-tone={level().tone}>
               <header>
                 <strong>{achievement().name}</strong>
-                <span>{level().icon} · {level().name}</span>
+                <span>{level().icon} · {achievement().currentStreak}/{achievement().targetStreak}</span>
               </header>
               <progress
                 value={achievement().currentStreak}
                 max={achievement().targetStreak}
                 aria-label={`${achievement().name} streak progress`}
               />
-              <small>
-                {achievement().currentStreak} of {achievement().targetStreak}
-              </small>
             </section>
           );
         }}
       </Show>
 
-      <Show when={props.column.nextStatus}>
-        <button
-          type="button"
-          class="task-action"
-          onClick={() =>
-            storeActions.updateTaskStatus(props.task.id, props.column.nextStatus!)
-          }
-        >
-          {props.column.nextLabel}
-        </button>
-      </Show>
+      <footer class="task-card-footer">
+        <span class="assignee-chip" title={name() ? `Assigned to ${name()}` : "Unassigned"}>
+          <i aria-hidden="true">{initials(name())}</i>
+          <span>{name() || "Unassigned"}</span>
+        </span>
+
+        <Show when={props.column.nextStatus}>
+          <button
+            type="button"
+            class="task-action"
+            onClick={() =>
+              storeActions.updateTaskStatus(props.task.id, props.column.nextStatus!)
+            }
+          >
+            {props.column.nextLabel}
+            <span aria-hidden="true">→</span>
+          </button>
+        </Show>
+      </footer>
     </article>
   );
 }
@@ -166,13 +185,31 @@ export default function Board() {
   return (
     <section class="app-view board-view">
       <header class="board-lead">
-        <div>
-          <h1>Today’s tasks</h1>
-          <p>Pick one up, move it forward, mark it done.</p>
+        <nav class="project-breadcrumb" aria-label="Breadcrumb">
+          <span>Family Task</span>
+          <span aria-hidden="true">/</span>
+          <strong>Household board</strong>
+        </nav>
+
+        <div class="board-title-row">
+          <span class="project-mark" aria-hidden="true">
+            FT
+          </span>
+          <div>
+            <h1>Household tasks</h1>
+            <p>Plan the work, share the load, and keep the house moving.</p>
+          </div>
         </div>
 
-        <label>
-          Assignee
+        <nav class="view-tabs" aria-label="Project views">
+          <span aria-current="page">Board</span>
+          <A href="/archived">Archive</A>
+        </nav>
+      </header>
+
+      <form class="board-toolbar" onSubmit={(event) => event.preventDefault()}>
+        <label class="toolbar-select">
+          <span>Assignee</span>
           <select value={selectedChildId()} onChange={(event) => setSelectedChildId(event.currentTarget.value)}>
             <option value="all">All members</option>
             <option value="unassigned">Unassigned</option>
@@ -181,18 +218,33 @@ export default function Board() {
             </For>
           </select>
         </label>
-      </header>
+      </form>
 
-      <section class="task-rhythm" aria-label="Visible task rhythm">
-        <div class="bubble-matrix" aria-hidden="true">
+      <section class="board-pulse" aria-label="Visible task summary">
+        <div class="pulse-copy">
+          <span class="pulse-icon" aria-hidden="true">◎</span>
+          <p>
+            <strong>{visibleBubbles().length} active {visibleBubbles().length === 1 ? "task" : "tasks"}</strong>
+            <span>Drag cards between columns to update their status.</span>
+          </p>
+        </div>
+
+        <div class="pulse-track" aria-hidden="true">
           <For each={visibleBubbles()}>
             {(task) => <i data-status={task.status} />}
           </For>
         </div>
-        <p>
-          <strong>{visibleBubbles().length}</strong>
-          active {visibleBubbles().length === 1 ? "task" : "tasks"} in view
-        </p>
+
+        <dl class="pulse-totals">
+          <For each={columns}>
+            {(column) => (
+              <div data-status={column.key}>
+                <dt>{column.label}</dt>
+                <dd>{tasksByStatus()[column.key]?.length ?? 0}</dd>
+              </div>
+            )}
+          </For>
+        </dl>
       </section>
 
       <div class="board-grid">
@@ -202,9 +254,12 @@ export default function Board() {
 
             return (
               <section class="board-column" data-status={column.key}>
-                <header>
-                  <h2>{column.label}</h2>
-                  <output>{tasks().length}</output>
+                <header class="column-header">
+                  <div>
+                    <span class="status-dot" aria-hidden="true" />
+                    <h2>{column.label}</h2>
+                    <output>{tasks().length}</output>
+                  </div>
                 </header>
 
                 <div

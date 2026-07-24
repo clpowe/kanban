@@ -102,8 +102,11 @@ export default function HouseholdRail() {
   return (
     <header class="household-rail">
       <A href="/" class="wordmark" aria-label="Family Task home">
-        <strong>Family Task</strong>
-        <small>Household board</small>
+        <span class="wordmark-mark" aria-hidden="true">FT</span>
+        <span>
+          <strong>Family Task</strong>
+          <small>Household board</small>
+        </span>
       </A>
 
       <div class="desktop-navigation">
@@ -124,16 +127,18 @@ export default function HouseholdRail() {
 
       <details id="mobile-menu" class="mobile-menu">
         <summary>Menu</summary>
-        <NavLinks mobile />
-        <UserPicker id="mobile-active-user-id" />
-        <Show when={isParent()}>
-          <button type="button" class="primary" onClick={openTaskDialog}>
-            Add task
+        <div class="mobile-menu-panel">
+          <NavLinks mobile />
+          <UserPicker id="mobile-active-user-id" />
+          <Show when={isParent()}>
+            <button type="button" class="primary" onClick={openTaskDialog}>
+              Add task
+            </button>
+          </Show>
+          <button type="button" onClick={handleLogout}>
+            Sign out
           </button>
-        </Show>
-        <button type="button" onClick={handleLogout}>
-          Sign out
-        </button>
+        </div>
       </details>
     </header>
   );

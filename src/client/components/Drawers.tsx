@@ -78,7 +78,10 @@ export default function AppShell(props: ParentProps) {
           }}
         >
           <header>
-            <h2>Make a new task</h2>
+            <div>
+              <span>Household board</span>
+              <h2>Add a task</h2>
+            </div>
             <button type="button" class="icon-button" aria-label="Close task form" onClick={closeTaskDialog}>
               ×
             </button>

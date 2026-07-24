@@ -6,6 +6,12 @@
       "runtimeExecutable": "bunx",
       "runtimeArgs": ["vite", "dev", "--port", "3010", "--strictPort"],
       "port": 3010
+    },
+    {
+      "name": "kanban-dev",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
     }
   ]
 }
