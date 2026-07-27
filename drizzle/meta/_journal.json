@@ -69,7 +69,7 @@
       "idx": 9,
       "version": "6",
       "when": 1783900800000,
-      "tag": "0009_streak_grace_period",
+      "tag": "0009_clumsy_rawhide_kid",
       "breakpoints": true
     },
     {
@@ -84,6 +84,13 @@
       "version": "6",
       "when": 1784888612899,
       "tag": "0011_migration_baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1785146640839,
+      "tag": "0012_task_ledger",
       "breakpoints": true
     }
   ]

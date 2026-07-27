@@ -4,6 +4,7 @@ import type { TaskUpdate } from "../types";
 import { getNewYorkDateKey } from "../utils/new-york-time";
 import { type TaskStatus } from "../utils/task-status";
 import { applyCompletionToStreak } from "./streak";
+import type { Database } from "../db/client";
 
 export type StreakMilestone = {
   achievementId: number;
@@ -18,7 +19,7 @@ const priorityPoints = {
   low: 1,
 } as const;
 
-export const getActiveTasks = async (db: any) => {
+export const getActiveTasks = async (db: Database) => {
   const result = await db
     .select({
       task: tasks,
@@ -34,7 +35,7 @@ export const getActiveTasks = async (db: any) => {
   }));
 };
 
-export const getArchivedTasks = async (db: any, assigneeId?: number | null) => {
+export const getArchivedTasks = async (db: Database, assigneeId?: number | null) => {
   if (assigneeId) {
     return db
       .select()
@@ -45,7 +46,7 @@ export const getArchivedTasks = async (db: any, assigneeId?: number | null) => {
   return db.select().from(tasks).where(eq(tasks.status, "archived"));
 };
 
-export const getTaskById = async (db: any, id: number) => {
+export const getTaskById = async (db: Database, id: number) => {
   const r = await db
     .select({
       task: tasks,
@@ -62,7 +63,7 @@ export const getTaskById = async (db: any, id: number) => {
   };
 };
 
-export const createTask = async (db: any, data: any) => {
+export const createTask = async (db: Database, data: any) => {
   const priority = data.priority as keyof typeof priorityPoints;
 
   // Validate assignee is not a parent
@@ -89,6 +90,10 @@ export const createTask = async (db: any, data: any) => {
     })
     .returning();
 
+  if (!insertedTask) {
+    throw new Error("Failed to create task");
+  }
+
   if (
     data.achievementName?.trim() &&
     data.targetStreak &&
@@ -108,7 +113,7 @@ export const createTask = async (db: any, data: any) => {
   return [await getTaskById(db, insertedTask.id)];
 };
 
-export const updateTask = async (db: any, id: number, updates: TaskUpdate) => {
+export const updateTask = async (db: Database, id: number, updates: TaskUpdate) => {
   if (updates.assigneeId) {
     const assignee = await db.select().from(users).where(eq(users.id, updates.assigneeId)).get();
     if (assignee && assignee.type === "parent") {
@@ -120,7 +125,7 @@ export const updateTask = async (db: any, id: number, updates: TaskUpdate) => {
 };
 
 export const updateTaskStatus = async (
-  db: any,
+  db: Database,
   id: number,
   status: TaskStatus,
   now: Date = new Date(),
@@ -230,8 +235,7 @@ export const updateTaskStatus = async (
       const undoesLatestCompletion =
         achievement.prevStreak != null &&
         achievement.lastCompletedAt != null &&
-        getNewYorkDateKey(new Date(achievement.lastCompletedAt)) ===
-          getNewYorkDateKey(now);
+        getNewYorkDateKey(new Date(achievement.lastCompletedAt)) === getNewYorkDateKey(now);
 
       if (undoesLatestCompletion) {
         let prestigeCount = achievement.prestigeCount ?? 0;
@@ -259,7 +263,7 @@ export const updateTaskStatus = async (
         await db
           .update(taskAchievements)
           .set({
-            currentStreak: achievement.prevStreak,
+            currentStreak: achievement.prevStreak ?? 0,
             lastCompletedAt: achievement.prevLastCompletedAt ?? null,
             missedDaysInARow: achievement.prevMissedDaysInARow ?? 0,
             prestigeCount,
@@ -277,10 +281,10 @@ export const updateTaskStatus = async (
   return { milestone };
 };
 
-export const archiveDoneTasks = async (db: any) => {
+export const archiveDoneTasks = async (db: Database) => {
   await db.update(tasks).set({ status: "archived" }).where(eq(tasks.status, "done"));
 };
 
-export const deleteTask = async (db: any, id: number) => {
+export const deleteTask = async (db: Database, id: number) => {
   await db.delete(tasks).where(eq(tasks.id, id));
 };

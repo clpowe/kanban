@@ -1,8 +1,20 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { tasks, rewards, users, taskAchievements } from "../db/schema.ts";
+import {
+  pointEntries,
+  rewards,
+  taskAchievements,
+  taskCompletions,
+  tasks,
+  users,
+} from "../db/schema.ts";
 
 export type User = InferSelectModel<typeof users>;
 export type TaskAchievement = InferSelectModel<typeof taskAchievements>;
+
+export type TaskCompletion = InferSelectModel<typeof taskCompletions>;
+export type NewTaskCompletion = InferInsertModel<typeof taskCompletions>;
+export type PointEntry = InferSelectModel<typeof pointEntries>;
+export type NewPointEntry = InferInsertModel<typeof pointEntries>;
 
 export type Task = InferSelectModel<typeof tasks> & {
   achievement?: TaskAchievement | null;

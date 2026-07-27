@@ -11,22 +11,34 @@ import {
 } from './middleware'
 import type { User } from '../types'
 
+const testDate = new Date('2026-07-24T00:00:00Z')
+
 const parentUser = {
   id: 1,
   name: 'Mom',
+  email: 'mom@example.com',
+  emailVerified: true,
+  image: null,
+  createdAt: testDate,
+  updatedAt: testDate,
   points: 0,
   type: 'parent',
   username: 'mom',
-  passwordHash: 'hash',
+  displayUsername: null,
 } satisfies User
 
 const childUser = {
   id: 2,
   name: 'Emma',
+  email: 'emma@example.com',
+  emailVerified: true,
+  image: null,
+  createdAt: testDate,
+  updatedAt: testDate,
   points: 0,
   type: 'child',
   username: 'emma',
-  passwordHash: 'hash',
+  displayUsername: null,
 } satisfies User
 
 describe('password auth helpers', () => {
@@ -97,6 +109,7 @@ describe('family session helpers', () => {
     expect(() =>
       validateActiveUserSelection(
         {
+          loginUserId: parentUser.id,
           activeUserId: parentUser.id,
           familyUserIds: [parentUser.id],
         },

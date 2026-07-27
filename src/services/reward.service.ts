@@ -1,78 +1,79 @@
-import { eq } from 'drizzle-orm'
-import { rewards, users } from '../db/schema'
+import { eq } from "drizzle-orm";
+import { rewards, users } from "../db/schema";
+import type { Database } from "../db/client";
 
 type RewardRow = {
-  id: number
-  name?: string
-  value?: number
-  title?: string
-  cost?: number
-}
+  id: number;
+  name?: string;
+  value?: number;
+  title?: string;
+  cost?: number;
+};
 
 type RewardView = {
-  id: number
-  title: string
-  cost: number
-}
+  id: number;
+  title: string;
+  cost: number;
+};
 
 function toRewardView(reward: RewardRow): RewardView {
   return {
     id: reward.id,
-    title: reward.title ?? reward.name ?? '',
-    cost: reward.cost ?? reward.value ?? 0
-  }
+    title: reward.title ?? reward.name ?? "",
+    cost: reward.cost ?? reward.value ?? 0,
+  };
 }
 
-export const getAllRewards = async (db: any): Promise<RewardView[]> => {
-  const result = await db.select().from(rewards)
-  return result.map(toRewardView)
-}
+export const getAllRewards = async (db: Database): Promise<RewardView[]> => {
+  const result = await db.select().from(rewards);
+  return result.map(toRewardView);
+};
 
-export const getRewardById = async (db: any, id: number): Promise<RewardView | null> => {
-  const reward = await db.select().from(rewards).where(eq(rewards.id, id)).get()
+export const getRewardById = async (db: Database, id: number): Promise<RewardView | null> => {
+  const reward = await db.select().from(rewards).where(eq(rewards.id, id)).get();
 
   if (!reward) {
-    return null
+    return null;
   }
 
-  return toRewardView(reward)
-}
+  return toRewardView(reward);
+};
 
 export const createReward = async (
-  db: any,
+  db: Database,
   _parentUser: any,
-  data: { title: string; cost: string | number }
+  data: { title: string; cost: string | number },
 ): Promise<RewardView[]> => {
   const result = await db
     .insert(rewards)
     .values({
       name: data.title,
-      value: Number(data.cost)
+      value: Number(data.cost),
     })
-    .returning()
+    .returning();
 
-  return result.map(toRewardView)
-}
+  return result.map(toRewardView);
+};
 
 export const redeemReward = async (
-  db: any,
+  db: Database,
   childUser: { id: number; points: number },
-  rewardId: number
+  rewardId: number,
 ): Promise<void> => {
-  const reward = await getRewardById(db, rewardId)
+  const reward = await getRewardById(db, rewardId);
 
   if (!reward) {
-    throw new Error('Reward not found')
+    throw new Error("Reward not found");
   }
 
   if (childUser.points < reward.cost) {
-    throw new Error('Insufficient points')
+    throw new Error("Insufficient points");
   }
 
   await db
     .update(users)
     .set({
-      points: childUser.points - reward.cost
+      points: childUser.points - reward.cost,
     })
-    .where(eq(users.id, childUser.id))
-}
+    .where(eq(users.id, childUser.id));
+};

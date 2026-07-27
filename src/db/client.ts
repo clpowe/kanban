@@ -20,3 +20,5 @@ export type Env = {
 export function getDB(env: Env["Bindings"]) {
   return drizzle(env.family_kanban);
 }
+
+export type Database = ReturnType<typeof getDB>
