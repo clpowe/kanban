@@ -659,6 +659,10 @@ label {
   border: 1px solid var(--border-muted);
   border-radius: var(--radius-lg);
   background: var(--canvas-subtle);
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .board-column[data-status="doing"] {
@@ -671,6 +675,12 @@ label {
 
 .board-column[data-status="done"] {
   --status-color: #2da44e;
+}
+
+.board-column[data-drag-over="true"] {
+  border-color: var(--status-color);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--status-color);
 }
 
 .column-header {
@@ -726,20 +736,12 @@ label {
 }
 
 .task-list {
+  flex: 1;
   min-height: 160px;
   display: grid;
   align-content: start;
   gap: 8px;
   padding: 0 8px 8px;
-  transition:
-    background 120ms ease,
-    box-shadow 120ms ease;
-}
-
-.task-list[data-drag-over="true"] {
-  border-radius: 8px;
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 2px #54aeff;
 }
 
 .task-list > .empty-state {

@@ -253,7 +253,36 @@ export default function Board() {
             const tasks = () => tasksByStatus()[column.key] ?? [];
 
             return (
-              <section class="board-column" data-status={column.key}>
+              <section
+                class="board-column"
+                data-status={column.key}
+                data-drag-over={dragOverColumn() === column.key}
+                onDragOver={(event) => event.preventDefault()}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  setDragOverColumn(column.key);
+                }}
+                onDragLeave={(event) => {
+                  const nextTarget = event.relatedTarget;
+
+                  if (
+                    nextTarget instanceof Node &&
+                    (event.currentTarget as HTMLElement).contains(nextTarget)
+                  ) {
+                    return;
+                  }
+
+                  if (dragOverColumn() === column.key) setDragOverColumn(null);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDragOverColumn(null);
+                  const id = Number(event.dataTransfer?.getData("text/plain"));
+                  if (!Number.isNaN(id)) {
+                    storeActions.updateTaskStatus(id, column.key);
+                  }
+                }}
+              >
                 <header class="column-header">
                   <div>
                     <span class="status-dot" aria-hidden="true" />
@@ -262,24 +291,7 @@ export default function Board() {
                   </div>
                 </header>
 
-                <div
-                  class="task-list"
-                  data-drag-over={dragOverColumn() === column.key}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDragEnter={(event) => {
-                    event.preventDefault();
-                    setDragOverColumn(column.key);
-                  }}
-                  onDragLeave={() => {
-                    if (dragOverColumn() === column.key) setDragOverColumn(null);
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    setDragOverColumn(null);
-                    const id = Number(event.dataTransfer?.getData("text/plain"));
-                    if (!Number.isNaN(id)) storeActions.updateTaskStatus(id, column.key);
-                  }}
-                >
+                <div class="task-list">
                   <For each={tasks()} fallback={<p class="empty-state">{column.emptyText}</p>}>
                     {(task) => <TaskCard task={task} column={column} />}
                   </For>
