@@ -41,6 +41,44 @@ test("exposes D1-like batch() for service tests", async () => {
   ]);
 });
 
+test("rolls back every batch statement when a later statement fails", async () => {
+  const db = createTestDb();
+  const now = new Date("2026-08-03T16:00:00Z");
+  await db.insert(users).values({
+    name: "Existing child",
+    email: "existing-batch@example.com",
+    emailVerified: true,
+    createdAt: now,
+    updatedAt: now,
+    points: 0,
+    type: "child",
+    username: "existing-batch",
+  });
+
+  await expect(
+    db.batch([
+      db.insert(tasks).values({
+        title: "Must roll back",
+        priority: "low",
+        value: 1,
+        repeat: "none",
+      }),
+      db.insert(users).values({
+        name: "Duplicate child",
+        email: "existing-batch@example.com",
+        emailVerified: true,
+        createdAt: now,
+        updatedAt: now,
+        points: 0,
+        type: "child",
+        username: "duplicate-batch",
+      }),
+    ]),
+  ).rejects.toThrow("UNIQUE constraint failed");
+
+  expect(await db.select().from(tasks)).toEqual([]);
+});
+
 test("migrates badge completion foreign key with set-null deletion", async () => {
   const db = createTestDb();
 

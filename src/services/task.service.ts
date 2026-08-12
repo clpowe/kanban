@@ -1,5 +1,5 @@
 import { and, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
-import { tasks, users, taskAchievements, earnedBadges } from "../db/schema";
+import { earnedBadges, tasks, users, taskAchievements } from "../db/schema";
 import type { TaskUpdate } from "../types";
 import {
   getEligibleDailyCycleKey,
@@ -8,7 +8,6 @@ import {
   getNextEligibleDailyCycleKey,
 } from "../utils/new-york-time";
 import { type TaskStatus } from "../utils/task-status";
-import { applyCompletionToStreak } from "./streak";
 import type { Database } from "../db/client";
 
 export type StreakMilestone = {
@@ -261,6 +260,10 @@ export const updateTaskStatus = async (
     throw new Error(`Task is not available until ${existing.cycleDate}`);
   }
 
+  if (prevStatus !== "done" && nextStatus === "done") {
+    throw new Error("Task completion requires an event ID");
+  }
+
   const assigneeId = existing.assigneeId;
   const value = existing.value ?? 0;
 
@@ -271,72 +274,6 @@ export const updateTaskStatus = async (
   if (!assigneeId) return { milestone: null };
 
   let milestone: StreakMilestone | null = null;
-
-  // DONE → add score and handle streaks/achievements
-  if (prevStatus !== "done" && nextStatus === "done") {
-    // 1. Update points
-    await db
-      .update(users)
-      .set({
-        points: sql`${users.points} + ${value}`,
-      })
-      .where(eq(users.id, assigneeId));
-
-    // 2. Handle Streak
-    const achievement = await db
-      .select()
-      .from(taskAchievements)
-      .where(eq(taskAchievements.id, existing.achievementId ?? -1))
-      .get();
-
-    if (achievement) {
-      const result = applyCompletionToStreak(
-        {
-          repeat: existing.repeat,
-          targetStreak: achievement.targetStreak,
-          currentStreak: achievement.currentStreak ?? 0,
-          prestigeCount: achievement.prestigeCount ?? 0,
-          lastCompletedAt: achievement.lastCompletedAt
-            ? new Date(achievement.lastCompletedAt)
-            : null,
-        },
-        now,
-      );
-
-      if (result.changed) {
-        if (result.earnedBadge) {
-          await db.insert(earnedBadges).values({
-            userId: assigneeId,
-            achievementId: achievement.id,
-            badgeName: achievement.name,
-            prestigeLevel: result.prestigeCount,
-            earnedAt: now,
-          });
-
-          milestone = {
-            achievementId: achievement.id,
-            badgeName: achievement.name,
-            streak: achievement.targetStreak,
-            prestigeLevel: result.prestigeCount,
-          };
-        }
-
-        await db
-          .update(taskAchievements)
-          .set({
-            currentStreak: result.currentStreak,
-            missedDaysInARow: 0,
-            prestigeCount: result.prestigeCount,
-            lastCompletedAt: result.lastCompletedAt,
-            prevStreak: achievement.currentStreak ?? 0,
-            prevLastCompletedAt: achievement.lastCompletedAt ?? null,
-            prevMissedDaysInARow: achievement.missedDaysInARow ?? 0,
-            updatedAt: now,
-          })
-          .where(eq(taskAchievements.id, achievement.id));
-      }
-    }
-  }
 
   // UNDO DONE → subtract score and revert achievements/streaks
   if (prevStatus === "done" && nextStatus !== "done" && nextStatus !== "archived") {

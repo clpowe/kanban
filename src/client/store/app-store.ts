@@ -118,8 +118,9 @@ export const storeActions = {
   },
 
   async updateTaskStatus(id: number, status: string) {
+    const eventId = crypto.randomUUID();
     await runStoreAction(async () => {
-      const updatedTask = await api.updateTaskStatus(id, status);
+      const updatedTask = await api.updateTaskStatus(id, status, eventId);
       setStore("tasks", (task) => task.id === id, updatedTask);
       // Points updates happen automatically on the server when tasks are marked Done.
       // Therefore, we MUST pull fresh scores to update our local users and session context.

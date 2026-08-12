@@ -141,10 +141,14 @@ export const api = {
     });
   },
 
-  async updateTaskStatus(id: number, status: string): Promise<Task> {
+  async updateTaskStatus(
+    id: number,
+    status: string,
+    eventId: string,
+  ): Promise<Task> {
     return apiFetch<Task>(`/api/tasks/${id}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, eventId }),
     });
   },
 

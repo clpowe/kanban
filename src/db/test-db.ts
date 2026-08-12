@@ -5,11 +5,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 type BatchStatement = SQLWrapper & {
-  execute(): Promise<unknown>;
+  run(): unknown;
 };
 
 export type TestDatabase = ReturnType<typeof drizzle> & {
   batch<T extends readonly BatchStatement[]>(statements: T): Promise<unknown[]>;
+  setBatchFailureIndex(index: number | null): void;
   applyMigrations(options?: {
     after?: string;
     through?: string;
@@ -64,14 +65,24 @@ export function createTestDb(options: { through?: string } = {}): TestDatabase {
   applyMigrationRange(sqlite, migrationsDir, { through: options.through });
 
   const db = drizzle(sqlite);
+  let batchFailureIndex: number | null = null;
 
   return Object.assign(db, {
-    batch<T extends readonly BatchStatement[]>(statements: T) {
+    async batch<T extends readonly BatchStatement[]>(statements: T) {
       const executeBatch = sqlite.transaction(() =>
-        statements.map((statement) => statement.execute()),
+        statements.map((statement, index) => {
+          if (index === batchFailureIndex) {
+            throw new Error(`Injected batch failure at statement ${index}`);
+          }
+
+          return statement.run();
+        }),
       );
 
-      return Promise.all(executeBatch());
+      return executeBatch();
+    },
+    setBatchFailureIndex(index: number | null) {
+      batchFailureIndex = index;
     },
     applyMigrations(options?: { after?: string; through?: string }) {
       applyMigrationRange(sqlite, migrationsDir, options);

@@ -17,6 +17,7 @@ import {
 import { isTaskStatus } from '../utils/task-status'
 import type { TaskUpdate } from '../types'
 import { createPostHogClient } from '../lib/posthog'
+import { completeTask } from '../services/completion.service'
 
 export function taskRoutes(app: Hono<Env>) {
   app.get('/api/tasks', async (c) => {
@@ -81,12 +82,25 @@ export function taskRoutes(app: Hono<Env>) {
       const activeUser = await requireChildOwnTaskAccess(c, id)
       const db = getDB(c.env)
       const body = await c.req.json()
-      const status = body.status as string
+      const status = typeof body?.status === 'string' ? body.status : ''
       if (!isTaskStatus(status)) {
         return c.json({ error: 'Invalid status' }, 400)
       }
-      const { milestone } = await updateTaskStatus(db, id, status)
-      const task = await getTaskById(db, id)
+
+      let milestone = null
+      let task
+      if (status === 'done') {
+        const eventId = typeof body?.eventId === 'string' ? body.eventId.trim() : ''
+        if (!eventId) {
+          return c.json({ error: 'Completion event ID is required' }, 400)
+        }
+        const result = await completeTask(db, id, eventId)
+        milestone = result.milestone
+        task = result.task
+      } else {
+        await updateTaskStatus(db, id, status)
+        task = await getTaskById(db, id)
+      }
 
       const posthog = createPostHogClient(c.env)
       await posthog.captureImmediate({
