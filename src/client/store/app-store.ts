@@ -132,8 +132,8 @@ export const storeActions = {
     await runStoreAction(async () => {
       const updatedTask = await api.updateTask(id, updates);
       setStore("tasks", (task) => task.id === id, updatedTask);
-      // Reload users and activeUser in case task updates affected points or assignee
-      await Promise.all([reloadUsers(), reloadActiveUser()]);
+      // Recurrence edits can replace hydration/configuration for the selected row.
+      await Promise.all([reloadTasks(), reloadUsers(), reloadActiveUser()]);
     });
   },
 

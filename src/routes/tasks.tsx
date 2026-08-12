@@ -3,7 +3,7 @@ import { getDB, type Env } from '../db/client'
 import {
   requireAuthenticatedUser,
   requireChildOwnTaskAccess,
-  requireParent
+  requireParent,
 } from '../auth/middleware'
 import {
   createTask,
@@ -12,18 +12,60 @@ import {
   getArchivedTasks,
   getTaskById,
   updateTask,
-  updateTaskStatus
+  updateTaskStatus,
 } from '../services/task.service'
-import { isTaskStatus } from '../utils/task-status'
-import type { TaskUpdate } from '../types'
-import { createPostHogClient } from '../lib/posthog'
 import { completeTask, undoCompletion } from '../services/completion.service'
+import { isTaskStatus } from '../utils/task-status'
+import {
+  parseCreateTaskInput,
+  parseTaskUpdateInput,
+  TaskInputError,
+} from '../utils/task-input'
+import { createPostHogClient } from '../lib/posthog'
 
-export function taskRoutes(app: Hono<Env>) {
+type TaskRoutesDeps = {
+  getDB: typeof getDB
+  requireAuthenticatedUser: typeof requireAuthenticatedUser
+  requireChildOwnTaskAccess: typeof requireChildOwnTaskAccess
+  requireParent: typeof requireParent
+  createPostHogClient(
+    env: Env['Bindings'],
+  ): Pick<ReturnType<typeof createPostHogClient>, 'captureImmediate'>
+}
+
+const defaultDeps: TaskRoutesDeps = {
+  getDB,
+  requireAuthenticatedUser,
+  requireChildOwnTaskAccess,
+  requireParent,
+  createPostHogClient,
+}
+
+function taskErrorStatus(error: unknown): 400 | 403 | 500 {
+  if (error instanceof TaskInputError) return 400
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const status = Reflect.get(error, 'status')
+    if (status === 400 || status === 403) return status
+  }
+  return 500
+}
+
+function stringField(input: unknown, key: string) {
+  if (typeof input !== 'object' || input === null || !(key in input)) return ''
+  const value = Reflect.get(input, key)
+  return typeof value === 'string' ? value : ''
+}
+
+export function taskRoutes(
+  app: Hono<Env>,
+  overrides: Partial<TaskRoutesDeps> = {},
+) {
+  const deps: TaskRoutesDeps = { ...defaultDeps, ...overrides }
+
   app.get('/api/tasks', async (c) => {
     try {
-      requireAuthenticatedUser(c)
-      const db = getDB(c.env)
+      deps.requireAuthenticatedUser(c)
+      const db = deps.getDB(c.env)
       const result = await getActiveTasks(db)
       return c.json(result)
     } catch (err) {
@@ -34,8 +76,8 @@ export function taskRoutes(app: Hono<Env>) {
 
   app.get('/api/tasks/archived', async (c) => {
     try {
-      requireAuthenticatedUser(c)
-      const db = getDB(c.env)
+      deps.requireAuthenticatedUser(c)
+      const db = deps.getDB(c.env)
       const result = await getArchivedTasks(db)
       return c.json(result)
     } catch (err) {
@@ -46,17 +88,18 @@ export function taskRoutes(app: Hono<Env>) {
 
   app.post('/api/tasks', async (c) => {
     try {
-      const parentUser = requireParent(c)
-      const db = getDB(c.env)
-      const body = await c.req.json()
+      const parentUser = deps.requireParent(c)
+      const db = deps.getDB(c.env)
+      const body: unknown = await c.req.json()
+      const parsed = parseCreateTaskInput(body)
+      if (!parsed.ok) return c.json({ error: parsed.error }, 400)
 
-      const [createdTask] = await createTask(db, body)
-
+      const [createdTask] = await createTask(db, parsed.value)
       if (!createdTask) {
         return c.json({ error: 'Failed to create task' }, 500)
       }
 
-      const posthog = createPostHogClient(c.env)
+      const posthog = deps.createPostHogClient(c.env)
       await posthog.captureImmediate({
         distinctId: String(parentUser.id),
         event: 'task created',
@@ -71,27 +114,33 @@ export function taskRoutes(app: Hono<Env>) {
 
       return c.json(createdTask, 201)
     } catch (err) {
-      console.error('POST /api/tasks error:', err)
-      return c.json({ error: err instanceof Error ? err.message : 'Internal Server Error' }, 500)
+      const status = taskErrorStatus(err)
+      if (status === 500) console.error('POST /api/tasks error:', err)
+      return c.json(
+        { error: err instanceof Error ? err.message : 'Internal Server Error' },
+        status,
+      )
     }
   })
 
   app.patch('/api/tasks/:id/status', async (c) => {
     try {
       const id = Number(c.req.param('id'))
-      const activeUser = await requireChildOwnTaskAccess(c, id)
-      const db = getDB(c.env)
-      const body = await c.req.json()
-      const status = typeof body?.status === 'string' ? body.status : ''
+      const activeUser = await deps.requireChildOwnTaskAccess(c, id)
+      const db = deps.getDB(c.env)
+      const body: unknown = await c.req.json()
+      const status = stringField(body, 'status')
       if (!isTaskStatus(status)) {
         return c.json({ error: 'Invalid status' }, 400)
       }
 
+      const eventId = stringField(body, 'eventId').trim()
       const existingTask = await getTaskById(db, id)
+      if (!existingTask) return c.json({ error: 'Task not found' }, 404)
+
       let milestone = null
       let task
       if (status === 'done') {
-        const eventId = typeof body?.eventId === 'string' ? body.eventId.trim() : ''
         if (!eventId) {
           return c.json({ error: 'Completion event ID is required' }, 400)
         }
@@ -99,10 +148,9 @@ export function taskRoutes(app: Hono<Env>) {
         milestone = result.milestone
         task = result.task
       } else if (
-        existingTask?.status === 'done' &&
+        existingTask.status === 'done' &&
         (status === 'todo' || status === 'doing' || status === 'review')
       ) {
-        const eventId = typeof body?.eventId === 'string' ? body.eventId.trim() : ''
         if (!eventId) {
           return c.json({ error: 'Undo event ID is required' }, 400)
         }
@@ -113,7 +161,7 @@ export function taskRoutes(app: Hono<Env>) {
         task = await getTaskById(db, id)
       }
 
-      const posthog = createPostHogClient(c.env)
+      const posthog = deps.createPostHogClient(c.env)
       await posthog.captureImmediate({
         distinctId: String(activeUser.id),
         event: 'task status updated',
@@ -141,62 +189,57 @@ export function taskRoutes(app: Hono<Env>) {
 
       return c.json(task)
     } catch (err) {
-      console.error('PATCH status error:', err)
-      return c.json({ error: err instanceof Error ? err.message : 'Internal Server Error' }, 500)
+      const status = taskErrorStatus(err)
+      if (status === 500) console.error('PATCH status error:', err)
+      return c.json(
+        { error: err instanceof Error ? err.message : 'Internal Server Error' },
+        status,
+      )
     }
   })
 
   app.patch('/api/tasks/:id', async (c) => {
     try {
-      const parentUser = requireParent(c)
+      const parentUser = deps.requireParent(c)
       const id = Number(c.req.param('id'))
-      const db = getDB(c.env)
-      const body = await c.req.json()
-      const updates: TaskUpdate = {}
-      if (body.title) updates.title = body.title as string
-      if (body.priority)
-        updates.priority = body.priority as 'high' | 'medium' | 'low'
-      if ('assigneeId' in body) {
-        updates.assigneeId = body.assigneeId ? Number(body.assigneeId) : null
-      }
-      if (body.status) {
-        const status = body.status as string
-        if (!isTaskStatus(status)) {
-          return c.json({ error: 'Invalid status' }, 400)
-        }
-        updates.status = status
-      }
+      const db = deps.getDB(c.env)
+      const body: unknown = await c.req.json()
+      const parsed = parseTaskUpdateInput(body)
+      if (!parsed.ok) return c.json({ error: parsed.error }, 400)
 
-      await updateTask(db, id, updates)
+      const task = await updateTask(db, id, parsed.value)
+      if (!task) return c.json({ error: 'Task not found' }, 404)
 
-      const task = await getTaskById(db, id)
-
-      const posthog = createPostHogClient(c.env)
+      const posthog = deps.createPostHogClient(c.env)
       await posthog.captureImmediate({
         distinctId: String(parentUser.id),
         event: 'task updated',
         properties: {
           task_id: id,
-          fields_changed: Object.keys(updates),
-          task_title: task?.title ?? null,
+          fields_changed: Object.keys(parsed.value),
+          task_title: task.title,
         },
       })
 
       return c.json(task)
     } catch (err) {
-      console.error('PATCH task error:', err)
-      return c.json({ error: err instanceof Error ? err.message : 'Internal Server Error' }, 500)
+      const status = taskErrorStatus(err)
+      if (status === 500) console.error('PATCH task error:', err)
+      return c.json(
+        { error: err instanceof Error ? err.message : 'Internal Server Error' },
+        status,
+      )
     }
   })
 
   app.delete('/api/tasks/:id', async (c) => {
     try {
-      const parentUser = requireParent(c)
+      const parentUser = deps.requireParent(c)
       const id = Number(c.req.param('id'))
-      const db = getDB(c.env)
+      const db = deps.getDB(c.env)
       await deleteTask(db, id)
 
-      const posthog = createPostHogClient(c.env)
+      const posthog = deps.createPostHogClient(c.env)
       await posthog.captureImmediate({
         distinctId: String(parentUser.id),
         event: 'task deleted',

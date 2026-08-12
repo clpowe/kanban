@@ -23,6 +23,7 @@ export type Task = InferSelectModel<typeof tasks> & {
 export type CreateTask = Omit<Task, "id" | "value" | "status"> & {
   achievementName?: string;
   targetStreak?: number;
+  streakEnabled?: boolean;
 };
 
 export type Reward = InferSelectModel<typeof rewards>;
@@ -32,4 +33,8 @@ export type RewardView = {
   cost: number;
 };
 export type RewardLike = Reward | RewardView;
-export type TaskUpdate = Partial<InferInsertModel<typeof tasks>>;
+export type TaskUpdate = Partial<InferInsertModel<typeof tasks>> & {
+  achievementName?: string;
+  targetStreak?: number;
+  streakEnabled?: boolean;
+};

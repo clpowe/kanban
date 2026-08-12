@@ -1,12 +1,19 @@
 import { and, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
+import { Temporal } from "@js-temporal/polyfill";
 import { tasks, users, taskAchievements } from "../db/schema";
-import type { TaskUpdate } from "../types";
 import {
   getEligibleDailyCycleKey,
   getNewYorkDateKey,
   getNewYorkWeekKey,
   getNextEligibleDailyCycleKey,
 } from "../utils/new-york-time";
+import {
+  requireCreateTaskInput,
+  requireTaskUpdateInput,
+  TaskInputError,
+  type TaskCadenceInput,
+} from "../utils/task-input";
 import { type TaskStatus } from "../utils/task-status";
 import type { Database } from "../db/client";
 
@@ -23,45 +30,65 @@ const priorityPoints = {
   low: 1,
 } as const;
 
-type TaskPriority = keyof typeof priorityPoints;
-type TaskCadence = "daily" | "weekly" | "none";
-
-type CreateTaskInput = {
-  title?: unknown;
-  priority?: unknown;
-  value?: unknown;
-  repeat?: unknown;
-  assigneeId?: unknown;
-  achievementName?: unknown;
-  targetStreak?: unknown;
-  streakEnabled?: unknown;
-};
-
-function parsePriority(value: unknown): TaskPriority {
-  if (value === "high" || value === "medium" || value === "low") {
-    return value;
-  }
-
-  throw new Error("Invalid task priority");
+function recurringCycleDate(cadence: Exclude<TaskCadenceInput, "none">, now: Date) {
+  return cadence === "daily"
+    ? (getEligibleDailyCycleKey(now) ?? getNextEligibleDailyCycleKey(now))
+    : getNewYorkWeekKey(now);
 }
 
-function parseCadence(value: unknown): TaskCadence {
-  if (value === "daily" || value === "weekly" || value === "none") {
-    return value;
+function nextCycleDate(
+  cycleDate: string,
+  cadence: Exclude<TaskCadenceInput, "none">,
+) {
+  let next = Temporal.PlainDate.from(cycleDate).add({
+    days: cadence === "weekly" ? 7 : 1,
+  });
+  while (cadence === "daily" && next.dayOfWeek > 5) {
+    next = next.add({ days: 1 });
   }
-
-  throw new Error("Invalid task repeat cadence");
+  return next.toString();
 }
 
-function parseAssigneeId(value: unknown): number | null {
-  if (value === null || value === undefined || value === "") return null;
+async function findAvailableCycleDate(
+  db: Database,
+  taskId: number,
+  achievementId: number,
+  cadence: Exclude<TaskCadenceInput, "none">,
+  now: Date,
+) {
+  let candidate = recurringCycleDate(cadence, now);
 
-  const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error("Invalid task assignee");
+  for (let attempt = 0; attempt < 400; attempt += 1) {
+    const conflict = await db
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.achievementId, achievementId),
+          eq(tasks.cycleDate, candidate),
+          ne(tasks.id, taskId),
+        ),
+      )
+      .get();
+    if (!conflict) return candidate;
+    candidate = nextCycleDate(candidate, cadence);
   }
 
-  return parsed;
+  throw new TaskInputError("Could not find an available recurring cycle");
+}
+
+async function assertChildAssignee(db: Database, assigneeId: number | null) {
+  if (assigneeId === null) return;
+
+  const assignee = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, assigneeId))
+    .get();
+  if (!assignee) throw new TaskInputError("Task assignee was not found");
+  if (assignee.type === "parent") {
+    throw new TaskInputError("Tasks cannot be assigned to parents");
+  }
 }
 
 export const getActiveTasks = async (db: Database, now: Date = new Date()) => {
@@ -116,30 +143,12 @@ export const getTaskById = async (db: Database, id: number) => {
 
 export const createTask = async (
   db: Database,
-  data: CreateTaskInput,
+  input: unknown,
   now: Date = new Date(),
 ) => {
-  const title = typeof data.title === "string" ? data.title.trim() : "";
-  if (!title) throw new Error("Task title is required");
-
-  const priority = parsePriority(data.priority);
-  const repeat = parseCadence(data.repeat);
-  const assigneeId = parseAssigneeId(data.assigneeId);
-
-  if (assigneeId !== null) {
-    const assignee = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, assigneeId))
-      .get();
-
-    if (!assignee) {
-      throw new Error("Task assignee was not found");
-    }
-    if (assignee.type === "parent") {
-      throw new Error("Tasks cannot be assigned to parents");
-    }
-  }
+  const data = requireCreateTaskInput(input);
+  const { title, priority, repeat, assigneeId } = data;
+  await assertChildAssignee(db, assigneeId);
 
   if (repeat === "none") {
     const [insertedTask] = await db
@@ -159,28 +168,8 @@ export const createTask = async (
   }
 
   const recurrenceKey = `recurrence:${crypto.randomUUID()}`;
-  const achievementName =
-    typeof data.achievementName === "string" ? data.achievementName.trim() : "";
-  const streakEnabled =
-    typeof data.streakEnabled === "boolean"
-      ? data.streakEnabled
-      : achievementName.length > 0;
-  const targetStreak =
-    data.targetStreak === undefined || data.targetStreak === null || data.targetStreak === ""
-      ? 20
-      : Number(data.targetStreak);
-
-  if (!Number.isInteger(targetStreak) || targetStreak <= 0) {
-    throw new Error("Target streak must be a positive integer");
-  }
-  if (streakEnabled && !achievementName) {
-    throw new Error("Streak name is required when streak tracking is enabled");
-  }
-
-  const cycleDate =
-    repeat === "daily"
-      ? (getEligibleDailyCycleKey(now) ?? getNextEligibleDailyCycleKey(now))
-      : getNewYorkWeekKey(now);
+  const achievementName = data.achievementName ?? "";
+  const cycleDate = recurringCycleDate(repeat, now);
   const taskValue = priorityPoints[priority];
 
   const insertGoal = db.insert(taskAchievements).values({
@@ -190,10 +179,10 @@ export const createTask = async (
     taskPriority: priority,
     taskValue,
     assigneeId,
-    streakEnabled,
+    streakEnabled: data.streakEnabled,
     active: true,
     name: achievementName || `${title} Streak`,
-    targetStreak,
+    targetStreak: data.targetStreak,
     currentStreak: 0,
     prestigeCount: 0,
     createdAt: now,
@@ -228,15 +217,146 @@ export const createTask = async (
   return [await getTaskById(db, insertedTask.id)];
 };
 
-export const updateTask = async (db: Database, id: number, updates: TaskUpdate) => {
-  if (updates.assigneeId) {
-    const assignee = await db.select().from(users).where(eq(users.id, updates.assigneeId)).get();
-    if (assignee && assignee.type === "parent") {
-      throw new Error("Tasks cannot be assigned to parents");
-    }
+export const updateTask = async (
+  db: Database,
+  id: number,
+  input: unknown,
+  now: Date = new Date(),
+) => {
+  const updates = requireTaskUpdateInput(input);
+  const row = await db
+    .select({ task: tasks, achievement: taskAchievements })
+    .from(tasks)
+    .leftJoin(taskAchievements, eq(tasks.achievementId, taskAchievements.id))
+    .where(eq(tasks.id, id))
+    .get();
+  if (!row) return null;
+
+  const { task, achievement } = row;
+  if (task.status === "archived" && task.achievementId != null) {
+    throw new TaskInputError("Archived recurring history cannot be edited");
   }
 
-  await db.update(tasks).set(updates).where(eq(tasks.id, id));
+  const title = updates.title ?? task.title;
+  const priority = updates.priority ?? task.priority;
+  const repeat = updates.repeat ?? task.repeat ?? "none";
+  const assigneeId =
+    "assigneeId" in updates ? (updates.assigneeId ?? null) : task.assigneeId;
+  await assertChildAssignee(db, assigneeId);
+
+  const currentlyRecurring = task.achievementId != null && achievement != null;
+  const nextRecurring = repeat === "daily" || repeat === "weekly";
+  const streakEnabled =
+    updates.streakEnabled ?? achievement?.streakEnabled ?? false;
+  if (!nextRecurring && streakEnabled) {
+    throw new TaskInputError("Streak tracking requires a recurring task");
+  }
+  const achievementName =
+    updates.achievementName?.trim() ||
+    achievement?.name ||
+    `${title} Streak`;
+  const targetStreak = updates.targetStreak ?? achievement?.targetStreak ?? 20;
+  const taskValues = {
+    title,
+    priority,
+    value: priorityPoints[priority],
+    repeat,
+    assigneeId,
+  };
+
+  if (currentlyRecurring && nextRecurring) {
+    const cycleDate =
+      task.repeat === repeat && task.cycleDate
+        ? task.cycleDate
+        : await findAvailableCycleDate(
+            db,
+            task.id,
+            achievement.id,
+            repeat,
+            now,
+          );
+    const updateGoal = db
+      .update(taskAchievements)
+      .set({
+        cadence: repeat,
+        taskTitle: title,
+        taskPriority: priority,
+        taskValue: priorityPoints[priority],
+        assigneeId,
+        streakEnabled,
+        active: true,
+        name: achievementName,
+        targetStreak,
+        updatedAt: now,
+      })
+      .where(eq(taskAchievements.id, achievement.id));
+    const updateOccurrence = db
+      .update(tasks)
+      .set({ ...taskValues, cycleDate })
+      .where(eq(tasks.id, task.id));
+    await db.batch([updateGoal, updateOccurrence]);
+    return getTaskById(db, task.id);
+  }
+
+  if (!currentlyRecurring && nextRecurring) {
+    const recurrenceKey = `recurrence:${crypto.randomUUID()}`;
+    const cycleDate = recurringCycleDate(repeat, now);
+    const insertGoal = db.insert(taskAchievements).values({
+      recurrenceKey,
+      cadence: repeat,
+      taskTitle: title,
+      taskPriority: priority,
+      taskValue: priorityPoints[priority],
+      assigneeId,
+      streakEnabled,
+      active: true,
+      name: achievementName,
+      targetStreak,
+      currentStreak: 0,
+      prestigeCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const linkOccurrence = db
+      .update(tasks)
+      .set({
+        ...taskValues,
+        achievementId: sql<number>`(
+          select ${taskAchievements.id}
+          from ${taskAchievements}
+          where ${taskAchievements.recurrenceKey} = ${recurrenceKey}
+        )`,
+        cycleDate,
+      })
+      .where(eq(tasks.id, task.id));
+    const statements: [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]] = [
+      insertGoal,
+      linkOccurrence,
+    ];
+    await db.batch(statements);
+    return getTaskById(db, task.id);
+  }
+
+  if (currentlyRecurring && !nextRecurring) {
+    const deactivateGoal = db
+      .update(taskAchievements)
+      .set({ active: false, updatedAt: now })
+      .where(eq(taskAchievements.id, achievement.id));
+    const detachOccurrence = db
+      .update(tasks)
+      .set({
+        ...taskValues,
+        repeat: "none",
+        achievementId: null,
+        cycleDate: null,
+      })
+      .where(eq(tasks.id, task.id));
+    await db.batch([deactivateGoal, detachOccurrence]);
+    return getTaskById(db, task.id);
+  }
+
+  await db.update(tasks).set(taskValues).where(eq(tasks.id, task.id));
+  return getTaskById(db, task.id);
 };
 
 export const updateTaskStatus = async (
@@ -257,7 +377,7 @@ export const updateTaskStatus = async (
     existing.achievementId != null &&
     nextStatus !== "archived"
   ) {
-    throw new Error("Archived recurring history cannot be restored");
+    throw new TaskInputError("Archived recurring history cannot be restored");
   }
 
   if (
