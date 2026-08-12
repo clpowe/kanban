@@ -58,6 +58,10 @@ export const tasks = sqliteTable(
   },
   (table) => [
     uniqueIndex("tasks_achievement_cycle_unique").on(table.achievementId, table.cycleDate),
+    uniqueIndex("tasks_one_active_achievement_unique")
+      .on(table.achievementId)
+      .where(sql`${table.achievementId} IS NOT NULL AND ${table.status} <> 'archived'`),
+    index("tasks_active_cycle_idx").on(table.status, table.cycleDate),
   ],
 );
 
@@ -69,25 +73,62 @@ export const rewards = sqliteTable("rewards", {
 });
 
 // ── TASK ACHIEVEMENTS ──────────────────────────────────
-export const taskAchievements = sqliteTable("task_achievements", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  taskId: integer("task_id")
-    .unique()
-    .references((): AnySQLiteColumn => tasks.id, { onDelete: "set null" }),
-  name: text("name").notNull(), // Achievement name, e.g. "Clean Room Legend"
-  targetStreak: integer("target_streak").notNull(), // e.g. 20
-  currentStreak: integer("current_streak").notNull().default(0),
-  prestigeCount: integer("prestige_count").notNull().default(0),
-  lastCompletedAt: integer("last_completed_at", { mode: "timestamp" }),
-  missedDaysInARow: integer("missed_days_in_a_row").notNull().default(0),
-  // Snapshot of the state before the most recent completion, so moving a
-  // task back out of "done" can restore the streak exactly.
-  prevStreak: integer("prev_streak"),
-  prevLastCompletedAt: integer("prev_last_completed_at", { mode: "timestamp" }),
-  prevMissedDaysInARow: integer("prev_missed_days_in_a_row"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-});
+export const taskAchievements = sqliteTable(
+  "task_achievements",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    taskId: integer("task_id")
+      .unique()
+      .references((): AnySQLiteColumn => tasks.id, { onDelete: "set null" }),
+    recurrenceKey: text("recurrence_key").unique(),
+    cadence: text("cadence", { enum: ["daily", "weekly"] }),
+    taskTitle: text("task_title"),
+    taskPriority: text("task_priority", {
+      enum: ["high", "medium", "low"],
+    }),
+    taskValue: integer("task_value"),
+    assigneeId: integer("assignee_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    streakEnabled: integer("streak_enabled", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    name: text("name").notNull(), // Achievement name, e.g. "Clean Room Legend"
+    targetStreak: integer("target_streak").notNull(), // e.g. 20
+    currentStreak: integer("current_streak").notNull().default(0),
+    prestigeCount: integer("prestige_count").notNull().default(0),
+    lastCompletedAt: integer("last_completed_at", { mode: "timestamp" }),
+    missedDaysInARow: integer("missed_days_in_a_row").notNull().default(0),
+    // Legacy snapshot columns remain during the ledger transition.
+    prevStreak: integer("prev_streak"),
+    prevLastCompletedAt: integer("prev_last_completed_at", { mode: "timestamp" }),
+    prevMissedDaysInARow: integer("prev_missed_days_in_a_row"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("task_achievements_active_cadence_idx").on(table.active, table.cadence),
+  ],
+);
+
+// ── ROLLOVER RUNS ──────────────────────────────────────
+export const rolloverRuns = sqliteTable(
+  "rollover_runs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    rolloverType: text("rollover_type", { enum: ["recurrence"] }).notNull(),
+    cycleKey: text("cycle_key").notNull(),
+    startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+    completedAt: integer("completed_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("rollover_runs_type_cycle_unique").on(
+      table.rolloverType,
+      table.cycleKey,
+    ),
+  ],
+);
 
 // ── TASK COMPLETIONS ───────────────────────────────────
 export const taskCompletions = sqliteTable(
@@ -172,23 +213,31 @@ export const pointEntries = sqliteTable(
 );
 
 // ── EARNED BADGES (Trophy Room Collection) ─────────────
-export const earnedBadges = sqliteTable("earned_badges", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  achievementId: integer("achievement_id")
-    .notNull()
-    .references(() => taskAchievements.id, { onDelete: "cascade" }),
-  badgeName: text("badge_name").notNull(),
-  prestigeLevel: integer("prestige_level").notNull(), // 1 for first time, 2 for second, etc.
-  earnedAt: integer("earned_at", { mode: "timestamp" }).notNull(),
-  taskCompletionId: integer("task_completion_id").references(() => taskCompletions.id, {
-    onDelete: "set null",
-  }),
-  revokedAt: integer("revoked_at", { mode: "timestamp" }),
-  revokedReason: text("revoked_reason"),
-});
+export const earnedBadges = sqliteTable(
+  "earned_badges",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    achievementId: integer("achievement_id")
+      .notNull()
+      .references(() => taskAchievements.id, { onDelete: "cascade" }),
+    badgeName: text("badge_name").notNull(),
+    prestigeLevel: integer("prestige_level").notNull(), // 1 for first time, 2 for second, etc.
+    earnedAt: integer("earned_at", { mode: "timestamp" }).notNull(),
+    taskCompletionId: integer("task_completion_id").references(() => taskCompletions.id, {
+      onDelete: "set null",
+    }),
+    revokedAt: integer("revoked_at", { mode: "timestamp" }),
+    revokedReason: text("revoked_reason"),
+  },
+  (table) => [
+    uniqueIndex("earned_badges_completion_unique")
+      .on(table.taskCompletionId)
+      .where(sql`${table.taskCompletionId} IS NOT NULL`),
+  ],
+);
 
 // ── BETTER AUTH: SESSIONS ──────────────────────────────
 export const sessions = sqliteTable("session", {

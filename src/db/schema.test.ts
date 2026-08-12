@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { createTableRelationsHelpers } from "drizzle-orm";
+import * as schema from "./schema";
 import {
   earnedBadges,
   earnedBadgesRelations,
@@ -65,4 +66,27 @@ test("earned badge relations expose source completion", () => {
   );
 
   expect(config.taskCompletion).toBeDefined();
+});
+
+test("task achievements expose stable recurring goal configuration", () => {
+  const { taskAchievements } = schema;
+
+  expect(taskAchievements.recurrenceKey).toBeDefined();
+  expect(taskAchievements.cadence).toBeDefined();
+  expect(taskAchievements.taskTitle).toBeDefined();
+  expect(taskAchievements.taskPriority).toBeDefined();
+  expect(taskAchievements.taskValue).toBeDefined();
+  expect(taskAchievements.assigneeId).toBeDefined();
+  expect(taskAchievements.streakEnabled).toBeDefined();
+  expect(taskAchievements.active).toBeDefined();
+});
+
+test("rollover runs expose idempotency receipt columns", () => {
+  const rolloverRuns = (schema as Record<string, any>).rolloverRuns;
+
+  expect(rolloverRuns).toBeDefined();
+  expect(rolloverRuns.rolloverType).toBeDefined();
+  expect(rolloverRuns.cycleKey).toBeDefined();
+  expect(rolloverRuns.startedAt).toBeDefined();
+  expect(rolloverRuns.completedAt).toBeDefined();
 });
