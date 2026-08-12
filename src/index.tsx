@@ -7,8 +7,11 @@ import { rewardRoutes } from "./routes/rewards.tsx";
 import { userRoutes } from "./routes/users.tsx";
 import { sessionRoutes } from "./routes/session.tsx";
 import { analyticsRoutes } from "./routes/analytics.tsx";
-import { archiveCompletedTasks, rolloverDailyTasks } from "./cron.ts";
-import { isDailyRolloverTime } from "./utils/new-york-time";
+import { archiveCompletedTasks, reconcileRecurringTasks } from "./cron.ts";
+import {
+  getNewYorkNow,
+  isRecurringRolloverTime,
+} from "./utils/new-york-time";
 
 const app = new Hono<Env>();
 
@@ -48,12 +51,12 @@ app.get("*", async (c) => {
 
 // ── Scheduled handlers ──────────────────────────────────
 type ScheduledDeps = {
-  rolloverDailyTasks: typeof rolloverDailyTasks;
+  reconcileRecurringTasks: typeof reconcileRecurringTasks;
   archiveCompletedTasks: typeof archiveCompletedTasks;
 };
 
 const scheduledDeps: ScheduledDeps = {
-  rolloverDailyTasks,
+  reconcileRecurringTasks,
   archiveCompletedTasks,
 };
 
@@ -64,17 +67,22 @@ export const handleScheduled = async (
 ) => {
   console.log("[CRON] triggered", controller.cron);
 
-  if (controller.cron === "59 3 * * *" || controller.cron === "59 4 * * *") {
-    const scheduledAt = new Date(controller.scheduledTime);
-
-    if (isDailyRolloverTime(scheduledAt)) {
-      await deps.rolloverDailyTasks(
-        { Bindings: env } as Env,
-        scheduledAt,
-      );
-    }
+  if (controller.cron !== "5 4 * * *" && controller.cron !== "5 5 * * *") {
+    return;
   }
-  if (controller.cron === "59 23 * * 6") {
+
+  const scheduledAt = new Date(controller.scheduledTime);
+  if (!isRecurringRolloverTime(scheduledAt)) {
+    console.log("[CRON] skipped DST partner invocation", {
+      cron: controller.cron,
+      scheduledAt: scheduledAt.toISOString(),
+    });
+    return;
+  }
+
+  await deps.reconcileRecurringTasks({ Bindings: env } as Env, scheduledAt);
+
+  if (getNewYorkNow(scheduledAt).dayOfWeek === 1) {
     await deps.archiveCompletedTasks({ Bindings: env } as Env);
   }
 };

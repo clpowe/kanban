@@ -2,8 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { handleScheduled } from "./index";
 
 const dependencies = (calls: string[]) => ({
-  rolloverDailyTasks: async () => {
+  reconcileRecurringTasks: async () => {
     calls.push("reconcile");
+    return {
+      cycleKey: "2026-01-01",
+      duplicate: false,
+      archived: 0,
+      created: 0,
+    };
   },
   archiveCompletedTasks: async () => {
     calls.push("archive");
@@ -40,7 +46,7 @@ describe("handleScheduled", () => {
     await handleScheduled(
       {
         cron: "5 4 * * *",
-        scheduledTime: Date.parse("2026-01-05T04:05:00Z"),
+        scheduledTime: Date.parse("2026-01-07T04:05:00Z"),
       } as ScheduledController,
       {} as never,
       dependencies(calls),
@@ -48,13 +54,70 @@ describe("handleScheduled", () => {
     await handleScheduled(
       {
         cron: "5 5 * * *",
-        scheduledTime: Date.parse("2026-01-05T05:05:00Z"),
+        scheduledTime: Date.parse("2026-01-07T05:05:00Z"),
       } as ScheduledController,
       {} as never,
       dependencies(calls),
     );
 
     expect(calls).toEqual(["reconcile"]);
+  });
+
+  test.each([
+    [
+      "spring-forward",
+      "2026-03-08T04:05:00Z",
+      "2026-03-08T05:05:00Z",
+    ],
+    [
+      "fall-back",
+      "2026-11-01T04:05:00Z",
+      "2026-11-01T05:05:00Z",
+    ],
+  ])("dispatches exactly once across the %s transition", async (_, first, second) => {
+    const calls: string[] = [];
+
+    await handleScheduled(
+      {
+        cron: "5 4 * * *",
+        scheduledTime: Date.parse(first),
+      } as ScheduledController,
+      {} as never,
+      dependencies(calls),
+    );
+    await handleScheduled(
+      {
+        cron: "5 5 * * *",
+        scheduledTime: Date.parse(second),
+      } as ScheduledController,
+      {} as never,
+      dependencies(calls),
+    );
+
+    expect(calls.filter((call) => call === "reconcile")).toEqual(["reconcile"]);
+  });
+
+  test("archives only non-recurring completed tasks on New York Monday", async () => {
+    const calls: string[] = [];
+
+    await handleScheduled(
+      {
+        cron: "5 4 * * *",
+        scheduledTime: Date.parse("2026-08-10T04:05:00Z"),
+      } as ScheduledController,
+      {} as never,
+      dependencies(calls),
+    );
+    await handleScheduled(
+      {
+        cron: "5 5 * * *",
+        scheduledTime: Date.parse("2026-08-10T05:05:00Z"),
+      } as ScheduledController,
+      {} as never,
+      dependencies(calls),
+    );
+
+    expect(calls).toEqual(["reconcile", "archive"]);
   });
 
   test("ignores unrelated cron expressions", async () => {

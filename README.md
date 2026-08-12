@@ -27,7 +27,7 @@ The app is built for a parent-managed family workflow: parents create child acco
 - Point awards based on task priority when tasks are completed.
 - Reward store where child users can redeem points.
 - Archive view for completed or historical work.
-- Scheduled Cloudflare cron handlers for daily task resets and weekly archiving.
+- Calendar-aware recurring task reconciliation for New York weekdays and Monday-start weeks.
 - PostHog event tracking for reward redemptions.
 
 ## Tech Stack
@@ -164,6 +164,16 @@ bunx wrangler secret put POSTHOG_API_KEY
 ```
 
 Check `wrangler.jsonc` before deploying to confirm the Worker name, D1 database binding, production `BETTER_AUTH_URL`, trusted auth origins, and cron schedules match your Cloudflare environment.
+
+### Recurring task schedule
+
+Cloudflare invokes the Worker at both `5 4 * * *` and `5 5 * * *` UTC. The
+runtime accepts only the invocation that is 00:05 in `America/New_York`, so
+rollover remains correct across daylight-saving changes without running twice.
+Daily tasks use Monday-through-Friday cycle dates, weekly tasks use Monday cycle
+dates, and a replay for the same New York date is ignored using a database
+receipt. On New York Monday, the accepted invocation also archives completed
+non-recurring work; recurring occurrences are reconciled separately.
 
 ## Project Structure
 
