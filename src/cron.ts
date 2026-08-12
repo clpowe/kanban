@@ -1,63 +1,30 @@
-import { and, eq, ne } from "drizzle-orm";
-import { tasks, taskAchievements } from "./db/schema";
 import { getDB, type Env } from "./db/client";
+import {
+  reconcileRecurringTasks as reconcileRecurringOccurrences,
+  type RecurrenceReconciliationResult,
+} from "./services/recurrence.service";
 import { archiveDoneTasks } from "./services/task.service";
-import { dailyReset } from "./services/streak";
-import { getNewYorkDateKey } from "./utils/new-york-time";
 
-export const resetDailyTasks = async (env: Env, now = new Date()) => {
+export const reconcileRecurringTasks = async (
+  env: Env,
+  now: Date = new Date(),
+): Promise<RecurrenceReconciliationResult> => {
   const db = getDB(env.Bindings);
-  const endedDateKey = getNewYorkDateKey(now);
+  const result = await reconcileRecurringOccurrences(db, now);
 
-  const activeDailyTask = and(
-    eq(tasks.repeat, "daily"),
-    ne(tasks.status, "archived"),
-  );
-
-  const rows = await db
-    .select({ achievement: taskAchievements })
-    .from(taskAchievements)
-    .innerJoin(tasks, eq(taskAchievements.taskId, tasks.id))
-    .where(activeDailyTask);
-
-  for (const { achievement } of rows) {
-    const result = dailyReset(
-      {
-        streakCount: achievement.currentStreak ?? 0,
-        lastCompletedDate: achievement.lastCompletedAt
-          ? new Date(achievement.lastCompletedAt)
-          : null,
-        missedDaysInARow: achievement.missedDaysInARow ?? 0,
-      },
-      endedDateKey,
-    );
-
-    if (result.changed) {
-      await db
-        .update(taskAchievements)
-        .set({
-          currentStreak: result.state.streakCount,
-          missedDaysInARow: result.state.missedDaysInARow,
-          updatedAt: now,
-        })
-        .where(eq(taskAchievements.id, achievement.id));
-    }
-  }
-
-  await db
-    .update(tasks)
-    .set({ status: "todo" })
-    .where(activeDailyTask);
-
-  console.log(`[CRON] Daily rollover completed for ${endedDateKey}`);
+  console.log("[CRON] Recurrence reconciliation", result);
+  return result;
 };
 
-export const rolloverDailyTasks = resetDailyTasks;
+// Transitional alias for the existing scheduled entry point. Task 6 switches
+// dispatch to the reconciler name while preserving a type-safe intermediate commit.
+export const rolloverDailyTasks = async (env: Env, now: Date = new Date()) => {
+  await reconcileRecurringTasks(env, now);
+};
 
 export const archiveCompletedTasks = async (env: Env) => {
   const db = getDB(env.Bindings);
-
   await archiveDoneTasks(db);
 
-  console.log("[CRON] Weekly completed tasks archived");
+  console.log("[CRON] Non-recurring completed tasks archived");
 };
