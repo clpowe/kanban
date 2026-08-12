@@ -16,6 +16,45 @@ export function isNewYorkWeekdayDateKey(dateKey: string) {
   return date.dayOfWeek >= 1 && date.dayOfWeek <= 5;
 }
 
+export function getNewYorkWeekKeyFromDateKey(dateKey: string) {
+  const date = Temporal.PlainDate.from(dateKey);
+  return date.subtract({ days: date.dayOfWeek - 1 }).toString();
+}
+
+export function getNewYorkWeekKey(now = new Date()) {
+  return getNewYorkWeekKeyFromDateKey(getNewYorkDateKey(now));
+}
+
+export function getEligibleDailyCycleKey(now = new Date()) {
+  const dateKey = getNewYorkDateKey(now);
+  return isNewYorkWeekdayDateKey(dateKey) ? dateKey : null;
+}
+
+export function getNextEligibleDailyCycleKey(now = new Date()) {
+  let date = getNewYorkNow(now).toPlainDate();
+
+  while (date.dayOfWeek > 5) {
+    date = date.add({ days: 1 });
+  }
+
+  return date.toString();
+}
+
+export function getPreviousNewYorkDateKey(now = new Date()) {
+  return getNewYorkNow(now).toPlainDate().subtract({ days: 1 }).toString();
+}
+
+export function countWeekKeysBetween(startKey: string, endKey: string) {
+  const start = Temporal.PlainDate.from(startKey);
+  const end = Temporal.PlainDate.from(endKey);
+  return Math.trunc(end.since(start, { largestUnit: "days" }).days / 7);
+}
+
+export function isRecurringRolloverTime(now = new Date()) {
+  const ny = getNewYorkNow(now);
+  return ny.hour === 0 && ny.minute === 5;
+}
+
 // Both UTC cron entries are retained for DST. Only the one that is actually
 // 23:59 in New York should perform the rollover.
 export function isDailyRolloverTime(now = new Date()) {

@@ -251,8 +251,8 @@ describe("deriveStreakFromCompletions", () => {
   test("uses completedOn rather than UTC completion timestamps for daily cycles", () => {
     const result = deriveStreakFromCompletions(
       [
-        completion("2026-07-06", new Date("2026-07-07T03:30:00.000Z")),
-        completion("2026-07-07", new Date("2026-07-07T04:30:00.000Z")),
+        completion("2026-07-06", new Date("2026-07-07T04:30:00.000Z")),
+        completion("2026-07-07", new Date("2026-07-07T05:00:00.000Z")),
       ],
       {
         repeat: "daily",
@@ -261,7 +261,7 @@ describe("deriveStreakFromCompletions", () => {
     );
 
     expect(result.currentStreak).toBe(2);
-    expect(result.lastCompletedAt).toEqual(new Date("2026-07-07T04:30:00.000Z"));
+    expect(result.lastCompletedAt).toEqual(new Date("2026-07-07T05:00:00.000Z"));
   });
 
   test("resets the current streak after reaching the target", () => {
