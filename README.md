@@ -91,6 +91,12 @@ bunx drizzle-kit generate
 
 There is also a `seed.ts` Worker entry that can create sample family users, rewards, and tasks for development. The seeded users use the password `family123`.
 
+Before rolling the recurring reliability model into an existing database, use
+the read-only audit and deterministic repair runbook in
+[`docs/operations/recurring-task-reconciliation.md`](docs/operations/recurring-task-reconciliation.md).
+It includes isolated local rehearsal, staging review, remote backup, maintenance
+window, post-apply verification, and rollback commands.
+
 ## Development
 
 Start the full local development environment in parallel:
