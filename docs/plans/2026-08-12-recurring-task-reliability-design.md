@@ -1,7 +1,7 @@
 # Recurring Task Reliability Design
 
 **Date:** 2026-08-12
-**Status:** Approved
+**Status:** Implemented
 **Supersedes:** The unimplemented portions of `2026-07-18-goal-streak-reliability-fixes.md`
 
 ## Objective

@@ -70,6 +70,7 @@ export const api = {
       targetStreak: number;
       currentStreak: number;
       prestigeCount: number;
+      streakEnabled: boolean;
       lastCompletedAt: string | null;
       taskTitle: string;
       taskRepeat: string;

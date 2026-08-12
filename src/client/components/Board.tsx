@@ -2,6 +2,7 @@ import { For, Show, createMemo, createSignal } from "solid-js";
 import { A } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
 import type { Task } from "../../types";
+import { isVisibleStreak } from "../lib/streak-visibility";
 
 export function getStreakLevel(current: number, target: number, prestige: number) {
   if (prestige > 0) return { name: "Legend", icon: "L", tone: "yellow" };
@@ -40,6 +41,8 @@ const columns: ColumnDef[] = [
     key: "done",
     label: "Done",
     emptyText: "Finished tasks land here.",
+    nextStatus: "todo",
+    nextLabel: "Undo",
   },
 ];
 
@@ -60,6 +63,9 @@ function initials(name: string | undefined) {
 
 function TaskCard(props: { task: Task; column: ColumnDef }) {
   const name = () => assigneeName(props.task.assigneeId);
+  const canUpdateStatus = () =>
+    store.activeUser?.type === "parent" ||
+    props.task.assigneeId === store.activeUser?.id;
 
   const handleDragStart = (event: DragEvent) => {
     event.dataTransfer?.setData("text/plain", props.task.id.toString());
@@ -73,6 +79,12 @@ function TaskCard(props: { task: Task; column: ColumnDef }) {
     if (confirmed) storeActions.deleteTask(props.task.id);
   };
 
+  const editTask = () => {
+    window.dispatchEvent(
+      new CustomEvent("family-task:edit-task", { detail: props.task.id }),
+    );
+  };
+
   return (
     <article
       class="task-card"
@@ -83,14 +95,24 @@ function TaskCard(props: { task: Task; column: ColumnDef }) {
       <header class="task-card-header">
         <span class="issue-number">#{props.task.id}</span>
         <Show when={store.activeUser?.type === "parent"}>
-          <button
-            type="button"
-            class="card-delete"
-            aria-label={`Delete ${props.task.title}`}
-            onClick={deleteTask}
-          >
-            Delete
-          </button>
+          <div class="card-header-actions">
+            <button
+              type="button"
+              class="card-edit"
+              aria-label={`Edit ${props.task.title}`}
+              onClick={editTask}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              class="card-delete"
+              aria-label={`Delete ${props.task.title}`}
+              onClick={deleteTask}
+            >
+              Delete
+            </button>
+          </div>
         </Show>
       </header>
 
@@ -104,7 +126,13 @@ function TaskCard(props: { task: Task; column: ColumnDef }) {
         </Show>
       </div>
 
-      <Show when={props.task.achievement}>
+      <Show
+        when={
+          isVisibleStreak(props.task.achievement)
+            ? props.task.achievement
+            : null
+        }
+      >
         {(achievement) => {
           const level = () =>
             getStreakLevel(
@@ -135,7 +163,7 @@ function TaskCard(props: { task: Task; column: ColumnDef }) {
           <span>{name() || "Unassigned"}</span>
         </span>
 
-        <Show when={props.column.nextStatus}>
+        <Show when={props.column.nextStatus && canUpdateStatus()}>
           <button
             type="button"
             class="task-action"

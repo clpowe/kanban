@@ -124,16 +124,17 @@ export const storeActions = {
       setStore("tasks", (task) => task.id === id, updatedTask);
       // Points updates happen automatically on the server when tasks are marked Done.
       // Therefore, we MUST pull fresh scores to update our local users and session context.
-      await Promise.all([reloadUsers(), reloadActiveUser()]);
+      await Promise.all([reloadTasks(), reloadUsers(), reloadActiveUser()]);
     });
   },
 
   async updateTask(id: number, updates: TaskUpdate) {
-    await runStoreAction(async () => {
+    return await runStoreAction(async () => {
       const updatedTask = await api.updateTask(id, updates);
       setStore("tasks", (task) => task.id === id, updatedTask);
       // Recurrence edits can replace hydration/configuration for the selected row.
       await Promise.all([reloadTasks(), reloadUsers(), reloadActiveUser()]);
+      return updatedTask;
     });
   },
 

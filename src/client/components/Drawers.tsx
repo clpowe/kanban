@@ -1,7 +1,7 @@
-import { For, Show, createSignal } from "solid-js";
+import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
 import type { ParentProps } from "solid-js";
 import { store, storeActions } from "../store/app-store";
-import type { CreateTask } from "../../types";
+import type { CreateTask, Task } from "../../types";
 
 export default function AppShell(props: ParentProps) {
   const [taskTitle, setTaskTitle] = createSignal("");
@@ -12,11 +12,7 @@ export default function AppShell(props: ParentProps) {
   const [achievementName, setAchievementName] = createSignal("");
   const [targetStreak, setTargetStreak] = createSignal(20);
   const [saving, setSaving] = createSignal(false);
-
-  const closeTaskDialog = () => {
-    const dialog = document.getElementById("task-dialog") as HTMLDialogElement | null;
-    dialog?.close();
-  };
+  const [editingTaskId, setEditingTaskId] = createSignal<number | null>(null);
 
   const resetTaskForm = () => {
     setTaskTitle("");
@@ -26,7 +22,42 @@ export default function AppShell(props: ParentProps) {
     setAttachAchievement(false);
     setAchievementName("");
     setTargetStreak(20);
+    setEditingTaskId(null);
   };
+
+  const closeTaskDialog = () => {
+    const dialog = document.getElementById("task-dialog") as HTMLDialogElement | null;
+    dialog?.close();
+    resetTaskForm();
+  };
+
+  const populateTaskForm = (task: Task) => {
+    setEditingTaskId(task.id);
+    setTaskTitle(task.title);
+    setTaskPriority(task.priority);
+    setTaskRepeat(task.repeat ?? "none");
+    setTaskAssigneeId(task.assigneeId == null ? "" : String(task.assigneeId));
+    setAttachAchievement(task.achievement?.streakEnabled === true);
+    setAchievementName(task.achievement?.name ?? "");
+    setTargetStreak(task.achievement?.targetStreak ?? 20);
+  };
+
+  onMount(() => {
+    const handleEditTask = (event: Event) => {
+      const taskId = (event as CustomEvent<number>).detail;
+      const task = store.tasks.find((candidate) => candidate.id === taskId);
+      if (!task || task.status === "archived") return;
+
+      populateTaskForm(task);
+      const dialog = document.getElementById("task-dialog") as HTMLDialogElement | null;
+      if (dialog && !dialog.open) dialog.showModal();
+    };
+
+    window.addEventListener("family-task:edit-task", handleEditTask);
+    onCleanup(() =>
+      window.removeEventListener("family-task:edit-task", handleEditTask),
+    );
+  });
 
   const handleAddTask = async (event: Event) => {
     event.preventDefault();
@@ -38,6 +69,7 @@ export default function AppShell(props: ParentProps) {
       priority: taskPriority(),
       repeat: taskRepeat(),
       assigneeId,
+      streakEnabled: attachAchievement(),
     };
 
     if (
@@ -51,9 +83,11 @@ export default function AppShell(props: ParentProps) {
 
     setSaving(true);
     try {
-      const result = await storeActions.addTask(newTask);
+      const result =
+        editingTaskId() == null
+          ? await storeActions.addTask(newTask)
+          : await storeActions.updateTask(editingTaskId()!, newTask);
       if (result) {
-        resetTaskForm();
         closeTaskDialog();
       }
     } finally {
@@ -80,7 +114,7 @@ export default function AppShell(props: ParentProps) {
           <header>
             <div>
               <span>Household board</span>
-              <h2>Add a task</h2>
+              <h2>{editingTaskId() == null ? "Add a task" : "Edit task"}</h2>
             </div>
             <button type="button" class="icon-button" aria-label="Close task form" onClick={closeTaskDialog}>
               ×
@@ -178,7 +212,13 @@ export default function AppShell(props: ParentProps) {
                 Cancel
               </button>
               <button type="submit" class="primary" disabled={saving()} aria-busy={saving()}>
-                {saving() ? "Adding…" : "Add task"}
+                {saving()
+                  ? editingTaskId() == null
+                    ? "Adding…"
+                    : "Saving…"
+                  : editingTaskId() == null
+                    ? "Add task"
+                    : "Save changes"}
               </button>
             </div>
           </form>

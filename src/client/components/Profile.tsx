@@ -3,6 +3,7 @@ import { useNavigate } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
 import { api } from "../lib/api";
 import { getStreakLevel } from "./Board";
+import { isVisibleStreak } from "../lib/streak-visibility";
 
 const avatars = [
   { emoji: "🦊", name: "Friendly Fox", req: 0 },
@@ -161,7 +162,7 @@ export default function Profile() {
 
           <div class="streak-list">
             <For
-              each={achievementsData()?.achievements}
+              each={achievementsData()?.achievements.filter(isVisibleStreak)}
               fallback={<p class="empty-row">No active repeating achievements.</p>}
             >
               {(achievement) => {

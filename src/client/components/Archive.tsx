@@ -129,9 +129,11 @@ export default function Archive() {
                       >
                         Restore
                       </button>
-                      <button type="button" class="danger" onClick={() => deleteTask(task)}>
-                        Delete
-                      </button>
+                      <Show when={store.activeUser?.type === "parent"}>
+                        <button type="button" class="danger" onClick={() => deleteTask(task)}>
+                          Delete
+                        </button>
+                      </Show>
                     </div>
                   </footer>
                 </article>

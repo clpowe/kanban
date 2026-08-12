@@ -204,6 +204,7 @@ export function userRoutes(
         .where(
           and(
             eq(taskAchievements.active, true),
+            eq(taskAchievements.streakEnabled, true),
             or(
               eq(taskAchievements.assigneeId, userId),
               eq(tasks.assigneeId, userId),

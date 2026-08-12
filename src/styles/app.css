@@ -797,6 +797,13 @@ label {
   font-size: 10px;
 }
 
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.card-edit,
 .card-delete {
   min-height: 22px;
   padding: 1px 5px;
@@ -808,7 +815,9 @@ label {
   opacity: 0;
 }
 
+.task-card:hover .card-edit,
 .task-card:hover .card-delete,
+.card-edit:focus-visible,
 .card-delete:focus-visible {
   opacity: 1;
 }

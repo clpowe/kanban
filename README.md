@@ -171,6 +171,55 @@ bunx wrangler secret put POSTHOG_API_KEY
 
 Check `wrangler.jsonc` before deploying to confirm the Worker name, D1 database binding, production `BETTER_AUTH_URL`, trusted auth origins, and cron schedules match your Cloudflare environment.
 
+### Recurring reliability production gate
+
+Do not begin the maintenance window unless staging reconciliation leaves zero
+deterministic audit findings, every manual finding has been reviewed, point
+balances equal ledger sums, every active goal has exactly one active occurrence,
+and a remote D1 backup destination is ready.
+
+Run the release preflight from a clean checkout:
+
+```bash
+bun test
+bunx tsc --noEmit
+bun run build:client
+bunx wrangler deploy --dry-run
+```
+
+During the maintenance window, stop writes and record the current Worker version
+before changing D1:
+
+```bash
+bunx wrangler whoami
+bunx wrangler versions list
+bunx wrangler d1 export family-kanban --remote --output ../family-kanban-pre-recurring-rollout-YYYYMMDD-HHMM.sql
+bunx wrangler d1 migrations apply family-kanban --remote
+bunx wrangler d1 execute family-kanban --remote --file scripts/audit-recurring-data.sql
+bunx wrangler d1 execute family-kanban --remote --file scripts/reconcile-recurring-data.sql
+bunx wrangler d1 execute family-kanban --remote --file scripts/audit-recurring-data.sql
+bun run deploy
+```
+
+Resume writes only after the post-reconciliation audit reports zero deterministic
+findings, points still match the ledger, no goal has multiple active occurrences,
+and authenticated board, completion, undo, reward, and scheduled-rollover smoke
+checks pass.
+
+Keep writes stopped and roll back if any migration or reconciliation command
+fails, a deterministic finding remains, points change unexpectedly, duplicate
+active occurrences appear, or a smoke check fails:
+
+```bash
+bunx wrangler rollback <previous-version-id>
+bunx wrangler d1 execute family-kanban --remote --file scripts/audit-recurring-data.sql
+```
+
+Restore D1 from the pre-rollout export, or use D1 Time Travel at the timestamp
+immediately before the maintenance window, before resuming writes. The full
+staging, backup, repair, verification, and recovery procedure is in
+[`docs/operations/recurring-task-reconciliation.md`](docs/operations/recurring-task-reconciliation.md).
+
 ### Recurring task schedule
 
 Cloudflare invokes the Worker at both `5 4 * * *` and `5 5 * * *` UTC. The

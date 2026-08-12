@@ -2,6 +2,7 @@ import { For, Show, createMemo } from "solid-js";
 import { store } from "../store/app-store";
 import AnimatedPoints from "./AnimatedPoints";
 import { getStreakLevel } from "./Board";
+import { isVisibleStreak } from "../lib/streak-visibility";
 
 export default function PointCards() {
   const activeStreaks = createMemo(() => {
@@ -11,7 +12,7 @@ export default function PointCards() {
         task.assigneeId === store.activeUser!.id &&
         (task.repeat === "daily" || task.repeat === "weekly") &&
         task.status !== "archived" &&
-        task.achievement,
+        isVisibleStreak(task.achievement),
     );
   });
 
