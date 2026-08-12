@@ -1,5 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import { handleScheduled } from "./index";
+import { app, handleScheduled } from "./index";
+
+test("registers protected-route session middleware exactly once", () => {
+  expect(
+    app.routes.filter(
+      (route) => route.method === "ALL" && route.path === "/api/*",
+    ),
+  ).toHaveLength(1);
+  expect(
+    app.routes.filter(
+      (route) => route.method === "ALL" && route.path === "/session/*",
+    ),
+  ).toHaveLength(1);
+});
 
 const dependencies = (calls: string[]) => ({
   reconcileRecurringTasks: async () => {

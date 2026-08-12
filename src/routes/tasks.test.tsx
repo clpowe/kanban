@@ -29,9 +29,7 @@ function createTasksApp(db: ReturnType<typeof createTestDb>) {
     requireAuthenticatedUser: () => parentUser,
     requireParent: () => parentUser,
     requireChildOwnTaskAccess: async () => parentUser,
-    createPostHogClient: () => ({
-      captureImmediate: async () => undefined,
-    }),
+    queuePostHogTelemetry: () => undefined,
   });
   return app;
 }

@@ -8,7 +8,10 @@ import {
   redeemReward,
   getRewardById,
 } from '../services/reward.service'
-import { createPostHogClient } from '../lib/posthog'
+import {
+  getRequestExecutionContext,
+  queuePostHogTelemetry,
+} from '../lib/posthog'
 
 type RewardRoutesDeps = {
   getDB: typeof getDB
@@ -18,9 +21,7 @@ type RewardRoutesDeps = {
   getAllRewards: typeof getAllRewards
   redeemReward: typeof redeemReward
   getRewardById: typeof getRewardById
-  createPostHogClient(
-    env: Env['Bindings'],
-  ): Pick<ReturnType<typeof createPostHogClient>, 'captureImmediate'>
+  queuePostHogTelemetry: typeof queuePostHogTelemetry
 }
 
 const defaultDeps: RewardRoutesDeps = {
@@ -31,7 +32,7 @@ const defaultDeps: RewardRoutesDeps = {
   getAllRewards,
   redeemReward,
   getRewardById,
-  createPostHogClient,
+  queuePostHogTelemetry,
 }
 
 export function rewardRoutes(app: Hono<Env>,
@@ -63,8 +64,8 @@ export function rewardRoutes(app: Hono<Env>,
         return c.json({ error: 'Failed to create reward' }, 500)
       }
 
-      const posthog = deps.createPostHogClient(c.env)
-      await posthog.captureImmediate({
+      deps.queuePostHogTelemetry(c.env, getRequestExecutionContext(c), {
+        type: 'capture',
         distinctId: String(parentUser.id),
         event: 'reward created',
         properties: {
@@ -105,8 +106,8 @@ export function rewardRoutes(app: Hono<Env>,
       }
       await deps.redeemReward(db, { id: authUser.id }, rewardId, eventId)
 
-      const posthog = deps.createPostHogClient(c.env)
-      await posthog.captureImmediate({
+      deps.queuePostHogTelemetry(c.env, getRequestExecutionContext(c), {
+        type: 'capture',
         distinctId: String(authUser.id),
         event: 'reward redeemed',
         properties: {

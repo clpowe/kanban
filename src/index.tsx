@@ -13,17 +13,13 @@ import {
   isRecurringRolloverTime,
 } from "./utils/new-york-time";
 
-const app = new Hono<Env>();
+export const app = new Hono<Env>();
 
 // ── Better Auth handler (must be before session middleware) ──
 app.all("/api/auth/*", async (c) => {
   const auth = createAuth(c.env);
   return auth.handler(c.req.raw);
 });
-
-// ── Session middleware for protected API routes ─────────
-app.use("/api/*", sessionMiddleware);
-app.use("/session/*", sessionMiddleware);
 
 // ── Session middleware for protected API routes ─────────
 app.use("/api/*", sessionMiddleware);

@@ -3,6 +3,10 @@ import { Hono } from "hono";
 import type { Env } from "../db/client";
 import { rewardRoutes } from "./rewards";
 import type { User } from "../types";
+import {
+  queuePostHogTelemetry,
+  type PostHogTelemetryClient,
+} from "../lib/posthog";
 
 const parentUser: User = {
   id: 1,
@@ -46,7 +50,9 @@ let redeemRewardCall: {
 } | null = null;
 let redeemShouldThrow = false;
 
-async function loadRewardsApp() {
+async function loadRewardsApp(
+  queueTelemetry: typeof queuePostHogTelemetry = () => undefined,
+) {
   const app = new Hono<Env>();
   rewardRoutes(app, {
     getDB() {
@@ -91,9 +97,7 @@ async function loadRewardsApp() {
       const reward = rewards.find((r) => r.id === id);
       return reward ? { id: reward.id, title: reward.title, cost: reward.cost } : null;
     },
-    createPostHogClient: () => ({
-      captureImmediate: async () => undefined,
-    }),
+    queuePostHogTelemetry: queueTelemetry,
   });
   return app;
 }
@@ -129,6 +133,41 @@ describe("rewardRoutes", () => {
         cost: "20",
       },
     });
+  });
+
+  test("returns a successful mutation when queued telemetry rejects", async () => {
+    activeUser = parentUser;
+    const queued: Promise<unknown>[] = [];
+    const client: PostHogTelemetryClient = {
+      async captureImmediate() {
+        throw new Error("PostHog unavailable");
+      },
+      identify() {},
+      async shutdown() {},
+    };
+    const app = await loadRewardsApp((env, executionCtx, telemetry) => {
+      queuePostHogTelemetry(env, executionCtx, telemetry, () => client);
+    });
+
+    const response = await app.request(
+      "/api/rewards",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "Movie Night Pick", cost: 20 }),
+      },
+      {} as Env["Bindings"],
+      {
+        waitUntil(promise: Promise<unknown>) {
+          queued.push(promise);
+        },
+      } as ExecutionContext,
+    );
+
+    expect(response.status).toBe(201);
+    expect(createRewardCall).not.toBeNull();
+    expect(queued).toHaveLength(1);
+    await expect(Promise.all(queued)).resolves.toBeArray();
   });
 
   test("child cannot create a reward", async () => {

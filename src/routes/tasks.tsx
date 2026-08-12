@@ -21,16 +21,17 @@ import {
   parseTaskUpdateInput,
   TaskInputError,
 } from '../utils/task-input'
-import { createPostHogClient } from '../lib/posthog'
+import {
+  getRequestExecutionContext,
+  queuePostHogTelemetry,
+} from '../lib/posthog'
 
 type TaskRoutesDeps = {
   getDB: typeof getDB
   requireAuthenticatedUser: typeof requireAuthenticatedUser
   requireChildOwnTaskAccess: typeof requireChildOwnTaskAccess
   requireParent: typeof requireParent
-  createPostHogClient(
-    env: Env['Bindings'],
-  ): Pick<ReturnType<typeof createPostHogClient>, 'captureImmediate'>
+  queuePostHogTelemetry: typeof queuePostHogTelemetry
 }
 
 const defaultDeps: TaskRoutesDeps = {
@@ -38,7 +39,7 @@ const defaultDeps: TaskRoutesDeps = {
   requireAuthenticatedUser,
   requireChildOwnTaskAccess,
   requireParent,
-  createPostHogClient,
+  queuePostHogTelemetry,
 }
 
 function taskErrorStatus(error: unknown): 400 | 403 | 500 {
@@ -99,8 +100,8 @@ export function taskRoutes(
         return c.json({ error: 'Failed to create task' }, 500)
       }
 
-      const posthog = deps.createPostHogClient(c.env)
-      await posthog.captureImmediate({
+      deps.queuePostHogTelemetry(c.env, getRequestExecutionContext(c), {
+        type: 'capture',
         distinctId: String(parentUser.id),
         event: 'task created',
         properties: {
@@ -161,8 +162,8 @@ export function taskRoutes(
         task = await getTaskById(db, id)
       }
 
-      const posthog = deps.createPostHogClient(c.env)
-      await posthog.captureImmediate({
+      deps.queuePostHogTelemetry(c.env, getRequestExecutionContext(c), {
+        type: 'capture',
         distinctId: String(activeUser.id),
         event: 'task status updated',
         properties: {
@@ -174,7 +175,8 @@ export function taskRoutes(
       })
 
       if (milestone) {
-        await posthog.captureImmediate({
+        deps.queuePostHogTelemetry(c.env, getRequestExecutionContext(c), {
+          type: 'capture',
           distinctId: String(activeUser.id),
           event: 'streak milestone reached',
           properties: {
@@ -210,8 +212,8 @@ export function taskRoutes(
       const task = await updateTask(db, id, parsed.value)
       if (!task) return c.json({ error: 'Task not found' }, 404)
 
-      const posthog = deps.createPostHogClient(c.env)
-      await posthog.captureImmediate({
+      deps.queuePostHogTelemetry(c.env, getRequestExecutionContext(c), {
+        type: 'capture',
         distinctId: String(parentUser.id),
         event: 'task updated',
         properties: {
@@ -239,8 +241,8 @@ export function taskRoutes(
       const db = deps.getDB(c.env)
       await deleteTask(db, id)
 
-      const posthog = deps.createPostHogClient(c.env)
-      await posthog.captureImmediate({
+      deps.queuePostHogTelemetry(c.env, getRequestExecutionContext(c), {
+        type: 'capture',
         distinctId: String(parentUser.id),
         event: 'task deleted',
         properties: { task_id: id },

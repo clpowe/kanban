@@ -11,7 +11,10 @@ import {
   getTaskAssigneeId,
   getUserById,
 } from "../services/user.service";
-import { createPostHogClient } from "../lib/posthog";
+import {
+  getRequestExecutionContext,
+  queuePostHogTelemetry,
+} from "../lib/posthog";
 
 export const FAMILY_SESSION_COOKIE = "family_session";
 
@@ -135,8 +138,8 @@ export const sessionMiddleware = async (
   c.set("activeUser", activeUser);
   c.set("authUser", activeUser);
 
-  const posthog = createPostHogClient(c.env);
-  posthog.identify({
+  queuePostHogTelemetry(c.env, getRequestExecutionContext(c), {
+    type: "identify",
     distinctId: String(loginUser.id),
     properties: {
       $set: {
@@ -146,7 +149,6 @@ export const sessionMiddleware = async (
       },
     },
   });
-  await posthog.shutdown();
 
   await next();
 };
