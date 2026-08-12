@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { tasks, users } from "../db/schema";
+import { taskAchievements, tasks, users } from "../db/schema";
+import { createTestDb } from "../db/test-db";
+import { eq } from "drizzle-orm";
 import { archiveDoneTasks, createTask, updateTaskStatus } from "./task.service";
 import type { Database } from "../db/client";
 
@@ -138,30 +140,55 @@ describe("task service", () => {
     ]);
   });
 
-  test("archives only done tasks in the bulk archive helper", async () => {
-    const updateCalls: Array<Record<string, unknown>> = [];
-    const whereCalls: unknown[] = [];
-    const db = {
-      update(table: unknown) {
-        expect(table).toBe(tasks);
-        return {
-          set(payload: Record<string, unknown>) {
-            updateCalls.push(payload);
-            return {
-              where(clause: unknown) {
-                whereCalls.push(clause);
-                return Promise.resolve();
-              },
-            };
-          },
-        };
-      },
-    };
+  test("bulk archival excludes recurring task occurrences", async () => {
+    const db = createTestDb();
+    const now = new Date("2026-08-08T16:00:00Z");
+
+    const [recurringTask] = await db
+      .insert(tasks)
+      .values({
+        title: "Clean room",
+        priority: "medium",
+        value: 5,
+        status: "done",
+        repeat: "daily",
+        cycleDate: "2026-08-07",
+      })
+      .returning();
+    if (!recurringTask) throw new Error("Recurring fixture was not inserted");
+    const [achievement] = await db
+      .insert(taskAchievements)
+      .values({
+        taskId: recurringTask.id,
+        name: "Room streak",
+        targetStreak: 20,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    if (!achievement) throw new Error("Achievement fixture was not inserted");
+    await db
+      .update(tasks)
+      .set({ achievementId: achievement.id })
+      .where(eq(tasks.id, recurringTask.id));
+
+    const [oneOffTask] = await db
+      .insert(tasks)
+      .values({
+        title: "Take bins out",
+        priority: "low",
+        value: 1,
+        status: "done",
+        repeat: "none",
+      })
+      .returning();
+    if (!oneOffTask) throw new Error("One-off fixture was not inserted");
 
     await archiveDoneTasks(db as unknown as Database);
 
-    expect(updateCalls).toEqual([{ status: "archived" }]);
-    expect(whereCalls).toHaveLength(1);
+    const rows = await db.select().from(tasks);
+    expect(rows.find((task) => task.id === recurringTask.id)?.status).toBe("done");
+    expect(rows.find((task) => task.id === oneOffTask.id)?.status).toBe("archived");
   });
 
   test("subtracts points when a done task moves back to an active status", async () => {
