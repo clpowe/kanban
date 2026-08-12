@@ -3,7 +3,7 @@ import { getDB, type Env } from "../db/client";
 import { requireAuthenticatedUser, requireParent } from "../auth/middleware";
 import { getAllUsers } from "../services/user.service";
 import { createAuth } from "../auth/auth";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne, or } from "drizzle-orm";
 import { users, accounts, tasks, taskAchievements, earnedBadges } from "../db/schema";
 import { hashPassword } from "better-auth/crypto";
 
@@ -171,12 +171,25 @@ export function userRoutes(app: Hono<Env>) {
       const achievementsList = await db
         .select({
           achievement: taskAchievements,
-          taskTitle: tasks.title,
-          taskRepeat: tasks.repeat,
+          currentTask: tasks,
         })
         .from(taskAchievements)
-        .innerJoin(tasks, eq(taskAchievements.taskId, tasks.id))
-        .where(eq(tasks.assigneeId, userId));
+        .leftJoin(
+          tasks,
+          and(
+            eq(tasks.achievementId, taskAchievements.id),
+            ne(tasks.status, "archived"),
+          ),
+        )
+        .where(
+          and(
+            eq(taskAchievements.active, true),
+            or(
+              eq(taskAchievements.assigneeId, userId),
+              eq(tasks.assigneeId, userId),
+            ),
+          ),
+        );
 
       // Get all earned badges for this user
       const userBadges = await db
@@ -204,8 +217,8 @@ export function userRoutes(app: Hono<Env>) {
       return c.json({
         achievements: achievementsList.map((a: any) => ({
           ...a.achievement,
-          taskTitle: a.taskTitle,
-          taskRepeat: a.taskRepeat,
+          taskTitle: a.achievement.taskTitle ?? a.currentTask?.title ?? null,
+          taskRepeat: a.achievement.cadence ?? a.currentTask?.repeat ?? null,
         })),
         badges: userBadges,
         stats: {

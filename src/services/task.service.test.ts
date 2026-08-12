@@ -2,8 +2,33 @@ import { describe, expect, test } from "bun:test";
 import { taskAchievements, tasks, users } from "../db/schema";
 import { createTestDb } from "../db/test-db";
 import { eq } from "drizzle-orm";
-import { archiveDoneTasks, createTask, updateTaskStatus } from "./task.service";
+import {
+  archiveDoneTasks,
+  createTask,
+  getActiveTasks,
+  getTaskById,
+  updateTaskStatus,
+} from "./task.service";
 import type { Database } from "../db/client";
+
+async function insertChild(db: ReturnType<typeof createTestDb>, suffix: string) {
+  const now = new Date("2026-08-07T16:00:00Z");
+  const [child] = await db
+    .insert(users)
+    .values({
+      name: `Child ${suffix}`,
+      email: `child-${suffix}@example.com`,
+      emailVerified: true,
+      createdAt: now,
+      updatedAt: now,
+      points: 0,
+      type: "child",
+      username: `child-${suffix}`,
+    })
+    .returning();
+  if (!child) throw new Error("Child fixture was not inserted");
+  return child;
+}
 
 describe("task service", () => {
   test.each([
@@ -13,57 +38,7 @@ describe("task service", () => {
   ] as const)(
     "stores %s priority tasks with %i points on creation",
     async (priority, expectedValue) => {
-      const valuesCalls: Array<Record<string, unknown>> = [];
-      const db = {
-        insert() {
-          return {
-            values(payload: Record<string, unknown>) {
-              valuesCalls.push(payload);
-              return {
-                returning: async () => [
-                  {
-                    id: 1,
-                    title: "Empty dishwasher",
-                    priority,
-                    value: expectedValue,
-                    repeat: "none",
-                    status: "todo",
-                    assigneeId: null,
-                  },
-                ],
-              };
-            },
-          };
-        },
-        select() {
-          return {
-            from() {
-              return {
-                leftJoin() {
-                  return {
-                    where() {
-                      return {
-                        get: async () => ({
-                          task: {
-                            id: 1,
-                            title: "Empty dishwasher",
-                            priority,
-                            value: expectedValue,
-                            repeat: "none",
-                            status: "todo",
-                            assigneeId: null,
-                          },
-                          achievement: null,
-                        }),
-                      };
-                    },
-                  };
-                },
-              };
-            },
-          };
-        },
-      };
+      const db = createTestDb();
 
       const created = await createTask(db as unknown as Database, {
         title: "Empty dishwasher",
@@ -73,15 +48,6 @@ describe("task service", () => {
         assigneeId: "",
       });
 
-      expect(valuesCalls).toHaveLength(1);
-      expect(valuesCalls[0]).toMatchObject({
-        title: "Empty dishwasher",
-        priority,
-        value: expectedValue,
-        repeat: "none",
-        status: "todo",
-        assigneeId: null,
-      });
       expect(created).toEqual([
         expect.objectContaining({
           id: 1,
@@ -94,8 +60,139 @@ describe("task service", () => {
           achievement: null,
         }),
       ]);
+      expect(await db.select().from(taskAchievements)).toEqual([]);
     },
   );
+
+  test("creates and hydrates a linked daily goal even when streak display is disabled", async () => {
+    const db = createTestDb();
+    const child = await insertChild(db, "daily");
+    const now = new Date("2026-08-07T16:00:00Z");
+
+    const [created] = await createTask(
+      db as unknown as Database,
+      {
+        title: "Clean room",
+        priority: "medium",
+        repeat: "daily",
+        assigneeId: child.id,
+        streakEnabled: false,
+      },
+      now,
+    );
+
+    expect(created).toMatchObject({
+      title: "Clean room",
+      repeat: "daily",
+      cycleDate: "2026-08-07",
+      achievement: {
+        cadence: "daily",
+        taskTitle: "Clean room",
+        taskPriority: "medium",
+        taskValue: 5,
+        assigneeId: child.id,
+        streakEnabled: false,
+        active: true,
+      },
+    });
+    expect(created?.achievementId).toBe(created?.achievement?.id);
+    expect(created?.achievement?.recurrenceKey).toMatch(/^recurrence:/);
+
+    const hydrated = await getTaskById(db as unknown as Database, created!.id);
+    expect(hydrated?.achievement?.id).toBe(created?.achievement?.id);
+
+    const [boardTask] = await getActiveTasks(db as unknown as Database, now);
+    expect(boardTask?.achievement?.id).toBe(created?.achievement?.id);
+  });
+
+  test("uses a Monday cycle key for weekly goals", async () => {
+    const db = createTestDb();
+    const child = await insertChild(db, "weekly");
+
+    const [created] = await createTask(
+      db as unknown as Database,
+      {
+        title: "Take bins out",
+        priority: "high",
+        repeat: "weekly",
+        assigneeId: child.id,
+        achievementName: "Bins streak",
+        targetStreak: 8,
+      },
+      new Date("2026-08-09T16:00:00Z"),
+    );
+
+    expect(created?.cycleDate).toBe("2026-08-03");
+    expect(created?.achievement).toMatchObject({
+      cadence: "weekly",
+      name: "Bins streak",
+      targetStreak: 8,
+      streakEnabled: true,
+    });
+  });
+
+  test("prepares but hides a Monday daily occurrence created on a weekend", async () => {
+    const db = createTestDb();
+    const child = await insertChild(db, "weekend");
+    const saturday = new Date("2026-08-08T16:00:00Z");
+
+    const [created] = await createTask(
+      db as unknown as Database,
+      {
+        title: "Read together",
+        priority: "low",
+        repeat: "daily",
+        assigneeId: child.id,
+      },
+      saturday,
+    );
+
+    expect(created?.cycleDate).toBe("2026-08-10");
+    expect(await getActiveTasks(db as unknown as Database, saturday)).toEqual([]);
+    expect(
+      await getActiveTasks(
+        db as unknown as Database,
+        new Date("2026-08-10T12:00:00Z"),
+      ),
+    ).toHaveLength(1);
+    await expect(
+      updateTaskStatus(
+        db as unknown as Database,
+        created!.id,
+        "done",
+        saturday,
+      ),
+    ).rejects.toThrow("not available until 2026-08-10");
+  });
+
+  test("rejects invalid recurring task input before writing", async () => {
+    const invalidInputs = [
+      { title: "Bad priority", priority: "urgent", repeat: "daily" },
+      { title: "Bad cadence", priority: "low", repeat: "monthly" },
+      {
+        title: "Bad target",
+        priority: "low",
+        repeat: "daily",
+        streakEnabled: true,
+        achievementName: "Bad",
+        targetStreak: 0,
+      },
+      { title: "Missing child", priority: "low", repeat: "daily", assigneeId: 999 },
+    ];
+
+    for (const [index, input] of invalidInputs.entries()) {
+      const db = createTestDb();
+      await expect(
+        createTask(
+          db as unknown as Database,
+          input,
+          new Date("2026-08-07T16:00:00Z"),
+        ),
+      ).rejects.toThrow();
+      expect(await db.select().from(tasks), `fixture ${index}`).toEqual([]);
+      expect(await db.select().from(taskAchievements), `fixture ${index}`).toEqual([]);
+    }
+  });
 
   test("does not subtract points when moving a completed task into archived", async () => {
     const updateCalls: Array<{ table: unknown; payload: Record<string, unknown> }> = [];
