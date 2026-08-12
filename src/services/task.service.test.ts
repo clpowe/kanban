@@ -288,7 +288,7 @@ describe("task service", () => {
     expect(rows.find((task) => task.id === oneOffTask.id)?.status).toBe("archived");
   });
 
-  test("subtracts points when a done task moves back to an active status", async () => {
+  test("rejects direct undo transitions that would bypass the ledger", async () => {
     const updateCalls: Array<{ table: unknown; payload: Record<string, unknown> }> = [];
     const db = {
       select() {
@@ -321,13 +321,10 @@ describe("task service", () => {
       },
     };
 
-    await updateTaskStatus(db as unknown as Database, 7, "todo");
-
-    expect(updateCalls[0]).toEqual({
-      table: tasks,
-      payload: { status: "todo" },
-    });
-    expect(updateCalls[1]?.table).toBe(users);
+    await expect(
+      updateTaskStatus(db as unknown as Database, 7, "todo"),
+    ).rejects.toThrow("Undo completion requires an event ID");
+    expect(updateCalls).toEqual([]);
   });
 
   test("rejects direct completion transitions that would bypass the ledger", async () => {

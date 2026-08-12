@@ -17,7 +17,7 @@ import {
 import { isTaskStatus } from '../utils/task-status'
 import type { TaskUpdate } from '../types'
 import { createPostHogClient } from '../lib/posthog'
-import { completeTask } from '../services/completion.service'
+import { completeTask, undoCompletion } from '../services/completion.service'
 
 export function taskRoutes(app: Hono<Env>) {
   app.get('/api/tasks', async (c) => {
@@ -87,6 +87,7 @@ export function taskRoutes(app: Hono<Env>) {
         return c.json({ error: 'Invalid status' }, 400)
       }
 
+      const existingTask = await getTaskById(db, id)
       let milestone = null
       let task
       if (status === 'done') {
@@ -96,6 +97,16 @@ export function taskRoutes(app: Hono<Env>) {
         }
         const result = await completeTask(db, id, eventId)
         milestone = result.milestone
+        task = result.task
+      } else if (
+        existingTask?.status === 'done' &&
+        (status === 'todo' || status === 'doing' || status === 'review')
+      ) {
+        const eventId = typeof body?.eventId === 'string' ? body.eventId.trim() : ''
+        if (!eventId) {
+          return c.json({ error: 'Undo event ID is required' }, 400)
+        }
+        const result = await undoCompletion(db, id, status, eventId)
         task = result.task
       } else {
         await updateTaskStatus(db, id, status)

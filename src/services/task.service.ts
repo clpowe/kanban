@@ -1,5 +1,5 @@
 import { and, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
-import { earnedBadges, tasks, users, taskAchievements } from "../db/schema";
+import { tasks, users, taskAchievements } from "../db/schema";
 import type { TaskUpdate } from "../types";
 import {
   getEligibleDailyCycleKey,
@@ -253,6 +253,14 @@ export const updateTaskStatus = async (
   const nextStatus = status ?? prevStatus;
 
   if (
+    prevStatus === "archived" &&
+    existing.achievementId != null &&
+    nextStatus !== "archived"
+  ) {
+    throw new Error("Archived recurring history cannot be restored");
+  }
+
+  if (
     nextStatus === "done" &&
     existing.cycleDate &&
     existing.cycleDate > getNewYorkDateKey(now)
@@ -264,82 +272,16 @@ export const updateTaskStatus = async (
     throw new Error("Task completion requires an event ID");
   }
 
-  const assigneeId = existing.assigneeId;
-  const value = existing.value ?? 0;
-
-  // update task status first
-  await db.update(tasks).set({ status }).where(eq(tasks.id, id));
-
-  // no assignee → nothing to do for score or achievements
-  if (!assigneeId) return { milestone: null };
-
-  let milestone: StreakMilestone | null = null;
-
-  // UNDO DONE → subtract score and revert achievements/streaks
-  if (prevStatus === "done" && nextStatus !== "done" && nextStatus !== "archived") {
-    // 1. Revert points
-    await db
-      .update(users)
-      .set({
-        points: sql`${users.points} - ${value}`,
-      })
-      .where(eq(users.id, assigneeId));
-
-    // 2. Revert Streak
-    const achievement = await db
-      .select()
-      .from(taskAchievements)
-      .where(eq(taskAchievements.id, existing.achievementId ?? -1))
-      .get();
-
-    if (achievement) {
-      const undoesLatestCompletion =
-        achievement.prevStreak != null &&
-        achievement.lastCompletedAt != null &&
-        getNewYorkDateKey(new Date(achievement.lastCompletedAt)) === getNewYorkDateKey(now);
-
-      if (undoesLatestCompletion) {
-        let prestigeCount = achievement.prestigeCount ?? 0;
-
-        // If that completion earned a badge, take it back too.
-        const earnedBadgeOnCompletion =
-          prestigeCount > 0 &&
-          achievement.targetStreak > 0 &&
-          achievement.currentStreak === 0 &&
-          (achievement.prevStreak ?? 0) + 1 >= achievement.targetStreak;
-
-        if (earnedBadgeOnCompletion) {
-          await db
-            .delete(earnedBadges)
-            .where(
-              and(
-                eq(earnedBadges.achievementId, achievement.id),
-                eq(earnedBadges.userId, assigneeId),
-                eq(earnedBadges.prestigeLevel, prestigeCount),
-              ),
-            );
-          prestigeCount -= 1;
-        }
-
-        await db
-          .update(taskAchievements)
-          .set({
-            currentStreak: achievement.prevStreak ?? 0,
-            lastCompletedAt: achievement.prevLastCompletedAt ?? null,
-            missedDaysInARow: achievement.prevMissedDaysInARow ?? 0,
-            prestigeCount,
-            // Clear the snapshot so a repeated undo can't rewind twice.
-            prevStreak: null,
-            prevLastCompletedAt: null,
-            prevMissedDaysInARow: null,
-            updatedAt: now,
-          })
-          .where(eq(taskAchievements.id, achievement.id));
-      }
-    }
+  if (
+    prevStatus === "done" &&
+    nextStatus !== "done" &&
+    nextStatus !== "archived"
+  ) {
+    throw new Error("Undo completion requires an event ID");
   }
 
-  return { milestone };
+  await db.update(tasks).set({ status }).where(eq(tasks.id, id));
+  return { milestone: null };
 };
 
 export const archiveDoneTasks = async (db: Database) => {

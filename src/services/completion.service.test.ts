@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { asc, eq, ne } from "drizzle-orm";
+import { asc, eq, isNull, ne } from "drizzle-orm";
 import type { Database } from "../db/client";
 import {
   earnedBadges,
@@ -11,8 +11,8 @@ import {
 } from "../db/schema";
 import { createTestDb } from "../db/test-db";
 import { reconcileRecurringTasks } from "./recurrence.service";
-import { createTask } from "./task.service";
-import { completeTask } from "./completion.service";
+import { createTask, updateTaskStatus } from "./task.service";
+import { completeTask, undoCompletion } from "./completion.service";
 
 type TestDb = ReturnType<typeof createTestDb>;
 
@@ -250,6 +250,251 @@ describe("completeTask", () => {
           task.id,
           `complete-failure-${statementIndex}`,
           new Date("2026-08-03T20:00:00Z"),
+        ),
+      ).rejects.toThrow(`statement ${statementIndex}`);
+
+      db.setBatchFailureIndex(null);
+      expect(await snapshotCompletionState(db), `statement ${statementIndex}`).toEqual(
+        before,
+      );
+    }
+  });
+});
+
+describe("undoCompletion", () => {
+  test("atomically cancels a one-off completion and records one negative reversal", async () => {
+    const db = createTestDb();
+    const child = await insertChild(db, "undo-one-off");
+    const [task] = await createTask(db as unknown as Database, {
+      title: "Empty dishwasher",
+      priority: "medium",
+      repeat: "none",
+      assigneeId: child.id,
+    });
+    if (!task) throw new Error("Task fixture was not inserted");
+    await completeTask(
+      db as unknown as Database,
+      task.id,
+      "complete-before-undo",
+      new Date("2026-08-07T20:00:00Z"),
+    );
+    const undoAt = new Date("2026-08-07T20:05:00Z");
+
+    const result = await undoCompletion(
+      db as unknown as Database,
+      task.id,
+      "doing",
+      "undo-one-off",
+      undoAt,
+    );
+
+    expect(result).toMatchObject({ duplicate: false });
+    expect(result.task).toMatchObject({ status: "doing", completedAt: null });
+    expect(result.completion).toMatchObject({
+      canceledAt: undoAt,
+      cancelReason: "user_undo",
+    });
+    expect(result.reversal).toMatchObject({
+      eventId: "undo-one-off",
+      delta: -5,
+      reason: "completion_undone",
+      taskId: task.id,
+    });
+
+    const entries = await db.select().from(pointEntries).orderBy(asc(pointEntries.id));
+    expect(entries).toHaveLength(2);
+    expect(result.reversal?.reversesEntryId).toBe(entries[0]?.id);
+    const refreshedChild = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, child.id))
+      .get();
+    expect(refreshedChild?.points).toBe(0);
+
+    const sameEventReplay = await undoCompletion(
+      db as unknown as Database,
+      task.id,
+      "doing",
+      "undo-one-off",
+      undoAt,
+    );
+    const newEventRetry = await undoCompletion(
+      db as unknown as Database,
+      task.id,
+      "doing",
+      "undo-one-off-retry",
+      undoAt,
+    );
+    expect(sameEventReplay.duplicate).toBe(true);
+    expect(newEventRetry.duplicate).toBe(true);
+    expect(await db.select().from(pointEntries)).toHaveLength(2);
+  });
+
+  test("revokes the linked badge and derives the recurring streak from remaining history", async () => {
+    const db = createTestDb();
+    const child = await insertChild(db, "undo-recurring");
+    const monday = new Date("2026-08-03T16:00:00Z");
+    const [firstTask] = await createTask(
+      db as unknown as Database,
+      {
+        title: "Clean room",
+        priority: "high",
+        repeat: "daily",
+        assigneeId: child.id,
+        achievementName: "Room streak",
+        targetStreak: 2,
+      },
+      monday,
+    );
+    if (!firstTask?.achievement) throw new Error("Recurring fixture was not inserted");
+    await completeTask(
+      db as unknown as Database,
+      firstTask.id,
+      "complete-undo-monday",
+      monday,
+    );
+    await reconcileRecurringTasks(
+      db as unknown as Database,
+      new Date("2026-08-04T04:05:00Z"),
+    );
+    const secondTask = await db
+      .select()
+      .from(tasks)
+      .where(ne(tasks.status, "archived"))
+      .get();
+    if (!secondTask) throw new Error("Tuesday occurrence was not inserted");
+    const tuesday = new Date("2026-08-04T16:00:00Z");
+    await completeTask(
+      db as unknown as Database,
+      secondTask.id,
+      "complete-undo-tuesday",
+      tuesday,
+    );
+    const undoAt = new Date("2026-08-04T20:00:00Z");
+
+    await undoCompletion(
+      db as unknown as Database,
+      secondTask.id,
+      "todo",
+      "undo-tuesday",
+      undoAt,
+    );
+
+    const activeCompletions = await db
+      .select()
+      .from(taskCompletions)
+      .where(isNull(taskCompletions.canceledAt));
+    expect(activeCompletions).toHaveLength(1);
+    expect(activeCompletions[0]?.taskId).toBe(firstTask.id);
+    const canceledCompletion = await db
+      .select()
+      .from(taskCompletions)
+      .where(eq(taskCompletions.taskId, secondTask.id))
+      .get();
+    expect(canceledCompletion).toMatchObject({
+      canceledAt: undoAt,
+      cancelReason: "user_undo",
+    });
+
+    const badge = await db.select().from(earnedBadges).get();
+    expect(badge).toMatchObject({
+      taskCompletionId: canceledCompletion?.id,
+      revokedAt: undoAt,
+      revokedReason: "completion_undone",
+    });
+    const goal = await db
+      .select()
+      .from(taskAchievements)
+      .where(eq(taskAchievements.id, firstTask.achievement.id))
+      .get();
+    expect(goal).toMatchObject({
+      currentStreak: 1,
+      prestigeCount: 0,
+      lastCompletedAt: monday,
+    });
+    const refreshedChild = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, child.id))
+      .get();
+    expect(refreshedChild?.points).toBe(10);
+  });
+
+  test("rejects undo and restore for archived recurring history", async () => {
+    const db = createTestDb();
+    const child = await insertChild(db, "undo-archived");
+    const [task] = await createTask(
+      db as unknown as Database,
+      {
+        title: "Read together",
+        priority: "low",
+        repeat: "daily",
+        assigneeId: child.id,
+        achievementName: "Reading streak",
+        targetStreak: 5,
+      },
+      new Date("2026-08-03T16:00:00Z"),
+    );
+    if (!task) throw new Error("Recurring fixture was not inserted");
+    await completeTask(
+      db as unknown as Database,
+      task.id,
+      "complete-before-archive",
+      new Date("2026-08-03T20:00:00Z"),
+    );
+    await reconcileRecurringTasks(
+      db as unknown as Database,
+      new Date("2026-08-04T04:05:00Z"),
+    );
+
+    await expect(
+      undoCompletion(
+        db as unknown as Database,
+        task.id,
+        "todo",
+        "undo-archived",
+        new Date("2026-08-04T16:00:00Z"),
+      ),
+    ).rejects.toThrow("Archived recurring history cannot be undone");
+    await expect(
+      updateTaskStatus(db as unknown as Database, task.id, "todo"),
+    ).rejects.toThrow("Archived recurring history cannot be restored");
+  });
+
+  test("rolls back every undo write when any batch statement fails", async () => {
+    for (let statementIndex = 0; statementIndex < 6; statementIndex += 1) {
+      const db = createTestDb();
+      const child = await insertChild(db, `undo-failure-${statementIndex}`);
+      const [task] = await createTask(
+        db as unknown as Database,
+        {
+          title: "Read together",
+          priority: "low",
+          repeat: "daily",
+          assigneeId: child.id,
+          achievementName: "Reading streak",
+          targetStreak: 1,
+        },
+        new Date("2026-08-03T16:00:00Z"),
+      );
+      if (!task) throw new Error("Failure fixture was not inserted");
+      await completeTask(
+        db as unknown as Database,
+        task.id,
+        `complete-before-undo-failure-${statementIndex}`,
+        new Date("2026-08-03T20:00:00Z"),
+      );
+
+      const before = await snapshotCompletionState(db);
+      db.setBatchFailureIndex(statementIndex);
+
+      await expect(
+        undoCompletion(
+          db as unknown as Database,
+          task.id,
+          "todo",
+          `undo-failure-${statementIndex}`,
+          new Date("2026-08-03T20:05:00Z"),
         ),
       ).rejects.toThrow(`statement ${statementIndex}`);
 
