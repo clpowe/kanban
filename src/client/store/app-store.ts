@@ -157,8 +157,9 @@ export const storeActions = {
   },
 
   async redeemReward(id: number) {
+    const eventId = crypto.randomUUID();
     await runStoreAction(async () => {
-      const result = await api.redeemReward(id);
+      const result = await api.redeemReward(id, eventId);
       if (result.success) {
         // Points are deducted from the user on redemption, sync local scores
         await Promise.all([reloadUsers(), reloadActiveUser()]);

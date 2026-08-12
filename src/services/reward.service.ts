@@ -1,5 +1,5 @@
-import { eq } from "drizzle-orm";
-import { rewards, users } from "../db/schema";
+import { eq, sql } from "drizzle-orm";
+import { pointEntries, rewards, users } from "../db/schema";
 import type { Database } from "../db/client";
 
 type RewardRow = {
@@ -55,25 +55,119 @@ export const createReward = async (
   return result.map(toRewardView);
 };
 
+export type RedeemRewardResult = {
+  duplicate: boolean;
+  points: number;
+};
+
+function isUniqueConstraintError(error: unknown) {
+  return (
+    error instanceof Error &&
+    /(UNIQUE constraint failed|SQLITE_CONSTRAINT_UNIQUE|SQLITE_CONSTRAINT[^:]*:.*UNIQUE)/i.test(
+      error.message,
+    )
+  );
+}
+
+async function getLedgerBalance(db: Database, userId: number) {
+  const row = await db
+    .select({
+      balance: sql<number>`coalesce(sum(${pointEntries.delta}), 0)`,
+    })
+    .from(pointEntries)
+    .where(eq(pointEntries.userId, userId))
+    .get();
+
+  return Number(row?.balance ?? 0);
+}
+
+async function getRedemptionByEvent(db: Database, eventId: string) {
+  return db
+    .select()
+    .from(pointEntries)
+    .where(eq(pointEntries.eventId, eventId))
+    .get();
+}
+
+function assertMatchingRedemption(
+  entry: NonNullable<Awaited<ReturnType<typeof getRedemptionByEvent>>>,
+  userId: number,
+  rewardId: number,
+) {
+  if (
+    entry.reason !== "reward_redeemed" ||
+    entry.userId !== userId ||
+    entry.rewardId !== rewardId
+  ) {
+    throw new Error("Reward event ID has already been used");
+  }
+}
+
 export const redeemReward = async (
   db: Database,
-  childUser: { id: number; points: number },
+  childUser: { id: number },
   rewardId: number,
-): Promise<void> => {
+  eventId: string,
+  now: Date = new Date(),
+): Promise<RedeemRewardResult> => {
+  const normalizedEventId = eventId.trim();
+  if (!normalizedEventId) throw new Error("Reward event ID is required");
+
   const reward = await getRewardById(db, rewardId);
 
   if (!reward) {
     throw new Error("Reward not found");
   }
 
-  if (childUser.points < reward.cost) {
+  const established = await getRedemptionByEvent(db, normalizedEventId);
+  if (established) {
+    assertMatchingRedemption(established, childUser.id, rewardId);
+    return {
+      duplicate: true,
+      points: await getLedgerBalance(db, childUser.id),
+    };
+  }
+
+  const balance = await getLedgerBalance(db, childUser.id);
+  if (balance < reward.cost) {
     throw new Error("Insufficient points");
   }
 
-  await db
+  const insertDebit = db.insert(pointEntries).values({
+    eventId: normalizedEventId,
+    userId: childUser.id,
+    delta: -reward.cost,
+    reason: "reward_redeemed",
+    rewardId,
+    createdAt: now,
+  });
+  const refreshPoints = db
     .update(users)
     .set({
-      points: childUser.points - reward.cost,
+      points: sql<number>`coalesce((
+        select sum(${pointEntries.delta})
+        from ${pointEntries}
+        where ${pointEntries.userId} = ${childUser.id}
+      ), 0)`,
     })
     .where(eq(users.id, childUser.id));
+
+  try {
+    await db.batch([insertDebit, refreshPoints]);
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) throw error;
+
+    const competing = await getRedemptionByEvent(db, normalizedEventId);
+    if (!competing) throw error;
+    assertMatchingRedemption(competing, childUser.id, rewardId);
+    return {
+      duplicate: true,
+      points: await getLedgerBalance(db, childUser.id),
+    };
+  }
+
+  return {
+    duplicate: false,
+    points: await getLedgerBalance(db, childUser.id),
+  };
 };

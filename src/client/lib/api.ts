@@ -180,9 +180,13 @@ export const api = {
     });
   },
 
-  async redeemReward(id: number): Promise<{ success: boolean }> {
+  async redeemReward(
+    id: number,
+    eventId: string,
+  ): Promise<{ success: boolean }> {
     return apiFetch<{ success: boolean }>(`/api/rewards/${id}/redeem`, {
       method: "POST",
+      body: JSON.stringify({ eventId }),
     });
   },
 

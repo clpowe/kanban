@@ -18,6 +18,9 @@ type RewardRoutesDeps = {
   getAllRewards: typeof getAllRewards
   redeemReward: typeof redeemReward
   getRewardById: typeof getRewardById
+  createPostHogClient(
+    env: Env['Bindings'],
+  ): Pick<ReturnType<typeof createPostHogClient>, 'captureImmediate'>
 }
 
 const defaultDeps: RewardRoutesDeps = {
@@ -28,6 +31,7 @@ const defaultDeps: RewardRoutesDeps = {
   getAllRewards,
   redeemReward,
   getRewardById,
+  createPostHogClient,
 }
 
 export function rewardRoutes(app: Hono<Env>,
@@ -59,7 +63,7 @@ export function rewardRoutes(app: Hono<Env>,
         return c.json({ error: 'Failed to create reward' }, 500)
       }
 
-      const posthog = createPostHogClient(c.env)
+      const posthog = deps.createPostHogClient(c.env)
       await posthog.captureImmediate({
         distinctId: String(parentUser.id),
         event: 'reward created',
@@ -90,9 +94,18 @@ export function rewardRoutes(app: Hono<Env>,
       const db = deps.getDB(c.env)
       const rewardId = Number(c.req.param('id'))
       const reward = await deps.getRewardById(db, rewardId)
-      await deps.redeemReward(db, authUser, rewardId)
+      if (!reward) {
+        return c.json({ error: 'Reward not found' }, 404)
+      }
+      const body = await c.req.json()
+      const eventId =
+        typeof body?.eventId === 'string' ? body.eventId.trim() : ''
+      if (!eventId) {
+        return c.json({ error: 'Reward event ID is required' }, 400)
+      }
+      await deps.redeemReward(db, { id: authUser.id }, rewardId, eventId)
 
-      const posthog = createPostHogClient(c.env)
+      const posthog = deps.createPostHogClient(c.env)
       await posthog.captureImmediate({
         distinctId: String(authUser.id),
         event: 'reward redeemed',
@@ -107,7 +120,17 @@ export function rewardRoutes(app: Hono<Env>,
       return c.json({ success: true })
     } catch (error) {
       console.error('POST /api/rewards/:id/redeem error:', error)
-      return c.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, 400)
+      const message = error instanceof Error ? error.message : 'Internal Server Error'
+      if (message === 'Reward not found') {
+        return c.json({ error: message }, 404)
+      }
+      if (
+        message === 'Insufficient points' ||
+        message === 'Reward event ID is required'
+      ) {
+        return c.json({ error: message }, 400)
+      }
+      return c.json({ error: message }, 500)
     }
   })
 }

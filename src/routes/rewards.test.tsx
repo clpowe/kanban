@@ -40,8 +40,9 @@ let createRewardCall: {
   body: { title: string; cost: string };
 } | null = null;
 let redeemRewardCall: {
-  user: { id: number; points: number };
+  user: { id: number };
   rewardId: number;
+  eventId: string;
 } | null = null;
 let redeemShouldThrow = false;
 
@@ -74,19 +75,25 @@ async function loadRewardsApp() {
     },
     redeemReward: async (
       _db: any,
-      user: { id: number; points: number },
+      user: { id: number },
       rewardId: number,
+      eventId: string,
     ) => {
-      redeemRewardCall = { user, rewardId };
+      redeemRewardCall = { user, rewardId, eventId };
 
       if (redeemShouldThrow) {
         throw new Error("Insufficient points");
       }
+
+      return { duplicate: false, points: 15 };
     },
     getRewardById: async (_db: any, id: number) => {
       const reward = rewards.find((r) => r.id === id);
       return reward ? { id: reward.id, title: reward.title, cost: reward.cost } : null;
     },
+    createPostHogClient: () => ({
+      captureImmediate: async () => undefined,
+    }),
   });
   return app;
 }
@@ -149,12 +156,15 @@ describe("rewardRoutes", () => {
 
     const response = await app.request("/api/rewards/9/redeem", {
       method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventId: "redeem-route-success" }),
     });
 
     expect(response.status).toBe(200);
     expect(redeemRewardCall).toEqual({
-      user: childUser,
+      user: { id: childUser.id },
       rewardId: 9,
+      eventId: "redeem-route-success",
     });
   });
 
@@ -165,12 +175,29 @@ describe("rewardRoutes", () => {
 
     const response = await app.request("/api/rewards/9/redeem", {
       method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventId: "redeem-route-insufficient" }),
     });
 
     expect(response.status).toBe(400);
     expect(redeemRewardCall).toEqual({
-      user: childUser,
+      user: { id: childUser.id },
       rewardId: 9,
+      eventId: "redeem-route-insufficient",
     });
+  });
+
+  test("returns 404 when redeeming a missing reward", async () => {
+    activeUser = childUser;
+    const app = await loadRewardsApp();
+
+    const response = await app.request("/api/rewards/404/redeem", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventId: "redeem-route-missing" }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(redeemRewardCall).toBeNull();
   });
 });
