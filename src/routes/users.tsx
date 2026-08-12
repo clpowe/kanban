@@ -3,19 +3,39 @@ import { getDB, type Env } from "../db/client";
 import { requireAuthenticatedUser, requireParent } from "../auth/middleware";
 import { getAllUsers } from "../services/user.service";
 import { createAuth } from "../auth/auth";
-import { eq, and, ne, or } from "drizzle-orm";
-import { users, accounts, tasks, taskAchievements, earnedBadges } from "../db/schema";
+import { eq, and, isNull, ne, or, sql } from "drizzle-orm";
+import {
+  users,
+  accounts,
+  tasks,
+  taskAchievements,
+  taskCompletions,
+  pointEntries,
+  earnedBadges,
+} from "../db/schema";
 import { hashPassword } from "better-auth/crypto";
 
-const isCompletedTask = (task: any) =>
-  task.status === "done" ||
-  (task.status === "archived" && task.archiveReason !== "missed");
+type UserRoutesDeps = {
+  getDB: typeof getDB;
+  requireAuthenticatedUser: typeof requireAuthenticatedUser;
+  requireParent: typeof requireParent;
+};
 
-export function userRoutes(app: Hono<Env>) {
+const defaultDeps: UserRoutesDeps = {
+  getDB,
+  requireAuthenticatedUser,
+  requireParent,
+};
+
+export function userRoutes(
+  app: Hono<Env>,
+  overrides: Partial<UserRoutesDeps> = {},
+) {
+  const deps = { ...defaultDeps, ...overrides };
   // GET list of all users (sorted)
   app.get("/api/users", async (c) => {
     try {
-      const db = getDB(c.env);
+      const db = deps.getDB(c.env);
       const result = await getAllUsers(db);
       const sortedUsers = [...result].sort((a, b) => {
         if (a.type !== b.type) {
@@ -39,7 +59,7 @@ export function userRoutes(app: Hono<Env>) {
   // POST create a child user (Parents only)
   app.post("/api/users/children", async (c) => {
     try {
-      requireParent(c);
+      deps.requireParent(c);
 
       const body = await c.req.json<{
         name?: string;
@@ -90,7 +110,7 @@ export function userRoutes(app: Hono<Env>) {
   // PATCH user details (Parents only - Stub)
   app.patch("/api/users/:id", async (c) => {
     try {
-      requireParent(c);
+      deps.requireParent(c);
       return c.json({ error: "Not implemented" }, 501);
     } catch (err) {
       return c.json(
@@ -102,7 +122,7 @@ export function userRoutes(app: Hono<Env>) {
 
   app.post("/api/users/:id/password", async (c) => {
     try {
-      requireParent(c);
+      deps.requireParent(c);
       const targetUserId = Number(c.req.param("id"));
       const body = await c.req.json<{ password?: string }>();
       const { password } = body;
@@ -111,7 +131,7 @@ export function userRoutes(app: Hono<Env>) {
         return c.json({ error: "Password must be at least 6 characters" }, 400);
       }
 
-      const db = getDB(c.env);
+      const db = deps.getDB(c.env);
 
       // Enforce that target user exists and is a child
       const targetUser = await db
@@ -155,9 +175,9 @@ export function userRoutes(app: Hono<Env>) {
   // GET achievements, custom parent achievements, stats, and milestones
   app.get("/api/users/:id/achievements", async (c) => {
     try {
-      requireAuthenticatedUser(c);
+      deps.requireAuthenticatedUser(c);
       const userId = Number(c.req.param("id"));
-      const db = getDB(c.env);
+      const db = deps.getDB(c.env);
       // Check if user exists
       const targetUser = await db
         .select()
@@ -195,28 +215,44 @@ export function userRoutes(app: Hono<Env>) {
       const userBadges = await db
         .select()
         .from(earnedBadges)
-        .where(eq(earnedBadges.userId, userId));
-      // Get completed tasks counts
-      const userTasks = await db
-        .select()
-        .from(tasks)
-        .where(eq(tasks.assigneeId, userId));
-      const totalCompleted = userTasks.filter(isCompletedTask).length;
-      const highPriorityCompleted = userTasks.filter(
-        (t: any) => isCompletedTask(t) && t.priority === "high",
+        .where(
+          and(
+            eq(earnedBadges.userId, userId),
+            isNull(earnedBadges.revokedAt),
+          ),
+        );
+      const completionHistory = await db
+        .select({ completion: taskCompletions, task: tasks })
+        .from(taskCompletions)
+        .leftJoin(tasks, eq(taskCompletions.taskId, tasks.id))
+        .where(
+          and(
+            eq(taskCompletions.userId, userId),
+            isNull(taskCompletions.canceledAt),
+          ),
+        );
+      const pointTotal = await db
+        .select({
+          points: sql<number>`coalesce(sum(${pointEntries.delta}), 0)`,
+        })
+        .from(pointEntries)
+        .where(eq(pointEntries.userId, userId))
+        .get();
+      const totalCompleted = completionHistory.length;
+      const highPriorityCompleted = completionHistory.filter(
+        ({ task }) => task?.priority === "high",
       ).length;
-      const repeatingCompleted = userTasks.filter(
-        (t: any) => isCompletedTask(t) && t.repeat && t.repeat !== "none",
+      const repeatingCompleted = completionHistory.filter(
+        ({ completion }) => completion.achievementId !== null,
       ).length;
-      const cleanCompleted = userTasks.filter(
-        (t: any) =>
-          isCompletedTask(t) &&
-          (t.title.toLowerCase().includes("clean") ||
-            t.title.toLowerCase().includes("room")),
-      ).length;
+      const cleanCompleted = completionHistory.filter(({ task }) => {
+        const title = task?.title.toLowerCase() ?? "";
+        return title.includes("clean") || title.includes("room");
+      }).length;
       return c.json({
         achievements: achievementsList.map((a: any) => ({
           ...a.achievement,
+          taskId: a.currentTask?.id ?? a.achievement.taskId ?? null,
           taskTitle: a.achievement.taskTitle ?? a.currentTask?.title ?? null,
           taskRepeat: a.achievement.cadence ?? a.currentTask?.repeat ?? null,
         })),
@@ -226,7 +262,7 @@ export function userRoutes(app: Hono<Env>) {
           highPriorityCompleted,
           repeatingCompleted,
           cleanCompleted,
-          currentPoints: targetUser.points,
+          currentPoints: Number(pointTotal?.points ?? 0),
         },
       });
     } catch (err: any) {
@@ -240,7 +276,7 @@ export function userRoutes(app: Hono<Env>) {
   // PATCH update user avatar (image field)
   app.patch("/api/users/:id/avatar", async (c) => {
     try {
-      const activeUser = requireAuthenticatedUser(c);
+      const activeUser = deps.requireAuthenticatedUser(c);
       const targetUserId = Number(c.req.param("id"));
       const body = await c.req.json<{ avatar?: string }>();
       const { avatar } = body;
@@ -251,7 +287,7 @@ export function userRoutes(app: Hono<Env>) {
       if (activeUser.type !== "parent" && activeUser.id !== targetUserId) {
         return c.json({ error: "Forbidden: Access denied" }, 403);
       }
-      const db = getDB(c.env);
+      const db = deps.getDB(c.env);
       // Verify user exists
       const targetUser = await db
         .select()
@@ -276,11 +312,16 @@ export function userRoutes(app: Hono<Env>) {
       }
       // If required > 0, verify the user has achieved it
       if (requiredCompletions > 0) {
-        const userTasks = await db
-          .select()
-          .from(tasks)
-          .where(eq(tasks.assigneeId, targetUserId));
-        const totalCompleted = userTasks.filter(isCompletedTask).length;
+        const completionRows = await db
+          .select({ id: taskCompletions.id })
+          .from(taskCompletions)
+          .where(
+            and(
+              eq(taskCompletions.userId, targetUserId),
+              isNull(taskCompletions.canceledAt),
+            ),
+          );
+        const totalCompleted = completionRows.length;
         if (totalCompleted < requiredCompletions) {
           return c.json(
             {
