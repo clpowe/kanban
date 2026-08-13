@@ -197,8 +197,95 @@ SET points = COALESCE(
   0
 );
 
--- Compute the New York date with current U.S. DST transition rules, then create
--- one eligible current occurrence for every configured active goal that lacks one.
+-- Compute the New York date with current U.S. DST transition rules. Archive a
+-- stale non-archived occurrence first so a legacy row cannot masquerade as the
+-- current cycle and block the replacement occurrence.
+WITH
+year_parts AS (
+  SELECT strftime('%Y', 'now') AS year
+),
+transitions AS (
+  SELECT
+    unixepoch(
+      printf(
+        '%s-03-%02d 07:00:00',
+        year,
+        8 + ((7 - CAST(strftime('%w', year || '-03-01') AS INTEGER)) % 7)
+      )
+    ) AS dst_start,
+    unixepoch(
+      printf(
+        '%s-11-%02d 06:00:00',
+        year,
+        1 + ((7 - CAST(strftime('%w', year || '-11-01') AS INTEGER)) % 7)
+      )
+    ) AS dst_end
+  FROM year_parts
+),
+clock AS (
+  SELECT date(
+    'now',
+    CASE
+      WHEN unixepoch('now') >= dst_start AND unixepoch('now') < dst_end
+        THEN '-4 hours'
+      ELSE '-5 hours'
+    END
+  ) AS ny_date
+  FROM transitions
+),
+configured_goals AS (
+  SELECT
+    goal.id,
+    goal.active,
+    CASE
+      WHEN goal.cadence = 'weekly' THEN date(
+        clock.ny_date,
+        printf(
+          '-%d days',
+          (CAST(strftime('%w', clock.ny_date) AS INTEGER) + 6) % 7
+        )
+      )
+      WHEN goal.cadence = 'daily' THEN CASE
+        CAST(strftime('%w', clock.ny_date) AS INTEGER)
+        WHEN 0 THEN date(clock.ny_date, '+1 day')
+        WHEN 6 THEN date(clock.ny_date, '+2 days')
+        ELSE clock.ny_date
+      END
+      ELSE NULL
+    END AS target_cycle
+  FROM task_achievements AS goal
+  CROSS JOIN clock
+)
+UPDATE tasks
+SET
+  status = 'archived',
+  archived_at = COALESCE(
+    archived_at,
+    CAST(unixepoch('now') AS INTEGER) * 1000
+  ),
+  archive_reason = COALESCE(
+    archive_reason,
+    CASE WHEN status = 'done' THEN 'completed' ELSE 'missed' END
+  ),
+  completed_at = CASE
+    WHEN status = 'done' THEN COALESCE(
+      completed_at,
+      CAST(unixepoch('now') AS INTEGER) * 1000
+    )
+    ELSE completed_at
+  END
+WHERE status <> 'archived'
+  AND EXISTS (
+    SELECT 1
+    FROM configured_goals AS goal
+    WHERE goal.id = tasks.achievement_id
+      AND goal.active = 1
+      AND goal.target_cycle IS NOT NULL
+      AND tasks.cycle_date IS NOT goal.target_cycle
+  );
+
+-- Create one eligible current occurrence for every configured active goal that
+-- lacks an occurrence for the exact current cycle.
 WITH
 year_parts AS (
   SELECT strftime('%Y', 'now') AS year
@@ -285,4 +372,5 @@ WHERE goal.active = 1
     FROM tasks AS current_occurrence
     WHERE current_occurrence.achievement_id = goal.id
       AND current_occurrence.status <> 'archived'
+      AND current_occurrence.cycle_date = goal.target_cycle
   );

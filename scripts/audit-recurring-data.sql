@@ -2,6 +2,61 @@
 -- `severity = deterministic` findings are handled by reconcile-recurring-data.sql.
 -- `severity = manual_review` findings are intentionally never deleted or guessed at.
 
+WITH
+year_parts AS (
+  SELECT strftime('%Y', 'now') AS year
+),
+transitions AS (
+  SELECT
+    unixepoch(
+      printf(
+        '%s-03-%02d 07:00:00',
+        year,
+        8 + ((7 - CAST(strftime('%w', year || '-03-01') AS INTEGER)) % 7)
+      )
+    ) AS dst_start,
+    unixepoch(
+      printf(
+        '%s-11-%02d 06:00:00',
+        year,
+        1 + ((7 - CAST(strftime('%w', year || '-11-01') AS INTEGER)) % 7)
+      )
+    ) AS dst_end
+  FROM year_parts
+),
+clock AS (
+  SELECT date(
+    'now',
+    CASE
+      WHEN unixepoch('now') >= dst_start AND unixepoch('now') < dst_end
+        THEN '-4 hours'
+      ELSE '-5 hours'
+    END
+  ) AS ny_date
+  FROM transitions
+),
+configured_goals AS (
+  SELECT
+    goal.*,
+    CASE
+      WHEN goal.cadence = 'weekly' THEN date(
+        clock.ny_date,
+        printf(
+          '-%d days',
+          (CAST(strftime('%w', clock.ny_date) AS INTEGER) + 6) % 7
+        )
+      )
+      WHEN goal.cadence = 'daily' THEN CASE
+        CAST(strftime('%w', clock.ny_date) AS INTEGER)
+        WHEN 0 THEN date(clock.ny_date, '+1 day')
+        WHEN 6 THEN date(clock.ny_date, '+2 days')
+        ELSE clock.ny_date
+      END
+      ELSE NULL
+    END AS target_cycle
+  FROM task_achievements AS goal
+  CROSS JOIN clock
+)
 SELECT
   'recurring_tasks_missing_goal' AS issue,
   'deterministic' AS severity,
@@ -18,13 +73,15 @@ SELECT
   'deterministic',
   COUNT(*),
   COALESCE(GROUP_CONCAT(id), '')
-FROM task_achievements AS goal
+FROM configured_goals AS goal
 WHERE goal.active = 1
+  AND goal.target_cycle IS NOT NULL
   AND NOT EXISTS (
     SELECT 1
     FROM tasks AS occurrence
     WHERE occurrence.achievement_id = goal.id
       AND occurrence.status <> 'archived'
+      AND occurrence.cycle_date = goal.target_cycle
   )
 
 UNION ALL
