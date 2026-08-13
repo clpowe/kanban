@@ -1,43 +1,50 @@
 # Design — Family Task
 
-Status: GitHub Projects-inspired board system (2026-07-19).
+Status: restrained multi-view household workspace (2026-07-28).
 
-Family Task uses the information density and interaction conventions of a
-GitHub Projects board without copying GitHub branding. The visual language is
-quiet and operational: cool canvas neutrals, thin borders, compact controls,
-status dots, small metadata labels, and horizontally scrolling board columns.
+Family Task combines Asana’s scan-friendly board density, ClickUp’s practical
+view controls, and a docked task-detail inspector. The product is for a family
+or small household that needs to see the week’s work quickly, change the level
+of detail, and act on one task without losing the surrounding board.
 
 ## Tokens
 
-- Canvas: `#f6f8fa`
-- Surface: `#ffffff`
-- Inset surface: `#f0f3f6`
-- Foreground: `#1f2328`
-- Muted foreground: `#656d76`
-- Border: `#d0d7de`
-- Accent: `#0969da`
-- Success: `#1a7f37`
-- Attention: `#9a6700`
-- Danger: `#cf222e`
+- Cloud canvas: `#f8f7fb`
+- Paper surface: `#ffffff`
+- Ink: `#282531`
+- Muted ink: `#706b7a`
+- Periwinkle action: `#6658d9`
+- Warm progress: `#c48831`
+- Finished green: `#4d896b`
+- Fine rule: `#dfdce6`
 
-The body uses the native system UI stack so controls feel at home on every
-device. IDs, counts, and task metadata use a monospace utility stack.
+The interface uses Avenir Next where available for titles and the native UI
+stack for controls and dense operational copy. Metadata stays small and quiet;
+color identifies state instead of decorating the canvas.
 
 ## Layout
 
-The global rail behaves like a repository header. The board begins with a
-breadcrumb, project identity, view tabs, and an assignee toolbar. The original
-three columns—To do, In progress, and Done—stay compact and independently
-scannable, with cards that expose title, labels, assignee, streak progress, and
-the existing next action.
+The project header owns the Board, List, and Archive views. A compact toolbar
+supports search, assignee and priority filters, sorting, compact cards, and
+optional streak progress. The board retains three honest household states—To
+do, In progress, and Done—on softly tinted columns with light, concise cards.
 
-The signature element is the workload strip above the columns. Every small
-segment represents one visible task and carries its real status color, giving
-families a glanceable picture of work distribution without adding a chart.
+Selecting a task docks a working inspector to the right edge. The board remains
+visible while a parent edits title, state, assignee, priority, or recurrence;
+children get the same context with a focused next action. On small screens the
+inspector becomes a full-height sheet.
+
+## Signature interaction
+
+The task inspector is the single expressive moment. It slides into the shared
+workspace like opening a working document, then stays spatially attached to the
+board instead of interrupting the user with a modal.
 
 ## Interaction
 
-- Cards remain draggable between all active status columns.
-- Assignee filtering remains available in the board toolbar.
-- Parents open the existing task dialog from the global rail.
-- Controls have visible keyboard focus, and motion is reduced when requested.
+- Cards remain draggable between active status columns.
+- Board and list views share the same live filters.
+- Parents can edit and delete from the inspector or add through the existing
+  task dialog.
+- Compact cards and streak visibility are real per-session view options.
+- Controls retain visible keyboard focus and motion is reduced when requested.
