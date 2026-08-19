@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createResource, createSignal } from "solid-js";
+import { For, Loading, Show, createEffect, createMemo, createSignal } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
 import { api } from "../lib/api";
@@ -20,16 +20,18 @@ export default function Profile() {
   const [avatarSuccess, setAvatarSuccess] = createSignal(false);
   const [avatarLoading, setAvatarLoading] = createSignal(false);
 
-  createEffect(() => {
-    if (store.activeUser && store.activeUser.type !== "child") {
-      navigate("/", { replace: true });
-    }
-  });
-
-  const [achievementsData] = createResource(
-    () => store.activeUser?.id,
-    async (userId) => (userId ? api.getUserAchievements(userId) : null),
+  createEffect(
+    () => Boolean(store.activeUser) && store.activeUser?.type !== "child",
+    (mustRedirect) => {
+      if (mustRedirect) navigate("/", { replace: true });
+    },
   );
+
+  // Async computation replaces createResource; reads settle under <Loading>.
+  const achievementsData = createMemo(() => {
+    const userId = store.activeUser?.id;
+    return userId ? api.getUserAchievements(userId) : null;
+  });
 
   const handleSelectAvatar = async (emoji: string) => {
     if (!store.activeUser) return;
@@ -67,6 +69,13 @@ export default function Profile() {
         </div>
       </header>
 
+      <Loading
+        fallback={
+          <div class="profile-bento" aria-busy="true">
+            <p class="empty-row">Loading your badges…</p>
+          </div>
+        }
+      >
       <div class="profile-bento">
         <section class="avatar-panel">
           <header>
@@ -92,10 +101,10 @@ export default function Profile() {
                   <button
                     type="button"
                     class="avatar-choice"
-                    data-active={active()}
-                    data-locked={!unlocked()}
+                    data-active={active() ? "true" : "false"}
+                    data-locked={unlocked() ? "false" : "true"}
                     disabled={avatarLoading()}
-                    aria-pressed={active()}
+                    aria-pressed={active() ? "true" : "false"}
                     onClick={() => handleSelectAvatar(avatar.emoji)}
                   >
                     <span aria-hidden="true">{avatar.emoji}</span>
@@ -193,6 +202,7 @@ export default function Profile() {
           </div>
         </section>
       </div>
+      </Loading>
     </section>
   );
 }

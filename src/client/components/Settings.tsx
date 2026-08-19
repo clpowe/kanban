@@ -5,11 +5,12 @@ import { store, storeActions } from "../store/app-store";
 export default function Settings() {
   const navigate = useNavigate();
 
-  createEffect(() => {
-    if (store.activeUser && store.activeUser.type !== "parent") {
-      navigate("/", { replace: true });
-    }
-  });
+  createEffect(
+    () => Boolean(store.activeUser) && store.activeUser?.type !== "parent",
+    (mustRedirect) => {
+      if (mustRedirect) navigate("/", { replace: true });
+    },
+  );
 
   const [rewardTitle, setRewardTitle] = createSignal("");
   const [rewardCost, setRewardCost] = createSignal(10);
@@ -236,7 +237,7 @@ export default function Settings() {
               minlength="6"
             />
           </label>
-          <button type="submit" class="primary" disabled={childLoading()} aria-busy={childLoading()}>
+          <button type="submit" class="primary" disabled={childLoading()} aria-busy={childLoading() ? "true" : "false"}>
             {childLoading() ? "Creating…" : "Add child"}
           </button>
         </form>
@@ -282,7 +283,7 @@ export default function Settings() {
               />
             </label>
           </div>
-          <button type="submit" class="primary" disabled={passwordLoading()} aria-busy={passwordLoading()}>
+          <button type="submit" class="primary" disabled={passwordLoading()} aria-busy={passwordLoading() ? "true" : "false"}>
             {passwordLoading() ? "Updating…" : "Update password"}
           </button>
         </form>

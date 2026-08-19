@@ -1,4 +1,3 @@
-import { A } from "@solidjs/router";
 import { Show, createSignal } from "solid-js";
 import { authClient } from "../lib/auth-client";
 
@@ -35,10 +34,10 @@ export default function Login() {
   return (
     <main class="auth-page">
       <section class="auth-intro" aria-labelledby="login-title">
-        <A href="/" class="wordmark" aria-label="Family Task home">
+        <a href="/" class="wordmark" aria-label="Family Task home">
           <strong>Family Task</strong>
           <small>Household board</small>
-        </A>
+        </a>
         <h1 id="login-title">Do the thing. Get the point.</h1>
         <p>Tasks stay clear. Progress stays visible. Everyone knows what’s next.</p>
       </section>
@@ -76,13 +75,13 @@ export default function Login() {
               autocomplete="current-password"
             />
           </label>
-          <button type="submit" class="primary" disabled={loading()} aria-busy={loading()}>
+          <button type="submit" class="primary" disabled={loading()} aria-busy={loading() ? "true" : "false"}>
             {loading() ? "Signing in…" : "Sign in"}
           </button>
         </form>
 
         <footer>
-          <p>Need a family account? <A href="/register">Create one</A></p>
+          <p>Need a family account? <a href="/register">Create one</a></p>
           <small>Parent accounts manage family access.</small>
         </footer>
       </section>

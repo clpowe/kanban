@@ -1,45 +1,50 @@
-import { createSignal, createEffect, onCleanup } from "solid-js";
+import { createSignal, createEffect, untrack } from "solid-js";
 interface AnimatedPointsProps {
   value: number;
   class?: string;
 }
 
 export default function AnimatedPoints(props: AnimatedPointsProps) {
-  const [displayValue, setDisplayValue] = createSignal(props.value);
-  let animationFrameId: number;
+  // Mirror of the signal so the apply phase never reads a reactive value.
+  let current = untrack(() => props.value);
+  const [displayValue, setDisplayValue] = createSignal(current);
 
-  createEffect(() => {
-    const target = props.value;
-    const start = displayValue();
-    if (start === target) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setDisplayValue(target);
-      return;
-    }
+  const commit = (value: number) => {
+    current = value;
+    setDisplayValue(value);
+  };
 
-    const duration = 400;
-    const startTime = performance.now();
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      const ease = progress * (2 - progress);
-      const current = Math.round(start + (target - start) * ease);
-
-      setDisplayValue(current);
-
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(animate);
+  createEffect(
+    () => props.value,
+    (target) => {
+      const start = current;
+      if (start === target) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        commit(target);
+        return;
       }
-    };
 
-    animationFrameId = requestAnimationFrame(animate);
+      const duration = 400;
+      const startTime = performance.now();
+      let animationFrameId = 0;
 
-    onCleanup(() => {
-      cancelAnimationFrame(animationFrameId);
-    });
-  });
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        const ease = progress * (2 - progress);
+        commit(Math.round(start + (target - start) * ease));
+
+        if (progress < 1) {
+          animationFrameId = requestAnimationFrame(animate);
+        }
+      };
+
+      animationFrameId = requestAnimationFrame(animate);
+
+      return () => cancelAnimationFrame(animationFrameId);
+    },
+  );
 
   return (
     <span class={props.class} aria-live="polite">

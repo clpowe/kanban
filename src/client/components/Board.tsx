@@ -5,7 +5,6 @@ import {
   createMemo,
   createSignal,
 } from "solid-js";
-import { A } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
 import type { Task } from "../../types";
 import { isVisibleStreak } from "../lib/streak-visibility";
@@ -112,8 +111,8 @@ function TaskCard(props: {
     <article
       class="task-card"
       data-priority={props.task.priority}
-      data-compact={props.compact}
-      data-selected={props.selected}
+      data-compact={props.compact ? "true" : "false"}
+      data-selected={props.selected ? "true" : "false"}
       draggable="true"
       onDragStart={handleDragStart}
     >
@@ -208,13 +207,23 @@ function TaskInspector(props: { task: Task; onClose: () => void }) {
     isParent() || props.task.assigneeId === store.activeUser?.id;
   const assignedName = () => assigneeName(props.task.assigneeId) || "Unassigned";
 
-  createEffect(() => {
-    setTitle(props.task.title);
-    setPriority(props.task.priority);
-    setStatus(props.task.status);
-    setRepeat(props.task.repeat || "none");
-    setAssigneeId(props.task.assigneeId == null ? "" : String(props.task.assigneeId));
-  });
+  createEffect(
+    () => ({
+      title: props.task.title,
+      priority: props.task.priority,
+      status: props.task.status,
+      repeat: (props.task.repeat || "none") as "none" | "daily" | "weekly",
+      assigneeId:
+        props.task.assigneeId == null ? "" : String(props.task.assigneeId),
+    }),
+    (task) => {
+      setTitle(task.title);
+      setPriority(task.priority);
+      setStatus(task.status);
+      setRepeat(task.repeat);
+      setAssigneeId(task.assigneeId);
+    },
+  );
 
   const saveChanges = async (event: Event) => {
     event.preventDefault();
@@ -546,7 +555,7 @@ export default function Board() {
             <span class="view-icon list-icon" aria-hidden="true"><i /><i /><i /></span>
             List
           </button>
-          <A href="/archived">Archive</A>
+          <a href="/archived">Archive</a>
         </nav>
       </header>
 
@@ -622,7 +631,7 @@ export default function Board() {
         </Show>
       </form>
 
-      <div class="board-workspace" data-panel-open={Boolean(selectedTask())}>
+      <div class="board-workspace" data-panel-open={selectedTask() ? "true" : "false"}>
         <main class="board-canvas">
           <div class="board-result-line" aria-live="polite">
             <span>
@@ -654,12 +663,12 @@ export default function Board() {
                       each={filteredTasks()}
                       fallback={
                         <tr>
-                          <td colSpan={5} class="table-empty">No tasks match these filters.</td>
+                          <td colspan={5} class="table-empty">No tasks match these filters.</td>
                         </tr>
                       }
                     >
                       {(task) => (
-                        <tr data-selected={selectedTaskId() === task.id}>
+                        <tr data-selected={selectedTaskId() === task.id ? "true" : "false"}>
                           <td>
                             <button type="button" class="list-task-open" onClick={() => setSelectedTaskId(task.id)}>
                               <span>Task {task.id}</span>
@@ -692,7 +701,7 @@ export default function Board() {
                     <section
                       class="board-column"
                       data-status={column.key}
-                      data-drag-over={dragOverColumn() === column.key}
+                      data-drag-over={dragOverColumn() === column.key ? "true" : "false"}
                       onDragOver={(event) => event.preventDefault()}
                       onDragEnter={(event) => {
                         event.preventDefault();

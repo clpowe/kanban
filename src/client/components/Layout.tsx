@@ -1,12 +1,11 @@
 import { For, Show } from "solid-js";
-import { A, useLocation, useNavigate } from "@solidjs/router";
+import { useNavigate } from "@solidjs/router";
 import { store, storeActions } from "../store/app-store";
-import { authClient } from "../lib/auth-client";
+import { authClient, useSession } from "../lib/auth-client";
 
 export default function HouseholdRail() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const session = authClient.useSession();
+  const session = useSession();
 
   const isParent = () => store.activeUser?.type === "parent";
   const switchableUsers = () =>
@@ -37,49 +36,30 @@ export default function HouseholdRail() {
 
   const NavLinks = (props: { mobile?: boolean }) => (
     <nav aria-label={props.mobile ? "Mobile navigation" : "Primary navigation"}>
-      <A href="/" aria-current={location.pathname === "/" ? "page" : undefined} onClick={closeMenu}>
+      {/* The router sets aria-current/data-active on claimed anchors. */}
+      <a href="/" onClick={closeMenu}>
         Board
-      </A>
-      <A
-        href="/archived"
-        aria-current={location.pathname === "/archived" ? "page" : undefined}
-        onClick={closeMenu}
-      >
+      </a>
+      <a href="/archived" onClick={closeMenu}>
         Archive
-      </A>
+      </a>
       <Show when={isParent()}>
-        <A
-          href="/analytics"
-          aria-current={location.pathname === "/analytics" ? "page" : undefined}
-          onClick={closeMenu}
-        >
+        <a href="/analytics" onClick={closeMenu}>
           Analytics
-        </A>
+        </a>
       </Show>
-      <A
-        href="/rewards"
-        aria-current={location.pathname === "/rewards" ? "page" : undefined}
-        onClick={closeMenu}
-      >
+      <a href="/rewards" onClick={closeMenu}>
         Rewards
-      </A>
+      </a>
       <Show when={store.activeUser?.type === "child"}>
-        <A
-          href="/profile"
-          aria-current={location.pathname === "/profile" ? "page" : undefined}
-          onClick={closeMenu}
-        >
+        <a href="/profile" onClick={closeMenu}>
           Badges
-        </A>
+        </a>
       </Show>
       <Show when={isParent()}>
-        <A
-          href="/settings"
-          aria-current={location.pathname === "/settings" ? "page" : undefined}
-          onClick={closeMenu}
-        >
+        <a href="/settings" onClick={closeMenu}>
           Settings
-        </A>
+        </a>
       </Show>
     </nav>
   );
@@ -101,13 +81,13 @@ export default function HouseholdRail() {
 
   return (
     <header class="household-rail">
-      <A href="/" class="wordmark" aria-label="Family Task home">
+      <a href="/" class="wordmark" aria-label="Family Task home">
         <span class="wordmark-mark" aria-hidden="true">FT</span>
         <span>
           <strong>Family Task</strong>
           <small>Household board</small>
         </span>
-      </A>
+      </a>
 
       <div class="desktop-navigation">
         <NavLinks />
