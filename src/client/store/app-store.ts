@@ -1,5 +1,4 @@
-import { createStore } from "solid-js/store";
-import { createSignal } from "solid-js";
+import { createSignal, createStore } from "solid-js";
 import { api } from "../lib/api";
 import type {
   Task,
@@ -46,6 +45,14 @@ async function runStoreAction<T>(
   }
 }
 
+// Replace a single task row in place (Solid 2 draft setter)
+function replaceTask(id: number, updatedTask: Task) {
+  setStore((draft) => {
+    const index = draft.tasks.findIndex((task) => task.id === id);
+    if (index !== -1) draft.tasks[index] = updatedTask;
+  });
+}
+
 // Full Sync Fetch - Bootstraps the application data in parallel
 async function fetchBoardData() {
   await runStoreAction(async () => {
@@ -57,11 +64,11 @@ async function fetchBoardData() {
       api.getUsers(),
       api.getActiveUser(),
     ]);
-    setStore({
-      tasks: [...activeTasks, ...archivedTasks],
-      rewards: rewards,
-      users: users,
-      activeUser: activeUser,
+    setStore((draft) => {
+      draft.tasks = [...activeTasks, ...archivedTasks];
+      draft.rewards = rewards;
+      draft.users = users;
+      draft.activeUser = activeUser;
     });
   });
 }
@@ -69,7 +76,9 @@ async function fetchBoardData() {
 // Targeted refresh sync actions
 async function reloadUsers() {
   const users = await api.getUsers();
-  setStore("users", users);
+  setStore((draft) => {
+    draft.users = users;
+  });
 }
 
 async function reloadTasks() {
@@ -77,17 +86,23 @@ async function reloadTasks() {
     api.getTasks(),
     api.getArchivedTasks(),
   ]);
-  setStore("tasks", [...activeTasks, ...archivedTasks]);
+  setStore((draft) => {
+    draft.tasks = [...activeTasks, ...archivedTasks];
+  });
 }
 
 async function reloadActiveUser() {
   const activeUser = await api.getActiveUser();
-  setStore("activeUser", activeUser);
+  setStore((draft) => {
+    draft.activeUser = activeUser;
+  });
 }
 
 async function reloadRewards() {
   const rewards = await api.getRewards();
-  setStore("rewards", rewards);
+  setStore((draft) => {
+    draft.rewards = rewards;
+  });
 }
 
 export const storeActions = {
@@ -111,7 +126,9 @@ export const storeActions = {
   async addTask(task: CreateTask) {
     return await runStoreAction(async () => {
       const newTask = await api.createTask(task);
-      setStore("tasks", (prev) => [...prev, newTask]);
+      setStore((draft) => {
+        draft.tasks.push(newTask);
+      });
       await reloadTasks(); // Keep database status perfectly aligned
       return newTask;
     });
@@ -121,7 +138,7 @@ export const storeActions = {
     const eventId = crypto.randomUUID();
     await runStoreAction(async () => {
       const updatedTask = await api.updateTaskStatus(id, status, eventId);
-      setStore("tasks", (task) => task.id === id, updatedTask);
+      replaceTask(id, updatedTask);
       // Points updates happen automatically on the server when tasks are marked Done.
       // Therefore, we MUST pull fresh scores to update our local users and session context.
       await Promise.all([reloadTasks(), reloadUsers(), reloadActiveUser()]);
@@ -131,7 +148,7 @@ export const storeActions = {
   async updateTask(id: number, updates: TaskUpdate) {
     return await runStoreAction(async () => {
       const updatedTask = await api.updateTask(id, updates);
-      setStore("tasks", (task) => task.id === id, updatedTask);
+      replaceTask(id, updatedTask);
       // Recurrence edits can replace hydration/configuration for the selected row.
       await Promise.all([reloadTasks(), reloadUsers(), reloadActiveUser()]);
       return updatedTask;
@@ -142,7 +159,9 @@ export const storeActions = {
     await runStoreAction(async () => {
       const result = await api.deleteTask(id);
       if (result.success) {
-        setStore("tasks", (prev) => prev.filter((t) => t.id !== id));
+        setStore((draft) => {
+          draft.tasks = draft.tasks.filter((t) => t.id !== id);
+        });
       }
     });
   },
@@ -151,7 +170,9 @@ export const storeActions = {
   async createReward(reward: { title: string; cost: number }) {
     return await runStoreAction(async () => {
       const newReward = await api.createReward(reward);
-      setStore("rewards", (prev) => [...prev, newReward]);
+      setStore((draft) => {
+        draft.rewards.push(newReward);
+      });
       await reloadRewards();
       return newReward;
     });

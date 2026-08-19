@@ -1,4 +1,4 @@
-import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createSignal, onSettled } from "solid-js";
 import type { ParentProps } from "solid-js";
 import { store, storeActions } from "../store/app-store";
 import type { CreateTask, Task } from "../../types";
@@ -42,7 +42,7 @@ export default function AppShell(props: ParentProps) {
     setTargetStreak(task.achievement?.targetStreak ?? 20);
   };
 
-  onMount(() => {
+  onSettled(() => {
     const handleEditTask = (event: Event) => {
       const taskId = (event as CustomEvent<number>).detail;
       const task = store.tasks.find((candidate) => candidate.id === taskId);
@@ -54,9 +54,8 @@ export default function AppShell(props: ParentProps) {
     };
 
     window.addEventListener("family-task:edit-task", handleEditTask);
-    onCleanup(() =>
-      window.removeEventListener("family-task:edit-task", handleEditTask),
-    );
+    return () =>
+      window.removeEventListener("family-task:edit-task", handleEditTask);
   });
 
   const handleAddTask = async (event: Event) => {
@@ -211,7 +210,7 @@ export default function AppShell(props: ParentProps) {
               <button type="button" onClick={closeTaskDialog}>
                 Cancel
               </button>
-              <button type="submit" class="primary" disabled={saving()} aria-busy={saving()}>
+              <button type="submit" class="primary" disabled={saving()} aria-busy={saving() ? "true" : "false"}>
                 {saving()
                   ? editingTaskId() == null
                     ? "Adding…"

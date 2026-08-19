@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createResource } from "solid-js";
+import { For, Loading, Show, createEffect, createMemo } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { store } from "../store/app-store";
 import { api } from "../lib/api";
@@ -20,13 +20,15 @@ const statusLabels: Record<string, string> = {
 export default function Analytics() {
   const navigate = useNavigate();
 
-  createEffect(() => {
-    if (store.activeUser && store.activeUser.type !== "parent") {
-      navigate("/", { replace: true });
-    }
-  });
+  createEffect(
+    () => Boolean(store.activeUser) && store.activeUser?.type !== "parent",
+    (mustRedirect) => {
+      if (mustRedirect) navigate("/", { replace: true });
+    },
+  );
 
-  const [analytics] = createResource(() => api.getAnalytics());
+  // Async computations replace createResource; reads settle under <Loading>.
+  const analytics = createMemo(() => api.getAnalytics());
 
   const totalTasks = () =>
     (analytics()?.statusCounts || []).reduce((sum, item) => sum + item.count, 0);
@@ -76,6 +78,27 @@ export default function Analytics() {
     });
   };
 
+  // Bar geometry is derived once so the <For> body holds no reactive reads.
+  const memberBars = createMemo(() => {
+    const stats = analytics()?.childStats ?? [];
+    const scale = maxTasksForScale();
+    const width = 24;
+    const xGap = 240 / (stats.length || 1);
+
+    return stats.map((child, index) => {
+      const total = child.todo + child.doing + child.done + child.archived;
+      return {
+        name: child.name,
+        width,
+        x: 30 + xGap * index + (xGap - width) / 2,
+        doneHeight:
+          total > 0 ? ((child.done + child.archived) / scale) * 100 : 0,
+        doingHeight: total > 0 ? (child.doing / scale) * 100 : 0,
+        todoHeight: total > 0 ? (child.todo / scale) * 100 : 0,
+      };
+    });
+  });
+
   const maxTasksForScale = () => {
     const totals = (analytics()?.childStats || []).map(
       (child) => child.todo + child.doing + child.done + child.archived,
@@ -92,8 +115,7 @@ export default function Analytics() {
         </div>
       </header>
 
-      <Show
-        when={!analytics.loading}
+      <Loading
         fallback={
           <section class="analytics-skeleton" aria-label="Loading household progress" aria-busy="true">
             <i />
@@ -197,54 +219,38 @@ export default function Analytics() {
                 <line x1="30" y1="70" x2="290" y2="70" />
                 <line x1="30" y1="120" x2="290" y2="120" />
 
-                <For each={analytics()?.childStats}>
-                  {(child, index) => {
-                    const total = child.todo + child.doing + child.done + child.archived;
-                    const barWidth = 24;
-                    const childCount = analytics()?.childStats.length || 1;
-                    const xGap = 240 / childCount;
-                    const x = 30 + xGap * index() + (xGap - barWidth) / 2;
-                    const doneHeight =
-                      total > 0
-                        ? ((child.done + child.archived) / maxTasksForScale()) * 100
-                        : 0;
-                    const doingHeight =
-                      total > 0 ? (child.doing / maxTasksForScale()) * 100 : 0;
-                    const todoHeight =
-                      total > 0 ? (child.todo / maxTasksForScale()) * 100 : 0;
-
-                    return (
-                      <g>
-                        <rect
-                          x={x}
-                          y={120 - doneHeight}
-                          width={barWidth}
-                          height={doneHeight}
-                          fill={statusColors.done}
-                          rx="4"
-                        />
-                        <rect
-                          x={x}
-                          y={120 - doneHeight - doingHeight}
-                          width={barWidth}
-                          height={doingHeight}
-                          fill={statusColors.doing}
-                          rx="4"
-                        />
-                        <rect
-                          x={x}
-                          y={120 - doneHeight - doingHeight - todoHeight}
-                          width={barWidth}
-                          height={todoHeight}
-                          fill={statusColors.todo}
-                          rx="4"
-                        />
-                        <text x={x + barWidth / 2} y="140" text-anchor="middle">
-                          {child.name}
-                        </text>
-                      </g>
-                    );
-                  }}
+                <For each={memberBars()}>
+                  {(bar) => (
+                    <g>
+                      <rect
+                        x={bar.x}
+                        y={120 - bar.doneHeight}
+                        width={bar.width}
+                        height={bar.doneHeight}
+                        fill={statusColors.done}
+                        rx="4"
+                      />
+                      <rect
+                        x={bar.x}
+                        y={120 - bar.doneHeight - bar.doingHeight}
+                        width={bar.width}
+                        height={bar.doingHeight}
+                        fill={statusColors.doing}
+                        rx="4"
+                      />
+                      <rect
+                        x={bar.x}
+                        y={120 - bar.doneHeight - bar.doingHeight - bar.todoHeight}
+                        width={bar.width}
+                        height={bar.todoHeight}
+                        fill={statusColors.todo}
+                        rx="4"
+                      />
+                      <text x={bar.x + bar.width / 2} y="140" text-anchor="middle">
+                        {bar.name}
+                      </text>
+                    </g>
+                  )}
                 </For>
               </svg>
 
@@ -256,7 +262,7 @@ export default function Analytics() {
             </section>
           </div>
         </Show>
-      </Show>
+      </Loading>
     </section>
   );
 }
